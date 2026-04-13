@@ -42,6 +42,7 @@ const ANTHROPIC_COLOR = "#181818";
 const OPENAI_COLOR = "#10a37f";
 const MISTRALAI_COLOR = "#ff7000";
 const XAI_COLOR = "#000000";
+const ZAI_COLOR = "#1a56db"; // Zhipu AI blue
 
 const GPT_TURBO_128k: Spec = {
   display: "OpenAI GPT-4 Turbo 128k",
@@ -390,6 +391,11 @@ export const QUOTA_SPEC: QuotaSpec = {
   "xai-grok-code-fast-1-16k": {
     display: LLM_USERNAMES["grok-code-fast-1-16k"],
     color: XAI_COLOR,
+    category: "ai",
+  },
+  "zai-glm-5.1": {
+    display: LLM_USERNAMES["glm-5.1"],
+    color: ZAI_COLOR,
     category: "ai",
   },
   "anthropic-claude-3-opus": {

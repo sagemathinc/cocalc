@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -15,7 +15,7 @@ which is confusing.
 // cSpell:ignore aicell
 
 import { Button, Space, Tooltip } from "antd";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 
 import { redux } from "@cocalc/frontend/app-framework";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
@@ -62,6 +62,7 @@ export function InsertCell({
   alwaysShow,
 }: InsertCellProps) {
   const frameActions = useNotebookFrameActions();
+  const [showControls, setShowControls] = useState<boolean>(!!alwaysShow);
 
   const showGenerateCell = redux
     .getStore("projects")
@@ -89,11 +90,17 @@ export function InsertCell({
       fa.set_cur_id(id);
     }
     const posLabel = position === "above" ? "above" : "below";
+    // Compute 1-based cell number for context.
+    const cellList = actions.store.get("cell_list");
+    const cellIds = cellList?.toJS() as string[] | undefined;
+    const cellIndex = cellIds ? cellIds.indexOf(id) : -1;
+    const cellRef =
+      cellIndex >= 0 ? `cell #${cellIndex + 1}` : "the current cell";
     openAssistantWithPrefill({
       redux,
       project_id,
       path,
-      prompt: `Insert a cell ${posLabel}, that does: `,
+      prompt: `Insert a new cell ${posLabel} ${cellRef}, that does: `,
     }).catch((err) => console.warn("openAssistantWithPrefill failed:", err));
   }
 
@@ -130,13 +137,14 @@ export function InsertCell({
     !hide &&
     (showAICellGen === position ||
       (position === "below" && showAICellGen === "replace"));
+  const controlsVisible = showControls || !!showAICellGen || !!alwaysShow;
 
   function renderControls() {
     return (
       <div
         className="cocalc-jupyter-insert-cell-controls"
         style={
-          showAICellGen || alwaysShow
+          controlsVisible
             ? {
                 visibility: "visible",
                 opacity: 1,
@@ -196,6 +204,22 @@ export function InsertCell({
         ...(showAICellGen ? { backgroundColor: COLORS.FG_BLUE } : {}),
       }}
       onClick={showAICellGen ? undefined : handleBarClick}
+      onMouseEnter={() => setShowControls(true)}
+      onMouseLeave={() => {
+        if (!showAICellGen && !alwaysShow) {
+          setShowControls(false);
+        }
+      }}
+      onFocus={() => setShowControls(true)}
+      onBlur={(e) => {
+        if (
+          !showAICellGen &&
+          !alwaysShow &&
+          !e.currentTarget.contains(e.relatedTarget as Node | null)
+        ) {
+          setShowControls(false);
+        }
+      }}
     >
       {isActiveAIGenerator ? (
         <AIGenerateCodeCell
@@ -208,9 +232,9 @@ export function InsertCell({
         >
           {renderControls()}
         </AIGenerateCodeCell>
-      ) : (
+      ) : controlsVisible ? (
         renderControls()
-      )}
+      ) : null}
     </div>
   );
 }

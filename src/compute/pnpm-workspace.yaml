@@ -13,6 +13,8 @@ packages:
   - compute
   - conat
 
+minimumReleaseAge: 4320 # 3 days
+
 onlyBuiltDependencies:
   - '@cocalc/fuse-native'
   - websocket-sftp

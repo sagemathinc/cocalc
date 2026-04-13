@@ -10,6 +10,9 @@ export interface ChatOutput {
   total_tokens: number;
   prompt_tokens: number;
   completion_tokens: number;
+  /** True when token counts came from the LLM provider API, false when
+   *  they were estimated locally (fallback). */
+  tokensFromApi: boolean;
 }
 
 export interface ChatOptionsApi {

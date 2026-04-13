@@ -124,14 +124,7 @@ export function PDFJS({
             // Default behavior: set font size directly when no parent callback provided
             actions.set_font_size(id, data.fontSize);
           },
-    ...(zoom != null
-      ? {
-          getFontSize: () => {
-            // Convert current zoom back to fontSize for pinch calculations
-            return zoom * 14;
-          },
-        }
-      : {}),
+    getFontSize: zoom != null ? () => zoom * 14 : () => font_size,
   };
 
   usePinchToZoom(pinchToZoomConfig);

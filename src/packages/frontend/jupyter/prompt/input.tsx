@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -14,10 +14,12 @@ src/packages/frontend/frame-editors/whiteboard-editor/elements/code/input-prompt
 
 import React from "react";
 
+import { DragHandle } from "@cocalc/frontend/components/sortable-list";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { capitalize } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { INPUT_STYLE, InputPromptProps } from "./base";
 
 export const InputPrompt: React.FC<InputPromptProps> = (props) => {
@@ -95,10 +97,20 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
     );
   }
 
-  if (!props.read_only && props.dragHandle != null) {
+  if (!props.read_only && props.showDragHandle && props.id != null) {
     return (
       <div>
-        <div style={{ float: "left" }}>{props.dragHandle}</div>
+        <div style={{ float: "left" }}>
+          <DragHandle
+            id={props.id}
+            style={{
+              position: "relative",
+              left: 0,
+              top: 0,
+              color: COLORS.GRAY_M,
+            }}
+          />
+        </div>
         {renderPrompt()}
       </div>
     );

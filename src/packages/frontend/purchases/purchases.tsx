@@ -44,6 +44,8 @@ import {
   GOOGLE_PREFIX,
   LLM_USERNAMES,
   MISTRAL_PREFIX,
+  XAI_PREFIX,
+  ZAI_PREFIX,
   service2model,
 } from "@cocalc/util/db-schema/llm-utils";
 import {
@@ -926,7 +928,9 @@ function Description({ description, period_end, service }) {
   if (
     service.startsWith(MISTRAL_PREFIX) ||
     service.startsWith(ANTHROPIC_PREFIX) ||
-    service.startsWith(GOOGLE_PREFIX)
+    service.startsWith(GOOGLE_PREFIX) ||
+    service.startsWith(XAI_PREFIX) ||
+    service.startsWith(ZAI_PREFIX)
   ) {
     return (
       <Tooltip

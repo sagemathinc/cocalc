@@ -19,12 +19,12 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import {
-  DragHandle,
   SortableItem,
   SortableList,
 } from "@cocalc/frontend/components/sortable-list";
@@ -35,6 +35,25 @@ import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
+import { computeSectionBlocks, buildBlockLookup } from "./minimal/section-blocks";
+import { MinimalMinimap } from "./minimal/minimal-minimap";
+import { COLORS } from "@cocalc/util/theme";
+import { Icon } from "@cocalc/frontend/components";
+import { Button, Tooltip } from "antd";
+import type { SectionBlock } from "./minimal/types";
+
+/** Extract the section title from a section block's heading cell. */
+function getSectionTitle(
+  block: SectionBlock | undefined,
+  cells: immutable.Map<string, any>,
+): string {
+  if (!block || block.headingLevel === 0) return "";
+  const startCell = cells.get(block.startCellId);
+  const input = startCell?.get("input") ?? "";
+  const firstLine = input.split("\n").find((l: string) => /^#{1,4}\s/.test(l.trimStart()));
+  return firstLine?.replace(/^#+\s*/, "").trim() ?? "";
+}
+
 
 interface StableHtmlContextType {
   enabled?: boolean;
@@ -92,6 +111,10 @@ interface CellListProps {
   llmTools?: LLMTools;
   computeServerId?: number;
   read_only?: boolean;
+  cellViewMode?: "default" | "minimal";
+  minimalLayout?: "wide" | "comfortable" | "narrow";
+  zenMode?: boolean;
+  frameHeight?: number;
 }
 
 export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
@@ -122,6 +145,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     llmTools,
     computeServerId,
     read_only,
+    cellViewMode = "default",
+    minimalLayout,
+    zenMode,
+    frameHeight,
   } = props;
 
   const cellListDivRef = useRef<any>(null);
@@ -176,7 +203,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const handleCellListRef = useCallback((node: any) => {
     cellListDivRef.current = node;
     frameActions.current?.set_cell_list_div(node);
-  }, []);
+    // Hide native scrollbar when minimap is active
+    if (node && cellViewMode === "minimal") {
+      node.classList.add("minimap-hide-scrollbar");
+    }
+  }, [cellViewMode]);
 
   const saveScroll = useCallback(() => {
     if (use_windowed_list) {
@@ -431,18 +462,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (index == null) {
       index = cell_list.indexOf(id) ?? 0;
     }
-    const dragHandle = actions?.store.is_cell_editable(id) ? (
-      <DragHandle
-        id={id}
-        style={{
-          position: "relative",
-          left: 0,
-          top: 0,
-          color: "#aaa",
-        }}
-      />
-    ) : undefined;
-
     return (
       <div key={id}>
         <Cell
@@ -472,9 +491,22 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           computeServerId={computeServerId}
           isFirst={isFirst}
           isLast={isLast}
-          dragHandle={dragHandle}
+          showDragHandle={!!actions?.store.is_cell_editable(id)}
           read_only={read_only}
           isDragging={isDragging}
+          cellViewMode={cellViewMode}
+          blockInfo={blockLookup?.get(id)}
+          blockCellIds={sectionBlocks && blockLookup?.has(id) ? sectionBlocks[blockLookup.get(id)!.blockIndex]?.cellIds : undefined}
+          headingLevel={sectionBlocks && blockLookup?.has(id) ? sectionBlocks[blockLookup.get(id)!.blockIndex]?.headingLevel ?? 0 : 0}
+          isLastBlock={sectionBlocks && blockLookup?.has(id) ? blockLookup.get(id)!.blockIndex === sectionBlocks.length - 1 : false}
+          sectionCollapsed={sectionBlocks != null && blockLookup?.has(id) ? collapsedSections.has(sectionBlocks[blockLookup.get(id)!.blockIndex]?.startCellId) : false}
+          onToggleSection={sectionBlocks != null && blockLookup?.has(id) ? () => toggleSection(sectionBlocks[blockLookup.get(id)!.blockIndex]?.startCellId) : undefined}
+          sectionTitle={sectionBlocks && blockLookup?.has(id) ? getSectionTitle(sectionBlocks[blockLookup.get(id)!.blockIndex], cells) : undefined}
+          blockHighlighted={blockLookup?.has(id) ? hoveredBlockIndex === blockLookup.get(id)!.blockIndex : false}
+          onHoverBlock={blockLookup?.has(id) ? (hover: boolean) => setHoveredBlockIndex(hover ? blockLookup.get(id)!.blockIndex : null) : undefined}
+          minimalLayout={minimalLayout}
+          zenMode={zenMode}
+          frameHeight={frameHeight}
         />
       </div>
     );
@@ -558,11 +590,74 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
 
   const cellListResize = useResizeObserver({ ref: cellListDivRef });
+  const viewportIncrease = 2 * Math.max(1000, cellListResize.height ?? 0);
   useEffect(() => {
     for (const key in scrollOrResize) {
       scrollOrResize[key]();
     }
   }, [cellListResize]);
+
+  const sectionBlocks = useMemo(() => {
+    if (cellViewMode !== "minimal" || cell_list == null || cells == null) return null;
+    return computeSectionBlocks(cell_list, cells);
+  }, [cellViewMode, cell_list, cells]);
+
+  const blockLookup = useMemo(() => {
+    if (sectionBlocks == null) return null;
+    return buildBlockLookup(sectionBlocks);
+  }, [sectionBlocks]);
+
+  // Track which sections are collapsed by their heading cell ID (stable across edits)
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [hoveredBlockIndex, setHoveredBlockIndex] = useState<number | null>(null);
+  // Sticky section header: which block index is sticky at top (null = hidden)
+  const [stickyBlockIndex, setStickyBlockIndex] = useState<number | null>(null);
+  const toggleSection = useCallback((startCellId: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(startCellId)) {
+        next.delete(startCellId);
+      } else {
+        next.add(startCellId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Update sticky section header on scroll
+  useEffect(() => {
+    if (cellViewMode !== "minimal" || !sectionBlocks || !blockLookup || !cell_list) return;
+    const el = cellListDivRef.current;
+    if (!el) return;
+    const update = () => {
+      // Find the first visible cell by checking DOM elements
+      const items = el.querySelectorAll("[data-item-index]");
+      let topIndex = 0;
+      for (const item of items) {
+        const rect = (item as HTMLElement).getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        if (rect.bottom > elRect.top + 2) {
+          topIndex = parseInt((item as HTMLElement).getAttribute("data-item-index") ?? "0");
+          break;
+        }
+      }
+      const id = cell_list.get(topIndex);
+      if (!id) { setStickyBlockIndex(null); return; }
+      const info = blockLookup.get(id);
+      if (!info) { setStickyBlockIndex(null); return; }
+      // Show when the heading cell has scrolled past (positionInBlock > 0)
+      // Hide when the heading cell itself is visible at top, or for
+      // the implicit first block (headingLevel 0 = no heading to show)
+      if (info.positionInBlock > 0 && sectionBlocks[info.blockIndex]?.headingLevel > 0) {
+        setStickyBlockIndex(info.blockIndex);
+      } else {
+        setStickyBlockIndex(null);
+      }
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    return () => el.removeEventListener("scroll", update);
+  }, [cellViewMode, sectionBlocks, blockLookup, cell_list, cellListDivRef.current]);
 
   if (cell_list == null) {
     return render_loading();
@@ -580,9 +675,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             ref={virtuosoRef}
             onClick={actions != null && complete != null ? on_click : undefined}
             topItemCount={0}
+            increaseViewportBy={viewportIncrease}
             style={{
               fontSize: `${font_size}px`,
               flex: 1,
+              minHeight: 0,
               overflowX: "hidden",
             }}
             totalCount={cell_list.size + EXTRA_BOTTOM_CELLS}
@@ -666,11 +763,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       <StableHtmlContext.Provider value={{ cellListDivRef, scrollOrResize }}>
         <div
           key="cells"
-          className="smc-vfill"
+          className={`smc-vfill cocalc-force-scrollbar${cellViewMode === "minimal" ? " minimap-hide-scrollbar" : ""}`}
           style={{
             fontSize: `${font_size}px`,
             paddingLeft: "5px",
             flex: 1,
+            minHeight: 0,
             overflowY: "auto",
             overflowX: "hidden",
           }}
@@ -698,7 +796,9 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           <div
             style={{
               background: "white",
-              boxShadow: "8px 8px 4px 4px #ccc",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
+              borderRadius: "4px",
+              transform: "translateX(10px)",
               fontSize: `${font_size}px`,
             }}
           >
@@ -733,7 +833,42 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         disableMarkdownCodebar: true,
       }}
     >
-      {body}
+      <div style={{ display: "flex", flexDirection: "row", flex: 1, minHeight: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, position: "relative" }}>
+          {body}
+          {cellViewMode === "minimal" && stickyBlockIndex != null && sectionBlocks != null && (
+            <StickySectionHeader
+              block={sectionBlocks[stickyBlockIndex]}
+              onToggle={() => toggleSection(sectionBlocks[stickyBlockIndex].startCellId)}
+              onRunSection={!read_only && actions ? () => {
+                const cellIds = sectionBlocks[stickyBlockIndex].cellIds;
+                for (const cid of cellIds) {
+                  const cell = cells.get(cid);
+                  if (cell?.get("cell_type") !== "markdown") {
+                    actions.run_cell(cid, false);
+                  }
+                }
+                actions.save_asap();
+              } : undefined}
+              cells={cells}
+              minimalLayout={minimalLayout}
+              zenMode={zenMode}
+            />
+          )}
+        </div>
+        {cellViewMode === "minimal" && cell_list != null && frameHeight != null && (
+          <MinimalMinimap
+            cellList={cell_list}
+            cells={cells}
+            collapsedSections={collapsedSections}
+            scrollerRef={cellListDivRef}
+            cellHeights={virtuosoHeightsRef}
+            height={frameHeight}
+            curId={cur_id}
+            selIds={sel_ids}
+          />
+        )}
+      </div>
     </FileContext.Provider>
   );
 };
@@ -776,6 +911,154 @@ export function DivTempHeight({ children, height }) {
   return (
     <div ref={divRef} style={style}>
       {children}
+    </div>
+  );
+}
+
+import {
+  OUTPUT_FLEX_DEFAULT,
+  CODE_FLEX_DEFAULT,
+  COLUMN_TRANSITION,
+} from "./minimal/styles";
+
+/** Sticky section header shown at top of cell list when scrolled into a section */
+function StickySectionHeader({
+  block,
+  onToggle,
+  onRunSection,
+  cells,
+  minimalLayout,
+  zenMode,
+}: {
+  block: { startCellId: string; headingLevel: number; cellIds: string[] };
+  onToggle: () => void;
+  onRunSection?: () => void;
+  cells: immutable.Map<string, any>;
+  minimalLayout?: "wide" | "comfortable" | "narrow";
+  zenMode?: boolean;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const title = getSectionTitle(block, cells);
+
+  const margin = minimalLayout === "narrow" ? 2 : 0;
+  const leftSpacerFlex = minimalLayout === "wide" ? 0 : (margin + CODE_FLEX_DEFAULT);
+  const rightSpacerFlex = minimalLayout === "wide" ? 0 : margin;
+  const contentFlex = OUTPUT_FLEX_DEFAULT + CODE_FLEX_DEFAULT;
+  const hasSpacer = leftSpacerFlex > 0;
+  const showCode = !zenMode;
+
+  const bg = hovered ? COLORS.GRAY_LL : COLORS.GRAY_LLL;
+
+  const bar = (
+    <div
+      style={{
+        display: "flex",
+        flex: `${OUTPUT_FLEX_DEFAULT} 1 0`,
+        alignItems: "center",
+        backgroundColor: bg,
+        borderBottom: `1px solid ${COLORS.GRAY_LL}`,
+        transition: "background-color 150ms ease",
+        cursor: "pointer",
+        minHeight: "24px",
+      }}
+      onClick={onToggle}
+    >
+      {/* Invisible spacer matching gutter toggle icon width */}
+      <div style={{ width: "44px", minWidth: "44px", paddingLeft: "2px" }}>
+        <Icon name="minus-square" style={{ visibility: "hidden", fontSize: "14px" }} />
+      </div>
+      <span style={{
+        color: COLORS.GRAY_D,
+        fontSize: "13px",
+        fontWeight: 600,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        flex: 1,
+        padding: "0 8px",
+      }}>
+        {title}
+      </span>
+      {/* Run button in zen mode (no code column) */}
+      {onRunSection && !showCode && (
+        <Tooltip title="Run all code cells in this section">
+          <Button
+            type="text"
+            size="small"
+            icon={<Icon name="play" />}
+            onClick={(e) => { e.stopPropagation(); onRunSection(); }}
+            style={{ color: COLORS.GRAY_M, visibility: hovered ? "visible" : "hidden", marginRight: "4px" }}
+          >
+            Run
+          </Button>
+        </Tooltip>
+      )}
+    </div>
+  );
+
+  const codeCol = showCode ? (
+    <div
+      style={{
+        flex: `${CODE_FLEX_DEFAULT} 1 0`,
+        display: "flex",
+        alignItems: "center",
+        padding: "0 4px",
+        backgroundColor: bg,
+        borderBottom: `1px solid ${COLORS.GRAY_LL}`,
+        transition: "background-color 150ms ease",
+        cursor: "pointer",
+      }}
+      onClick={onToggle}
+    >
+      {onRunSection && (
+        <Tooltip title="Run all code cells in this section">
+          <Button
+            type="text"
+            size="small"
+            icon={<Icon name="play" />}
+            onClick={(e) => { e.stopPropagation(); onRunSection(); }}
+            style={{ color: COLORS.GRAY_M, visibility: hovered ? "visible" : "hidden", marginLeft: "auto" }}
+          >
+            Run
+          </Button>
+        </Tooltip>
+      )}
+    </div>
+  ) : null;
+
+  const content = (
+    <div style={{ display: "flex" }}>
+      {bar}
+      {codeCol}
+      {/* In zen + non-wide, transparent spacer so bar only covers output column */}
+      {zenMode && minimalLayout !== "wide" && (
+        <div style={{ flex: `${CODE_FLEX_DEFAULT} 1 0` }} />
+      )}
+    </div>
+  );
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 10,
+        opacity: 0.95,
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {hasSpacer ? (
+        <div style={{ display: "flex" }}>
+          <div style={{ flex: `${leftSpacerFlex} 1 0`, transition: COLUMN_TRANSITION }} />
+          <div style={{ flex: `${contentFlex} 1 0`, minWidth: 0, transition: COLUMN_TRANSITION }}>
+            {content}
+          </div>
+          {rightSpacerFlex > 0 && <div style={{ flex: `${rightSpacerFlex} 1 0`, transition: COLUMN_TRANSITION }} />}
+        </div>
+      ) : content}
     </div>
   );
 }

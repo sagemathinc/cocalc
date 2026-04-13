@@ -104,6 +104,53 @@ panels. It:
 - Fetches the listing immediately
 - Clears checked-file selection
 
+## "+New" Path Model
+
+The "+New" UI (for creating new files) exists in two forms — a **flyout** panel
+and a **full page** — each with its own independent current directory:
+
+| Redux key         | Meaning                                           | Fallback          |
+| ----------------- | ------------------------------------------------- | ----------------- |
+| `flyout_new_path` | Directory shown in the +New **flyout** panel      | `current_path`    |
+| `new_page_path`   | Directory shown in the +New **full page** tab     | `current_path`    |
+
+Both are `string | undefined` in `ProjectStoreState` (`project_store.ts`).
+When `undefined`, the component falls back to `current_path`:
+
+```typescript
+// In flyouts/new.tsx
+const current_path = flyout_new_path ?? redux_current_path;
+
+// In new/new-file-page.tsx
+const current_path = new_page_path ?? redux_current_path;
+```
+
+### How +New paths get updated
+
+| Source                                     | Updates                                      |
+| ------------------------------------------ | -------------------------------------------- |
+| PathNavigator in +New flyout               | `flyout_new_path`                            |
+| PathNavigator in +New full page            | `new_page_path`                              |
+| Explorer browsing (`navigateBrowsingPath`) | `new_page_path` (piggybacks on explorer nav) |
+| Flyout browsing (`navigateBrowsingPath`)   | `flyout_new_path` (piggybacks on flyout nav) |
+| Home button click                          | Both reset to `""`                           |
+| Deep-link URL navigation to `/new/...`     | Both set to the URL path                     |
+| Frame editor File → +New menu             | `flyout_new_path` only (flyout is what opens) |
+
+### Frame editor File → +New interaction
+
+When a user clicks **File → "+ New"** in a frame editor, the action
+(`show_file_action_panel` with `action: "new"`, `source: "editor"`)
+opens the +New flyout and sets `flyout_new_path` to the directory of the
+file being edited. This ensures the new file will be created next to the
+current one. Only the flyout path is updated because the flyout is the
+variant that opens; `new_page_path` (full-page +New) is left untouched.
+
+This directory override only happens when `source === "editor"` (i.e., the
+frame editor's File menu). Other +New entry points (the + tab button,
+explorer "New" button, etc.) do not change these paths — they rely on the
+existing browsing state or the `follow_current_path` preference.
+
 ## File Listing Components
 
 ### Explorer table

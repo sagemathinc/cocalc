@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -181,6 +181,8 @@ const CUSTOM_DESCRIPTIONS = {
   terminal:
     "Describe anything you might want to do in the Linux terminal: find files that contain 'foo', replace 'x' by 'y' in all files, clone a git repo, convert a.ipynb to markdown, etc.",
   jupyter_cell_notebook:
+    "Try to do anything with the current cell or selection that you can possibly imagine: explain why this is slow and how to make it faster, draw a plot of sin(x), etc.",
+  jupyter_minimal:
     "Try to do anything with the current cell or selection that you can possibly imagine: explain why this is slow and how to make it faster, draw a plot of sin(x), etc.",
   generic: (
     <div>
@@ -701,7 +703,7 @@ export default function LanguageModelTitleBarButton({
       placement={
         "right" /* Otherwise this thing gets stuck on the left side of the screen, which is very disconcerting*/
       }
-      title={renderTitle()}
+      title={renderTitle}
       open={visible && showDialog}
       content={renderContent}
       trigger={["click"]}

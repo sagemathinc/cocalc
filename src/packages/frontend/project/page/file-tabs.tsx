@@ -9,7 +9,7 @@ Tabs for the open files in a project.
 
 import type { MenuProps, TabsProps } from "antd";
 import { Button, Dropdown, Tabs } from "antd";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
 import {
@@ -84,19 +84,16 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     { project_id },
     "directory_listings",
   );
-  const recentFiles = useRecentFiles(project_log, 30, "", directory_listings);
+  const recentFiles = useRecentFiles(
+    project_log,
+    recentFilesMenuOpen ? 30 : 0,
+    "",
+    directory_listings,
+  );
 
-  if (openFiles == null) {
-    return null;
-  }
-
-  // Ensure project log is loaded for the recent files context menu
-  if (project_log == null) {
-    redux.getProjectStore(project_id).init_table("project_log");
-  }
   const paths: string[] = [];
   const keys: string[] = [];
-  openFiles.map((path) => {
+  openFiles?.map((path) => {
     if (path == null) {
       // see https://github.com/sagemathinc/cocalc/issues/3450
       // **This should never fail** so be loud if it does.
@@ -108,7 +105,17 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     paths.push(path);
     keys.push(pathToKey(path));
   });
-  const openPathSet = new Set(paths);
+  const openPathSet = useMemo(
+    () => new Set(paths),
+    // paths is derived from openFiles in this render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [openFiles],
+  );
+
+  useEffect(() => {
+    if (!recentFilesMenuOpen || project_log != null) return;
+    redux.getProjectStore(project_id).init_table("project_log");
+  }, [recentFilesMenuOpen, project_log, project_id]);
 
   const labels = file_tab_labels(paths);
   const items: TabsProps["items"] = [];
@@ -173,7 +180,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     }
   }
 
-  function getRecentFilesMenu(): MenuProps {
+  const getRecentFilesMenu = useCallback((): MenuProps => {
     const closedRecentFiles = recentFiles.filter(
       (entry: OpenedFile) => !openPathSet.has(entry.filename),
     );
@@ -232,9 +239,16 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
       ],
       style: { maxHeight: "min(500px, 50vh)", overflowY: "auto" },
     };
-  }
+  }, [recentFiles, intl, actions, openPathSet]);
 
-  const recentFilesMenu = getRecentFilesMenu();
+  const recentFilesMenu = useMemo(
+    () => getRecentFilesMenu(),
+    [getRecentFilesMenu],
+  );
+
+  if (openFiles == null) {
+    return null;
+  }
 
   function renderExtra() {
     return {
@@ -270,7 +284,11 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
   }
 
   return (
-    <Dropdown trigger={["contextMenu"]} menu={recentFilesMenu}>
+    <Dropdown
+      trigger={["contextMenu"]}
+      menu={recentFilesMenu}
+      onOpenChange={setRecentFilesMenuOpen}
+    >
       <div style={{ width: "100%" }}>
         <SortableTabs
           items={keys}

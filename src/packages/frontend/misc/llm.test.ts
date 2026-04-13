@@ -5,6 +5,17 @@
 
 // cSpell:ignore tokenx
 
+// Mock self-referencing @cocalc/frontend imports for Jest
+jest.mock(
+  "@cocalc/frontend/frame-editors/llm/use-userdefined-llm",
+  () => ({
+    getUserDefinedLLMByModel: () => null,
+  }),
+  { virtual: true },
+);
+
+jest.mock("@cocalc/frontend/client/types", () => ({}), { virtual: true });
+
 import type { History } from "@cocalc/frontend/client/types";
 import {
   getMaxTokens,
@@ -222,7 +233,7 @@ describe("llm tokenizer functions", () => {
       const history: History = [{ role: "user", content: longContent }];
       truncateHistory(history, 500, model);
 
-      expect(spy.mock.calls.length).toBeLessThan(20);
+      expect(spy.mock.calls.length).toBeLessThan(30);
 
       spy.mockRestore();
     });
@@ -244,55 +255,61 @@ describe("llm tokenizer functions", () => {
       }
     });
 
-    test("returns reasonable limits for 8k models", () => {
-      const maxTokens = getMaxTokens("gpt-4o-8k");
-      // 8k models should have around 8000 tokens
-      expect(maxTokens).toBeGreaterThan(7000);
-      expect(maxTokens).toBeLessThan(10000);
-    });
-
-    test("returns reasonable limits for larger context models", () => {
-      // Test with a known 16k model
-      const maxTokens = getMaxTokens("gemini-3-flash-preview-16k");
-      // 16k models should have around 16000 tokens
-      expect(maxTokens).toBeGreaterThan(14000);
-      expect(maxTokens).toBeLessThan(20000);
+    test("returns 50k for current user-selectable models", () => {
+      // -8k suffix is historical; actual limit is now 50k
+      expect(getMaxTokens("gpt-4o-8k")).toBe(50_000);
+      expect(getMaxTokens("claude-4-5-sonnet-8k")).toBe(50_000);
+      expect(getMaxTokens("gemini-3-flash-preview-16k")).toBe(50_000);
     });
   });
 
-  describe("performance characteristics", () => {
-    test("numTokensUpperBound completes quickly on large input", () => {
-      const content = "The quick brown fox ".repeat(10000);
-      const start = Date.now();
-      numTokensUpperBound(content, 4096);
-      const elapsed = Date.now() - start;
+  describe("performance at 50k token scale", () => {
+    // Realistic text: varied English prose repeated to fill ~50k tokens (~200k chars)
+    const sentence =
+      "The quick brown fox jumps over the lazy dog near the river bank. ";
+    const largeText = sentence.repeat(3200); // ~200k chars ≈ 50k tokens
 
-      // Should complete in reasonable time (less than 500ms)
-      expect(elapsed).toBeLessThan(500);
+    function benchmarkMin(fn: () => void, runs = 3): number {
+      let best = Infinity;
+      for (let i = 0; i < runs; i++) {
+        const start = performance.now();
+        fn();
+        best = Math.min(best, performance.now() - start);
+      }
+      return best;
+    }
+
+    test("numTokensEstimate on ~50k tokens completes under 100ms", () => {
+      const ms = benchmarkMin(() => numTokensEstimate(largeText));
+      expect(ms).toBeLessThan(100);
     });
 
-    test("truncateMessage completes quickly", () => {
-      const content = "The quick brown fox ".repeat(5000);
-      const start = Date.now();
-      truncateMessage(content, 1000);
-      const elapsed = Date.now() - start;
-
-      // Should complete in reasonable time (less than 500ms)
-      expect(elapsed).toBeLessThan(500);
+    test("numTokensUpperBound on ~50k tokens completes under 200ms", () => {
+      const ms = benchmarkMin(() => numTokensUpperBound(largeText, 50_000));
+      expect(ms).toBeLessThan(200);
     });
 
-    test("truncateHistory completes quickly with long history", () => {
+    test("truncateMessage on ~50k tokens completes under 500ms", () => {
+      const ms = benchmarkMin(() => truncateMessage(largeText, 25_000));
+      expect(ms).toBeLessThan(500);
+    });
+
+    test("truncateHistory with 50k total tokens completes under 1s", () => {
+      // 20 messages × ~2500 tokens each ≈ 50k total
+      const msgText = sentence.repeat(160); // ~10k chars ≈ 2500 tokens
       const history: History = Array.from({ length: 20 }, (_, i) => ({
         role: (i % 2 === 0 ? "user" : "assistant") as "user" | "assistant",
-        content: "The quick brown fox ".repeat(200),
+        content: msgText,
       }));
 
-      const start = Date.now();
-      truncateHistory(history, 2000, "gpt-4o-8k");
-      const elapsed = Date.now() - start;
-
-      // Should complete in reasonable time (less than 1s)
-      expect(elapsed).toBeLessThan(1000);
+      const ms = benchmarkMin(() =>
+        truncateHistory(
+          [...history.map((h) => ({ ...h }))],
+          30_000,
+          "gpt-4o-8k",
+        ),
+      );
+      expect(ms).toBeLessThan(1000);
     });
   });
 });

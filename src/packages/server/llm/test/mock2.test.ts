@@ -1,32 +1,70 @@
 import { callback2 } from "@cocalc/util/async-utils";
 import { OTHER_SETTINGS_USER_DEFINED_LLM } from "@cocalc/util/db-schema/defaults";
 
-import { evaluateWithLangChain } from "../evaluate-lc";
-import { evaluateOllama } from "../ollama";
+import { evaluateWithAI } from "../evaluate";
 import { evaluateUserDefinedLLM } from "../user-defined";
 
-let lastPromptMessages: unknown[] | undefined;
-let lastOpenAIConfig: Record<string, unknown> | undefined;
-let invokeResult:
-  | {
-      content: string;
-      usage_metadata?: {
-        input_tokens: number;
-        output_tokens: number;
-        total_tokens: number;
-      };
-    }
-  | undefined;
+// Shared state for tracking provider calls - must be module-level for jest.mock hoisting
+const trackers = {
+  openai: undefined as any,
+  anthropic: undefined as any,
+  google: undefined as any,
+  mistral: undefined as any,
+  xai: undefined as any,
+  lastModelId: undefined as string | undefined,
+};
+
+let mockGenerateResult = {
+  text: "ok",
+  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+};
 let streamChunks: string[] = [];
 
-var mockChatOpenAI: jest.Mock;
-var mockChatAnthropic: jest.Mock;
-var mockChatGoogle: jest.Mock;
-var mockChatMistral: jest.Mock;
-var mockChatXai: jest.Mock;
-var mockGetCustomOpenAI: jest.Mock;
-var mockOllama: jest.Mock;
-var MockMessagesPlaceholder: any;
+function makeFactory(key: keyof typeof trackers) {
+  return (args: any) => {
+    (trackers as any)[key] = args;
+    const modelFn = (modelId: string, _settings?: any) => {
+      trackers.lastModelId = modelId;
+      return { modelId, _provider: "mock" };
+    };
+    // OpenAI v3 provider returns an object with .chat() for chat completions
+    modelFn.chat = modelFn;
+    return modelFn;
+  };
+}
+
+jest.mock("@ai-sdk/openai", () => ({
+  createOpenAI: makeFactory("openai"),
+}));
+
+jest.mock("@ai-sdk/anthropic", () => ({
+  createAnthropic: makeFactory("anthropic"),
+}));
+
+jest.mock("@ai-sdk/google", () => ({
+  createGoogleGenerativeAI: makeFactory("google"),
+}));
+
+jest.mock("@ai-sdk/mistral", () => ({
+  createMistral: makeFactory("mistral"),
+}));
+
+jest.mock("@ai-sdk/xai", () => ({
+  createXai: makeFactory("xai"),
+}));
+
+jest.mock("ai", () => ({
+  generateText: jest.fn(async () => mockGenerateResult),
+  streamText: jest.fn(() => ({
+    textStream: (async function* () {
+      for (const chunk of streamChunks) {
+        yield chunk;
+      }
+    })(),
+    usage: Promise.resolve(mockGenerateResult.usage),
+    text: Promise.resolve(streamChunks.join("")),
+  })),
+}));
 
 jest.mock("@cocalc/database/settings/server-settings", () => ({
   getServerSettings: jest.fn(async () => ({
@@ -40,6 +78,8 @@ jest.mock("@cocalc/database/settings/server-settings", () => ({
     anthropic_api_key: "server-anthropic-key",
     xai_enabled: true,
     xai_api_key: "server-xai-key",
+    zai_enabled: true,
+    zai_api_key: "server-zai-key",
     custom_openai_enabled: true,
     custom_openai_configuration: {},
     user_defined_llm: true,
@@ -52,81 +92,59 @@ jest.mock("@cocalc/database/settings/server-settings", () => ({
   })),
 }));
 
-jest.mock("@langchain/anthropic", () => ({
-  ChatAnthropic: (mockChatAnthropic = jest.fn()),
+jest.mock("../abuse", () => ({
+  checkForAbuse: jest.fn(async () => {}),
 }));
 
-jest.mock("@langchain/core/prompts", () => ({
-  ChatPromptTemplate: {
-    fromMessages: jest.fn((messages) => {
-      lastPromptMessages = messages;
-      const pipe = jest.fn((client) => ({ client }));
-      return { pipe };
-    }),
-  },
-  MessagesPlaceholder:
-    (MockMessagesPlaceholder = class MockMessagesPlaceholder {
-      name: string;
-      constructor(name: string) {
-        this.name = name;
-      }
-    }),
+jest.mock("../save-response", () => ({
+  saveResponse: jest.fn(async () => {}),
 }));
 
-jest.mock("@langchain/core/runnables", () => ({
-  RunnableWithMessageHistory: jest.fn(() => {
-    const invoke = jest.fn(async () => invokeResult);
-    const stream = jest.fn(() =>
-      (async function* () {
-        for (const chunk of streamChunks) {
-          yield chunk;
-        }
-      })(),
-    );
-    return {
-      invoke,
-      stream,
-    };
-  }),
-}));
-
-jest.mock("@langchain/google-genai", () => ({
-  ChatGoogleGenerativeAI: (mockChatGoogle = jest.fn()),
-}));
-
-jest.mock("@langchain/mistralai", () => ({
-  ChatMistralAI: (mockChatMistral = jest.fn()),
-}));
-
-jest.mock("@langchain/openai", () => ({
-  ChatOpenAI: (mockChatOpenAI = jest.fn((config) => {
-    lastOpenAIConfig = config;
-    return { __config: config };
+// evaluate.ts imports from @cocalc/database/settings (not /server-settings)
+// so this mock must include the full settings as well
+jest.mock("@cocalc/database/settings", () => ({
+  getServerSettings: jest.fn(async () => ({
+    openai_enabled: true,
+    openai_api_key: "server-openai-key",
+    google_vertexai_enabled: true,
+    google_vertexai_key: "server-google-key",
+    mistral_enabled: true,
+    mistral_api_key: "server-mistral-key",
+    anthropic_enabled: true,
+    anthropic_api_key: "server-anthropic-key",
+    xai_enabled: true,
+    xai_api_key: "server-xai-key",
+    zai_enabled: true,
+    zai_api_key: "server-zai-key",
+    custom_openai_enabled: true,
+    custom_openai_configuration: {},
+    user_defined_llm: true,
+    ollama_configuration: {
+      llama3: {
+        baseUrl: "http://localhost:11434",
+        model: "llama3",
+      },
+    },
   })),
 }));
 
-jest.mock("@langchain/xai", () => ({
-  ChatXAI: (mockChatXai = jest.fn()),
-}));
-
-jest.mock("@langchain/ollama", () => ({
-  Ollama: (mockOllama = jest.fn()),
-}));
-
 jest.mock("../chat-history", () => ({
-  transformHistoryToMessages: jest.fn(async () => ({
-    messageHistory: [],
+  transformHistoryToMessages: jest.fn(() => ({
+    messages: [],
     tokens: 0,
   })),
 }));
 
-jest.mock("../client", () => {
-  const actualModule = jest.requireActual("../client");
-  return {
-    ...actualModule,
-    getCustomOpenAI: (mockGetCustomOpenAI = jest.fn(async () => ({}))),
-  };
-});
+var mockGetCustomOpenAIModel: jest.Mock;
+
+jest.mock("../client", () => ({
+  getCustomOpenAIModel: (mockGetCustomOpenAIModel = jest.fn(async () => ({
+    model: { modelId: "custom", _provider: "mock" },
+  }))),
+  getOllamaModel: jest.fn(async () => ({
+    model: { modelId: "ollama", _provider: "mock" },
+  })),
+}));
 
 jest.mock("@cocalc/database", () => ({
   db: jest.fn(() => ({
@@ -138,10 +156,9 @@ jest.mock("@cocalc/util/async-utils", () => ({
   callback2: jest.fn(async () => ({})),
 }));
 
-describe("evaluateWithLangChain (LangChain mocked)", () => {
+describe("evaluateWithAI (AI SDK mocked)", () => {
   const mockCallback2 = callback2 as jest.MockedFunction<typeof callback2>;
   const userAccountId = "123e4567-e89b-12d3-a456-426614174000";
-  const userModel = "user-openai-gpt-4o-8k";
   const userConfig = [
     {
       id: 1,
@@ -155,47 +172,91 @@ describe("evaluateWithLangChain (LangChain mocked)", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    lastPromptMessages = undefined;
-    lastOpenAIConfig = undefined;
+    trackers.lastModelId = undefined;
+    trackers.openai = undefined;
+    trackers.anthropic = undefined;
+    trackers.google = undefined;
+    trackers.mistral = undefined;
+    trackers.xai = undefined;
     streamChunks = [];
-    invokeResult = {
-      content: "ok",
-      usage_metadata: { input_tokens: 1, output_tokens: 2, total_tokens: 3 },
+    mockGenerateResult = {
+      text: "ok",
+      usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
     };
   });
 
-  test("o1 prompt omits system role", async () => {
-    const output = await evaluateWithLangChain({
+  test("OpenAI uses normalized model and server key", async () => {
+    const output = await evaluateWithAI({
       input: "hi",
-      system: "sys",
-      model: "o1-mini-8k",
+      model: "gpt-4.1",
     });
 
     expect(output.output).toBe("ok");
-    expect(lastPromptMessages).toHaveLength(2);
-    const [placeholder, human] = lastPromptMessages as any[];
-    expect(placeholder).toBeInstanceOf(MockMessagesPlaceholder);
-    expect(placeholder.name).toBe("history");
-    expect(human).toEqual(["human", "sys\n\n{input}"]);
+    expect(trackers.openai).toMatchObject({
+      apiKey: "server-openai-key",
+    });
+    expect(trackers.lastModelId).toBe("gpt-4.1");
   });
 
-  test("non-o1 prompt includes system role", async () => {
-    await evaluateWithLangChain({
+  test("Google uses mapped model name", async () => {
+    await evaluateWithAI({
       input: "hi",
-      system: "sys",
-      model: "gpt-4o-8k",
+      model: "gemini-2.5-flash-8k",
     });
 
-    expect(lastPromptMessages).toHaveLength(3);
-    const [system, placeholder, human] = lastPromptMessages as any[];
-    expect(system).toEqual(["system", "sys"]);
-    expect(placeholder).toBeInstanceOf(MockMessagesPlaceholder);
-    expect(placeholder.name).toBe("history");
-    expect(human).toEqual(["human", "{input}"]);
+    expect(trackers.google).toMatchObject({
+      apiKey: "server-google-key",
+    });
+    expect(trackers.lastModelId).toBe("gemini-2.5-flash");
+  });
+
+  test("Anthropic uses version alias", async () => {
+    await evaluateWithAI({
+      input: "hi",
+      model: "claude-4-5-sonnet-8k",
+    });
+
+    expect(trackers.anthropic).toMatchObject({
+      apiKey: "server-anthropic-key",
+    });
+    expect(trackers.lastModelId).toBe("claude-sonnet-4-5");
+  });
+
+  test("Mistral passes model through", async () => {
+    await evaluateWithAI({
+      input: "hi",
+      model: "mistral-medium-latest",
+    });
+
+    expect(trackers.mistral).toMatchObject({
+      apiKey: "server-mistral-key",
+    });
+    expect(trackers.lastModelId).toBe("mistral-medium-latest");
+  });
+
+  test("xAI maps 16k model to provider name", async () => {
+    await evaluateWithAI({
+      input: "hi",
+      model: "grok-4-1-fast-non-reasoning-16k",
+    });
+
+    expect(trackers.xai).toMatchObject({
+      apiKey: "server-xai-key",
+    });
+    expect(trackers.lastModelId).toBe("grok-4-1-fast-non-reasoning");
+  });
+
+  test("custom OpenAI platform mode uses getCustomOpenAIModel", async () => {
+    await evaluateWithAI({
+      input: "hi",
+      model: "custom_openai-omni4high",
+    });
+
+    expect(mockGetCustomOpenAIModel).toHaveBeenCalledWith("omni4high");
   });
 
   test("custom OpenAI user mode passes endpoint and api key", async () => {
-    await evaluateWithLangChain(
+    await evaluateWithAI(
       {
         input: "hi",
         model: "gpt-4o",
@@ -206,89 +267,11 @@ describe("evaluateWithLangChain (LangChain mocked)", () => {
       "user",
     );
 
-    expect(lastOpenAIConfig).toMatchObject({
+    expect(trackers.openai).toMatchObject({
       apiKey: "user-openai-key",
-      configuration: { baseURL: "https://example.com/v1" },
-      model: "gpt-4o",
+      baseURL: "https://example.com/v1",
     });
-  });
-
-  test("OpenAI uses normalized model and server key", async () => {
-    await evaluateWithLangChain({
-      input: "hi",
-      model: "gpt-4o-8k",
-    });
-
-    expect(mockChatOpenAI).toHaveBeenCalled();
-    expect(lastOpenAIConfig).toMatchObject({
-      apiKey: "server-openai-key",
-      model: "gpt-4o",
-    });
-  });
-
-  test("Google uses mapped model name", async () => {
-    await evaluateWithLangChain({
-      input: "hi",
-      model: "gemini-2.5-flash-8k",
-    });
-
-    expect(mockChatGoogle).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apiKey: "server-google-key",
-        model: "gemini-2.5-flash",
-      }),
-    );
-  });
-
-  test("Anthropic uses version alias", async () => {
-    await evaluateWithLangChain({
-      input: "hi",
-      model: "claude-4-5-sonnet-8k",
-    });
-
-    expect(mockChatAnthropic).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apiKey: "server-anthropic-key",
-        model: "claude-sonnet-4-5",
-      }),
-    );
-  });
-
-  test("Mistral passes model through", async () => {
-    await evaluateWithLangChain({
-      input: "hi",
-      model: "mistral-medium-latest",
-    });
-
-    expect(mockChatMistral).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apiKey: "server-mistral-key",
-        model: "mistral-medium-latest",
-      }),
-    );
-  });
-
-  test("xAI maps 16k model to provider name", async () => {
-    await evaluateWithLangChain({
-      input: "hi",
-      model: "grok-4-1-fast-non-reasoning-16k",
-    });
-
-    expect(mockChatXai).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apiKey: "server-xai-key",
-        model: "grok-4-1-fast-non-reasoning",
-      }),
-    );
-  });
-
-  test("custom OpenAI platform mode uses getCustomOpenAI", async () => {
-    await evaluateWithLangChain({
-      input: "hi",
-      model: "custom_openai-omni4high",
-    });
-
-    expect(mockGetCustomOpenAI).toHaveBeenCalledWith("omni4high");
+    expect(trackers.lastModelId).toBe("gpt-4o");
   });
 
   test("user-defined models use raw model and user key", async () => {
@@ -301,19 +284,19 @@ describe("evaluateWithLangChain (LangChain mocked)", () => {
     await evaluateUserDefinedLLM(
       {
         input: "hi",
-        model: userModel,
+        model: "user-openai-gpt-4o-8k",
       },
       userAccountId,
     );
 
-    expect(lastOpenAIConfig).toMatchObject({
+    expect(trackers.openai).toMatchObject({
       apiKey: "user-openai-key",
-      configuration: { baseURL: "https://api.openai.com/v1" },
-      model: "gpt-4o-8k",
+      baseURL: "https://api.openai.com/v1",
     });
+    expect(trackers.lastModelId).toBe("gpt-4o-8k");
   });
 
-  test("user-defined Ollama with custom max_tokens", async () => {
+  test("user-defined Ollama uses OpenAI-compatible endpoint", async () => {
     const ollamaConfig = [
       {
         id: 1,
@@ -340,14 +323,14 @@ describe("evaluateWithLangChain (LangChain mocked)", () => {
       userAccountId,
     );
 
-    expect(mockOllama).toHaveBeenCalledWith({
-      baseUrl: "http://localhost:11434",
-      model: "llama3",
-      keepAlive: "24h",
+    expect(trackers.openai).toMatchObject({
+      apiKey: "ollama",
+      baseURL: "http://localhost:11434/v1",
     });
+    expect(trackers.lastModelId).toBe("llama3");
   });
 
-  test("user-defined Google with custom max_tokens", async () => {
+  test("user-defined Google passes correct config", async () => {
     const googleConfig = [
       {
         id: 1,
@@ -374,33 +357,76 @@ describe("evaluateWithLangChain (LangChain mocked)", () => {
       userAccountId,
     );
 
-    expect(mockChatGoogle).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apiKey: "user-google-key",
-        maxOutputTokens: 128000,
-        model: "gemini-2.5-flash",
-      }),
-    );
+    expect(trackers.google).toMatchObject({
+      apiKey: "user-google-key",
+    });
+    expect(trackers.lastModelId).toBe("gemini-2.5-flash");
   });
 
-  test("ollama streams with configured model", async () => {
+  test("streaming works with token accumulation", async () => {
     streamChunks = ["hi", " there"];
-    const stream = jest.fn();
+    const streamFn = jest.fn();
 
-    const output = await evaluateOllama({
+    const output = await evaluateWithAI({
       input: "hello",
-      model: "ollama-llama3",
-      stream,
+      model: "gpt-4o-8k",
+      stream: streamFn,
     });
 
-    expect(mockOllama).toHaveBeenCalledWith({
-      baseUrl: "http://localhost:11434",
-      model: "llama3",
-      keepAlive: "24h",
-    });
     expect(output.output).toBe("hi there");
-    expect(stream).toHaveBeenCalledWith("hi");
-    expect(stream).toHaveBeenCalledWith(" there");
-    expect(stream).toHaveBeenCalledWith(null);
+    expect(streamFn).toHaveBeenCalledWith("hi");
+    expect(streamFn).toHaveBeenCalledWith(" there");
+    expect(streamFn).toHaveBeenCalledWith(null);
+  });
+
+  test("returns token counts from API usage and sets tokensFromApi", async () => {
+    mockGenerateResult = {
+      text: "result",
+      usage: { inputTokens: 100, outputTokens: 50, totalTokens: 150 },
+    };
+
+    const output = await evaluateWithAI({
+      input: "hi",
+      model: "gpt-4o-8k",
+    });
+
+    expect(output.prompt_tokens).toBe(100);
+    expect(output.completion_tokens).toBe(50);
+    expect(output.total_tokens).toBe(150);
+    expect(output.tokensFromApi).toBe(true);
+  });
+
+  test("tokensFromApi is false when inputTokens is 0 (full fallback)", async () => {
+    mockGenerateResult = {
+      text: "result",
+      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    };
+
+    const output = await evaluateWithAI({
+      input: "hi",
+      model: "gpt-4o-8k",
+    });
+
+    expect(output.tokensFromApi).toBe(false);
+    // Should still have positive tokens from fallback estimator
+    expect(output.prompt_tokens).toBeGreaterThan(0);
+    expect(output.completion_tokens).toBeGreaterThan(0);
+  });
+
+  test("tokensFromApi is false when only inputTokens provided (partial fallback)", async () => {
+    mockGenerateResult = {
+      text: "result",
+      usage: { inputTokens: 100, outputTokens: 0, totalTokens: 100 },
+    };
+
+    const output = await evaluateWithAI({
+      input: "hi",
+      model: "gpt-4o-8k",
+    });
+
+    expect(output.tokensFromApi).toBe(false);
+    expect(output.prompt_tokens).toBe(100);
+    // completion_tokens came from fallback
+    expect(output.completion_tokens).toBeGreaterThan(0);
   });
 });
