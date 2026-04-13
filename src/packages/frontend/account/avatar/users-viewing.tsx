@@ -52,6 +52,9 @@ const USERS_VIEWING_STYLE: React.CSSProperties = {
   whiteSpace: "nowrap",
   padding: "1px", // if not set, Chrome draws scrollbars around it #5399
   height: "32px",
+  display: "flex",
+  alignItems: "center",
+  gap: "2px",
 } as const;
 
 const DEFAULT_STYLE: CSS = { maxWidth: "120px" } as const;

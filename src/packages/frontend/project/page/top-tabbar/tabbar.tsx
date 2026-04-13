@@ -150,12 +150,12 @@ export function TopTabBarActions(
             project_id={project_id}
             compact={compact}
           />
-          {actions != null ? (
-            <ExtraButtons actionsData={actionsData} />
-          ) : undefined}
         </Space.Compact>
         {actions != null ? (
-          <TopBarSaveButton name={name} actions={actions} compact={compact} />
+          <>
+            <TopBarSaveButton name={name} actions={actions} compact={compact} />
+            <ExtraButtons actionsData={actionsData} />
+          </>
         ) : undefined}
         <CloseEditor activeTab={activeTab} project_id={project_id} />
       </>

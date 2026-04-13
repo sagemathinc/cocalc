@@ -8,7 +8,6 @@ import { Button, Space, Tooltip } from "antd";
 import { COLORS } from "@cocalc/util/theme";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { AIAvatar } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -28,11 +27,6 @@ const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   background: COLORS.GRAY_L0,
   borderTop: `2px solid ${COLORS.GRAY_L}`,
   height: "100%",
-} as const;
-
-const USERS_VIEWING_STYLE: React.CSSProperties = {
-  maxWidth: "120px",
-  marginRight: "5px",
 } as const;
 
 interface Props {
@@ -57,11 +51,6 @@ export function ChatIndicator({
 
   return (
     <div style={style}>
-      <UsersViewing
-        project_id={project_id}
-        path={path}
-        style={USERS_VIEWING_STYLE}
-      />
       <ChatButtons
         project_id={project_id}
         path={path}

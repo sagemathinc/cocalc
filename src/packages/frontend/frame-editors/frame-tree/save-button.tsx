@@ -84,8 +84,8 @@ export function SaveButton({
         ...(type == "default"
           ? undefined
           : disabled
-            ? { background: "transparent", color: "var(--cocalc-text-primary, #888)", opacity: 0.5 }
-            : { background: "var(--cocalc-success, #5CB85C)", color: "var(--cocalc-text-primary-strong, #434343)" }),
+            ? { background: "transparent", color: "var(--cocalc-text-primary, #888)", opacity: 0.5, border: "none" }
+            : { background: "var(--cocalc-success, #5CB85C)", color: "var(--cocalc-text-primary-strong, #434343)", border: "none" }),
         whiteSpace: "nowrap",
         ...style,
       }}
