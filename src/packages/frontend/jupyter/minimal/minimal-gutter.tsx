@@ -57,7 +57,7 @@ interface MinimalGutterProps {
   positionInBlock: number;
   blockSize: number;
   showBlockLine: boolean;
-  isLastInBlock: boolean;
+
   cellRunState: CellRunState;
   onRun?: () => void;
   onInsertCell?: () => void;
@@ -89,7 +89,7 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
     onToggleSection,
     blockHighlighted,
     onHoverBlock,
-    isLastInBlock,
+
     isCurrent,
     isSelected,
     read_only,
@@ -238,8 +238,8 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
             </Tooltip>
           )}
 
-          {/* [+] insert cell at end of section */}
-          {isLastInBlock && !read_only && onInsertCell && (
+          {/* [+] insert cell below — visible on hover for every cell */}
+          {!read_only && onInsertCell && (
             <Tooltip title="Insert cell below" placement="right">
               <Button
                 type="text"
@@ -252,10 +252,11 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
                   onInsertCell();
                 }}
                 style={{
-                  color: hovered ? COLORS.GRAY_D : COLORS.GRAY_LL,
+                  color: COLORS.GRAY_D,
                   marginTop: "auto",
-                  transition: "color 150ms ease",
+                  transition: "opacity 150ms ease",
                   zIndex: 2,
+                  opacity: hovered ? 1 : 0,
                 }}
               />
             </Tooltip>
