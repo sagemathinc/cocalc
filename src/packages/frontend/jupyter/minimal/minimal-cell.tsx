@@ -120,6 +120,8 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
     const [mdHovered, setMdHovered] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const [rowHovered, setRowHovered] = useState(false);
+    const outputRef = useRef<HTMLDivElement>(null);
+    const [outputHeight, setOutputHeight] = useState<number>(0);
 
     // FileContext that suppresses CellButtonBar and other extras in minimal mode
     const minimalFileContext = { ...fileContext, disableExtraButtons: true };
@@ -331,6 +333,24 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
       return "Run this cell";
     }, [cellStart, cellEnd]);
 
+    // Measure output *content* height (not the flex-stretched container)
+    const outputContentRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      const el = outputContentRef.current;
+      if (!el) return;
+      const ro = new ResizeObserver(([entry]) => {
+        setOutputHeight(entry.contentRect.height);
+      });
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
+
+    const viewportHalf = frameHeight ? Math.round(frameHeight * 0.5) : 400;
+    // View mode: match output height (the code fades out if taller)
+    const codePreviewMaxHeight = outputHeight || undefined;
+    // Edit mode: max of output height and 50% viewport
+    const codeEditMaxHeight = Math.max(outputHeight, viewportHalf);
+
     // Show section divider for the first cell in every block
     const isBlockStart = positionInBlock === 0;
     const showSectionDivider = isBlockStart;
@@ -478,6 +498,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           <div style={{ display: "flex", flexDirection: "row", alignItems: "stretch", flex: 1 }}>
         {/* Output column */}
         <div
+          ref={outputRef}
           style={{
             flex: `${outputFlex} 1 0`,
             minWidth: 0,
@@ -487,6 +508,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
             position: "relative",
           }}
         >
+          <div ref={outputContentRef}>
           {/* Zen mode: floating toolbar inside output area */}
           {zenMode && (
             <div
@@ -665,6 +687,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               </Tooltip>
             </div>
           )}
+          </div>{/* end outputContentRef */}
         </div>
 
         {/* Code column — hidden entirely in zen + wide mode */}
@@ -720,6 +743,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               fontSize={font_size}
               onActivate={handleActivateCode}
               highlighted={rowHovered}
+              maxHeight={codePreviewMaxHeight}
             />
           )}
           {isCode && !isActiveEditing && sourceHidden && (
@@ -740,7 +764,12 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           )}
           {isCode && isActiveEditing && (
             <div
-              style={{ position: "relative" }}
+              style={{
+                position: "relative",
+                maxHeight: `${codeEditMaxHeight}px`,
+                overflowY: "auto",
+                overflowX: "hidden",
+              }}
               onBlur={(e) => {
                 // Close editor when focus leaves the entire editing area
                 // (but not when clicking buttons inside it)
