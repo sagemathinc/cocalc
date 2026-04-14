@@ -11,6 +11,12 @@ const EXTENSION_IMPORT_MAP_KEY = Symbol.for(
 const EXTENSION_IMPORT_CACHE_KEY = Symbol.for(
   "cocalc.editor-extensions.import-cache",
 );
+const EXTENSION_IMPORT_MODULE_URL_CACHE_KEY = Symbol.for(
+  "cocalc.editor-extensions.import-module-url-cache",
+);
+const EXTENSION_IMPORT_MODULE_VALUES_KEY = Symbol.for(
+  "cocalc.editor-extensions.import-module-values",
+);
 
 function getExtensionImportMapStore(): Map<string, ExtensionImportProvider> {
   const root = globalThis as Record<PropertyKey, unknown>;
@@ -26,6 +32,31 @@ function getExtensionImportCacheStore(): Map<string, Promise<unknown>> {
     root[EXTENSION_IMPORT_CACHE_KEY] = new Map<string, Promise<unknown>>();
   }
   return root[EXTENSION_IMPORT_CACHE_KEY] as Map<string, Promise<unknown>>;
+}
+
+function getExtensionImportModuleUrlCacheStore(): Map<string, Promise<string>> {
+  const root = globalThis as Record<PropertyKey, unknown>;
+  if (!(root[EXTENSION_IMPORT_MODULE_URL_CACHE_KEY] instanceof Map)) {
+    root[EXTENSION_IMPORT_MODULE_URL_CACHE_KEY] = new Map<
+      string,
+      Promise<string>
+    >();
+  }
+  return root[EXTENSION_IMPORT_MODULE_URL_CACHE_KEY] as Map<
+    string,
+    Promise<string>
+  >;
+}
+
+function getExtensionImportModuleValuesStore(): Record<string, unknown> {
+  const root = globalThis as Record<PropertyKey, unknown>;
+  if (
+    root[EXTENSION_IMPORT_MODULE_VALUES_KEY] == null ||
+    typeof root[EXTENSION_IMPORT_MODULE_VALUES_KEY] !== "object"
+  ) {
+    root[EXTENSION_IMPORT_MODULE_VALUES_KEY] = {};
+  }
+  return root[EXTENSION_IMPORT_MODULE_VALUES_KEY] as Record<string, unknown>;
 }
 
 export type ExtensionImportValue = ExtensionImportProvider;
@@ -95,6 +126,50 @@ export async function loadExtensionImport(specifier: string): Promise<unknown> {
     return await promise;
   } catch (err) {
     getExtensionImportCacheStore().delete(specifier);
+    throw err;
+  }
+}
+
+function toExportStatements(storeKey: string, moduleValue: unknown): string {
+  const lines = [
+    `const mod = globalThis[Symbol.for(${JSON.stringify(
+      "cocalc.editor-extensions.import-module-values",
+    )})][${JSON.stringify(storeKey)}];`,
+    `export default mod?.default ?? mod;`,
+  ];
+  const keys = Object.keys(
+    (moduleValue as Record<string, unknown>) ?? {},
+  ).filter(
+    (name) =>
+      name !== "default" &&
+      name !== "__esModule" &&
+      /^[$A-Z_][0-9A-Z_$]*$/i.test(name),
+  );
+  for (const name of keys) {
+    lines.push(`export const ${name} = mod[${JSON.stringify(name)}];`);
+  }
+  return lines.join("\n");
+}
+
+export async function getExtensionImportModuleUrl(
+  specifier: string,
+): Promise<string> {
+  const cached = getExtensionImportModuleUrlCacheStore().get(specifier);
+  if (cached != null) {
+    return await cached;
+  }
+  const promise = (async () => {
+    const moduleValue = await loadExtensionImport(specifier);
+    const storeKey = `${specifier}:${Math.random().toString(36).slice(2)}`;
+    getExtensionImportModuleValuesStore()[storeKey] = moduleValue;
+    const source = toExportStatements(storeKey, moduleValue);
+    return URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+  })();
+  getExtensionImportModuleUrlCacheStore().set(specifier, promise);
+  try {
+    return await promise;
+  } catch (err) {
+    getExtensionImportModuleUrlCacheStore().delete(specifier);
     throw err;
   }
 }
