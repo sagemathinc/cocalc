@@ -129,6 +129,8 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
     const isMarkdown = cellType === "markdown";
     const input = cell.get("input") || "";
     const sourceHidden = !!cell.getIn(["metadata", "jupyter", "source_hidden"]);
+    const isNotEditable = !cell.getIn(["metadata", "editable"], true);
+    const isNotDeletable = !cell.getIn(["metadata", "deletable"], true);
 
     // Track whether cell input changed since last execution
     const lastExecHashRef = useRef<{ execCount: number | undefined; hash: number } | null>(null);
@@ -458,6 +460,8 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           start={cell.get("start")}
           end={cell.get("end")}
           isDirty={isDirty}
+          isNotEditable={isNotEditable}
+          isNotDeletable={isNotDeletable}
         />
 
         {/* Content area — toolbar + output/code columns */}
@@ -668,9 +672,10 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           style={{
             flex: `${codeFlex} 1 0`,
             minWidth: 0,
-            overflow: "hidden",
+            overflow: "visible",
             transition: COLUMN_TRANSITION,
             position: "relative",
+            zIndex: 1,
             borderLeft: zenMode ? "none" : "1px solid #eee",
           }}
         >{showCode && (<>

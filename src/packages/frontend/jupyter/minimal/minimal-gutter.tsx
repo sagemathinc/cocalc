@@ -74,6 +74,10 @@ interface MinimalGutterProps {
   end?: number;
   /** Cell input changed since last execution */
   isDirty?: boolean;
+  /** Cell metadata: editable=false */
+  isNotEditable?: boolean;
+  /** Cell metadata: deletable=false */
+  isNotDeletable?: boolean;
 }
 
 const CURRENT_COLOR = "#42a5f5"; // blue, same as default notebook
@@ -98,6 +102,8 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
     start,
     end,
     isDirty,
+    isNotEditable,
+    isNotDeletable,
   }) => {
     const [hovered, setHovered] = useState(false);
     const { project_id, path } = useFrameContext();
@@ -218,6 +224,22 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
               <span style={{ fontSize: "13px" }}>{index + 1}</span>
             </div>
           </Tooltip>
+
+          {/* Lock / protected indicators */}
+          {isNotEditable && (
+            <Tooltip title="Protected from modifications" placement="left">
+              <span style={{ color: COLORS.GRAY_M, fontSize: "12px", zIndex: 2, marginTop: "2px" }}>
+                <Icon name="lock" />
+              </span>
+            </Tooltip>
+          )}
+          {isNotDeletable && (
+            <Tooltip title="Protected from deletion" placement="left">
+              <span style={{ color: COLORS.GRAY_M, fontSize: "12px", zIndex: 2, marginTop: "2px" }}>
+                <Icon name="ban" />
+              </span>
+            </Tooltip>
+          )}
 
           {/* Play / Stop button */}
           {isCode && !read_only && onRun && (() => {
