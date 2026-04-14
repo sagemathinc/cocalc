@@ -9,6 +9,7 @@ import React from "react";
 import type { IconRef as ExtensionIconRef } from "@cocalc/editor-extensions";
 
 import { CSS } from "@cocalc/frontend/app-framework";
+import { resolveExtensionAssetUrl } from "@cocalc/frontend/extensions/loader";
 import useOnFrontend from "./use-on-frontend";
 
 import {
@@ -789,6 +790,45 @@ function iconImageStyle(props: Props): React.CSSProperties {
   return style;
 }
 
+function useResolvedIconSrc(icon?: NonBuiltinIconRef): string | undefined {
+  const [src, setSrc] = React.useState<string | undefined>(
+    icon?.type === "external" ? icon.url : undefined,
+  );
+
+  React.useEffect(() => {
+    let active = true;
+    if (icon == null) {
+      setSrc(undefined);
+      return () => {
+        active = false;
+      };
+    }
+    if (icon.type === "external") {
+      setSrc(icon.url);
+      return () => {
+        active = false;
+      };
+    }
+    setSrc(undefined);
+    resolveExtensionAssetUrl(icon.uri)
+      .then((resolved) => {
+        if (active) {
+          setSrc(resolved);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setSrc(undefined);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [icon]);
+
+  return src;
+}
+
 const missing: any = {};
 // Converted from https://github.com/andreypopp/react-fa
 
@@ -796,6 +836,9 @@ export const Icon: React.FC<Props> = (props: Props) => {
   // IMPORTANT: This hook is needed for next.js to support server side rendering.
   // Otherwise, at least with next 13, it crashes when rendering icons.
   const onFrontend = useOnFrontend();
+  const resolvedIconSrc = useResolvedIconSrc(
+    isIconRefObject(props.name) ? props.name : undefined,
+  );
   if (!onFrontend) return null;
 
   if (props.unicode != null) {
@@ -819,11 +862,13 @@ export const Icon: React.FC<Props> = (props: Props) => {
   }
 
   if (isIconRefObject(props.name)) {
-    const src = props.name.type === "bundle" ? props.name.uri : props.name.url;
+    if (resolvedIconSrc == null) {
+      return null;
+    }
     return (
       <img
-        src={src}
-        alt={src}
+        src={resolvedIconSrc}
+        alt={resolvedIconSrc}
         className={props.className}
         style={iconImageStyle(props)}
         onClick={props.onClick}
