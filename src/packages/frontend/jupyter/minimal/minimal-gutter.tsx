@@ -60,6 +60,7 @@ interface MinimalGutterProps {
 
   cellRunState: CellRunState;
   onRun?: () => void;
+  onStop?: () => void;
   onInsertCell?: () => void;
   onToggleSection?: () => void;
   blockHighlighted?: boolean;
@@ -85,6 +86,7 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
     showBlockLine,
     cellRunState,
     onRun,
+    onStop,
     onInsertCell,
     onToggleSection,
     blockHighlighted,
@@ -217,26 +219,50 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
             </div>
           </Tooltip>
 
-          {/* Play button */}
-          {isCode && !read_only && onRun && (
-            <Tooltip title={runTooltip} placement="left">
-              <Button
-                type="text"
-                size="small"
-                icon={<Icon name="play" />}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRun();
-                }}
-                style={{
-                  color: hovered ? COLORS.GRAY_D : isDirty ? COLORS.GRAY_M : COLORS.GRAY_L,
-                  transition: "color 150ms ease",
-                  zIndex: 2,
-                }}
-              />
-            </Tooltip>
-          )}
+          {/* Play / Stop button */}
+          {isCode && !read_only && onRun && (() => {
+            const isBusy = cellRunState === "running" || cellRunState === "queued";
+            if (isBusy && onStop) {
+              return (
+                <Tooltip title="Interrupt execution" placement="left">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<Icon name="stop" />}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onStop();
+                    }}
+                    style={{
+                      color: COLORS.ANTD_RED,
+                      transition: "color 150ms ease",
+                      zIndex: 2,
+                    }}
+                  />
+                </Tooltip>
+              );
+            }
+            return (
+              <Tooltip title={runTooltip} placement="left">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Icon name="play" />}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRun();
+                  }}
+                  style={{
+                    color: hovered ? COLORS.GRAY_D : isDirty ? COLORS.GRAY_M : COLORS.GRAY_L,
+                    transition: "color 150ms ease",
+                    zIndex: 2,
+                  }}
+                />
+              </Tooltip>
+            );
+          })()}
 
           {/* [+] insert cell below — visible on hover for every cell */}
           {!read_only && onInsertCell && (
