@@ -15,17 +15,17 @@ The goal is dynamic extensibility: a trusted bundle declares which files it hand
 
 ## Current Architecture (key files)
 
-| Component | File | Role |
-|-----------|------|------|
-| File associations | `frontend/file-associations.ts` | Maps 100+ extensions to editor metadata (FileSpec) |
-| Low-level registry | `frontend/file-editors.ts` | `register_file_editor()` with init/remove/save lifecycle |
-| Frame-tree registry | `frontend/frame-editors/frame-tree/register.ts` | Modern async registration with retry, ref counting |
-| Master import | `frontend/frame-editors/register.ts` | Imports all individual `register.ts` files |
-| Types | `frontend/frame-editors/frame-tree/types.ts` | `EditorType` (string union), `EditorDescription`, `EditorSpec` |
-| Editor factory | `frontend/frame-editors/frame-tree/editor.tsx` | `createEditor()` wraps EditorSpec into React component |
-| Base actions | `frontend/frame-editors/code-editor/actions.ts` | Base class with sync init, doctype selection, state management |
-| Sync client | `frontend/frame-editors/generic/client.ts` | `syncstring2()`, `syncdb2()` factory functions |
-| DKV settings | `frontend/frame-editors/frame-tree/frame-editor-settings.ts` | Per-user DKV-based settings pattern (toolbar, layouts) |
+| Component           | File                                                         | Role                                                           |
+| ------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
+| File associations   | `frontend/file-associations.ts`                              | Maps 100+ extensions to editor metadata (FileSpec)             |
+| Low-level registry  | `frontend/file-editors.ts`                                   | `register_file_editor()` with init/remove/save lifecycle       |
+| Frame-tree registry | `frontend/frame-editors/frame-tree/register.ts`              | Modern async registration with retry, ref counting             |
+| Master import       | `frontend/frame-editors/register.ts`                         | Imports all individual `register.ts` files                     |
+| Types               | `frontend/frame-editors/frame-tree/types.ts`                 | `EditorType` (string union), `EditorDescription`, `EditorSpec` |
+| Editor factory      | `frontend/frame-editors/frame-tree/editor.tsx`               | `createEditor()` wraps EditorSpec into React component         |
+| Base actions        | `frontend/frame-editors/code-editor/actions.ts`              | Base class with sync init, doctype selection, state management |
+| Sync client         | `frontend/frame-editors/generic/client.ts`                   | `syncstring2()`, `syncdb2()` factory functions                 |
+| DKV settings        | `frontend/frame-editors/frame-tree/frame-editor-settings.ts` | Per-user DKV-based settings pattern (toolbar, layouts)         |
 
 ### Registration flow today
 
@@ -77,6 +77,7 @@ Multiple editors can register for the same file type. The **default** is configu
 **Editor choice persistence**: When a user opens a file (including via "Open with..."), the chosen editor ID is stored in `open_files[path].editorId` (not just `ext`). This ensures that tab restore, background tab re-initialization, and session recovery all use the correct editor -- not just whichever candidate currently wins for that extension. The `editorId` flows through `project/open-file.ts` → `project_actions.ts` → `initializeAsync()`/`generateAsync()`.
 
 **File type resolution** is handled by a **unified file-type resolver** that replaces the current scattered pattern of `filename_extension()` + `noext-${basename}` checks. The resolver handles:
+
 - **By extension**: `.csv` → file type `"csv"`, `.md` and `.markdown` → file type `"markdown"`
 - **By exact filename**: `Dockerfile`, `Makefile`, `.gitignore` → mapped to a file type (e.g., `"code"`)
 - **By pattern** (future): `*.test.ts` → file type `"test"` (stretch goal)
@@ -84,6 +85,7 @@ Multiple editors can register for the same file type. The **default** is configu
 The resolver also provides file-type metadata (syntax mode, icon, compute server eligibility) -- replacing the extension-only lookups in `filenameMode()`, `filenameIcon()`, and `excludeFromComputeServer()` in `file-associations.ts`.
 
 The manifest declares both:
+
 ```typescript
 {
   extensions: ["csv", "tsv"],           // file extensions
@@ -115,7 +117,11 @@ What an extension author writes:
 
 ```typescript
 // my-csv-viewer/index.ts
-import { defineEditor, registerExtension, CodemirrorEditor } from "@cocalc/editor-extensions";
+import {
+  defineEditor,
+  registerExtension,
+  CodemirrorEditor,
+} from "@cocalc/editor-extensions";
 
 const extension = defineEditor({
   id: "my-org/csv-viewer",
@@ -136,7 +142,7 @@ const extension = defineEditor({
       short: "Raw",
       name: "Raw Data",
       icon: "code",
-      component: CodemirrorEditor,     // re-exported from SDK
+      component: CodemirrorEditor, // re-exported from SDK
       commands: { save: true, find: true, replace: true },
     },
   },
@@ -171,7 +177,7 @@ import { defineFrame, registerExtension } from "@cocalc/editor-extensions";
 const frame = defineFrame({
   id: "my-org/custom-preview",
   name: "Custom Markdown Preview",
-  targetEditors: ["cocalc/markdown-editor"],   // stable editor IDs, not file extensions
+  targetEditors: ["cocalc/markdown-editor"], // stable editor IDs, not file extensions
 
   frame: {
     type: "my-org/custom-preview",
@@ -194,42 +200,41 @@ registerExtension(frame);
 interface EditorExtensionManifest {
   // Identity -- namespaced: "org/package-name"
   id: string;
-  name: string;                        // human-readable
-  version: string;                     // semver
+  name: string; // human-readable
+  version: string; // semver
 
   // What it provides
   kind: "editor" | "frame";
-  extensions?: string[];               // file extensions handled (Level 1), e.g. ["csv", "tsv"]
-  filenames?: string[];                // exact filenames (Level 1), e.g. ["Dockerfile", ".env"]
-  targetEditors?: string[];            // editor IDs to augment (Level 2), e.g. ["cocalc/markdown-editor"]
+  extensions?: string[]; // file extensions handled (Level 1), e.g. ["csv", "tsv"]
+  filenames?: string[]; // exact filenames (Level 1), e.g. ["Dockerfile", ".env"]
+  targetEditors?: string[]; // editor IDs to augment (Level 2), e.g. ["cocalc/markdown-editor"]
 
   // Entry point
-  main: string;                        // JS bundle path or URL
+  main: string; // JS bundle path or URL
 
   // Capabilities
   sync?: {
     doctype: "syncstring" | "syncdb" | "none";
-    primaryKeys?: string[];            // for syncdb
-    stringCols?: string[];             // for syncdb
+    primaryKeys?: string[]; // for syncdb
+    stringCols?: string[]; // for syncdb
   };
 
   // Trust
   source: "builtin" | "admin";
 
   // Display
-  icon?: IconRef;                      // see Icon Types section below
-  priority?: number;                   // higher wins when multiple editors claim same extension
+  icon?: IconRef; // see Icon Types section below
+  priority?: number; // higher wins when multiple editors claim same extension
 
   // Bundle (for externally distributed extensions)
-  bundleUrl?: string;                  // URL to the signed archive (.tar.gz)
+  bundleUrl?: string; // URL to the signed archive (.tar.gz)
 }
 
 // Icon reference types -- preserves hardened typing for built-ins
 type IconRef =
-  | IconName                                          // built-in: "table", "code", etc.
-  | { type: "bundle"; uri: string }                   // from archive: "[id]@[version]/assets/icon.svg"
-  | { type: "external"; url: string };                // external URL to SVG
-
+  | IconName // built-in: "table", "code", etc.
+  | { type: "bundle"; uri: string } // from archive: "[id]@[version]/assets/icon.svg"
+  | { type: "external"; url: string }; // external URL to SVG
 ```
 
 ---
@@ -250,14 +255,14 @@ frontend/extensions/
 
 - Singleton created at app startup
 - First runs all static imports (existing behavior, unchanged)
-- Then loads dynamically configured extensions from project settings / DKV
+- Then loads dynamically configured extensions from project-scoped / account-scoped DKV
 - **Replaces** `file-editors.ts` single-entry lookup with a multi-candidate registry
 - Emits events when extensions are added/removed
 
 ### Resolution order (highest priority first)
 
 1. Per-user DKV override (`account_id` scoped, key: `ext-override:{ext}`)
-2. Per-project configuration (project settings, key: `editor-extensions`)
+2. Per-project configuration (project-scoped DKV, key: `editor-extensions`)
 3. Extension with highest `priority` in manifest
 4. Built-in default (current `file_associations`)
 
@@ -267,34 +272,38 @@ frontend/extensions/
 
 ### Per-project configuration (primary)
 
-Project settings get a new section: **Editor Extensions**. This is where file extensions are mapped to custom editors. Stored in the project's settings (synced via the existing project settings infrastructure):
+Project settings get a new section: **Editor Extensions**. This is where file extensions are mapped to custom editors. The UI lives in project settings, but the shared data is stored in a project-scoped conat DKV so collaborators see live updates immediately:
 
 ```typescript
-// In project settings:
-{
-  "editor_extensions": {
-    // Map file extension -> extension ID
-    "file_mappings": {
-      "csv": "my-org/csv-viewer",
-      "custom": "my-org/custom-editor"
+const dkv = await webapp_client.conat_client.dkv({
+  project_id,
+  name: "editor-extensions",
+});
+
+dkv.set("config", {
+  // Map file extension -> extension ID
+  file_mappings: {
+    csv: "my-org/csv-viewer",
+    custom: "my-org/custom-editor",
+  },
+  // Installed extensions with their bundle URLs
+  installed: [
+    {
+      id: "my-org/csv-viewer",
+      bundleUrl: "https://cdn.example.com/csv-viewer@1.0.0/extension.js",
+      enabled: true,
     },
-    // Installed extensions with their bundle URLs
-    "installed": [
-      {
-        "id": "my-org/csv-viewer",
-        "bundleUrl": "https://cdn.example.com/csv-viewer@1.0.0/extension.js",
-        "enabled": true
-      }
-    ],
-    // Per-editor settings (including which extra frames to enable)
-    "editor_settings": {
-      "my-org/csv-viewer": {
-        "extra_frames": ["other-org/csv-chart-frame"],
-        "options": { /* editor-specific config */ }
-      }
-    }
-  }
-}
+  ],
+  // Per-editor settings (including which extra frames to enable)
+  editor_settings: {
+    "my-org/csv-viewer": {
+      extra_frames: ["other-org/csv-chart-frame"],
+      options: {
+        /* editor-specific config */
+      },
+    },
+  },
+});
 ```
 
 ### Per-user overrides (secondary)
@@ -306,7 +315,10 @@ const dkv = await webapp_client.conat_client.dkv({
   account_id,
   name: "editor-extensions",
 });
-dkv.set("ext-override:csv", { extensionId: "my-org/csv-viewer", enabled: true });
+dkv.set("ext-override:csv", {
+  extensionId: "my-org/csv-viewer",
+  enabled: true,
+});
 ```
 
 ### UI surfaces
@@ -345,6 +357,7 @@ assets/             -- icons, images (referenced by manifest as bundle URIs)
 ```
 
 The JS bundle, when loaded:
+
 - Calls `registerExtension()` from the SDK to declare what it provides
 - Exports React components for its frames
 - Can call SDK APIs: sync helpers, command registration, settings access
@@ -360,16 +373,24 @@ The JS bundle, when loaded:
 ```javascript
 // dist/extension.js (simplified)
 // The SDK is available as a global or via import map
-import { defineEditor, registerExtension, CodemirrorEditor } from "@cocalc/editor-extensions";
+import {
+  defineEditor,
+  registerExtension,
+  CodemirrorEditor,
+} from "@cocalc/editor-extensions";
 
 const extension = defineEditor({
   id: "org.example/csv-pro",
   name: "CSV Pro",
   version: "2.1.0",
   extensions: ["csv", "tsv"],
-  icon: `<svg>...</svg>`,             // inline SVG string
-  frames: { /* ... */ },
-  defaultLayout: { /* ... */ },
+  icon: `<svg>...</svg>`, // inline SVG string
+  frames: {
+    /* ... */
+  },
+  defaultLayout: {
+    /* ... */
+  },
   sync: { doctype: "syncstring" },
 });
 
@@ -393,9 +414,9 @@ registerExtension(extension);
 
 ```typescript
 type IconRef =
-  | IconName                                    // built-in: "table", "code", etc.
-  | { type: "bundle"; uri: string }             // from archive: "my-org/csv-pro@1.0.0/assets/icon.svg"
-  | { type: "external"; url: string };          // external URL (fallback)
+  | IconName // built-in: "table", "code", etc.
+  | { type: "bundle"; uri: string } // from archive: "my-org/csv-pro@1.0.0/assets/icon.svg"
+  | { type: "external"; url: string }; // external URL (fallback)
 ```
 
 - **Built-in** (`IconName`): unchanged, for extensions that use CoCalc's icon set
@@ -460,7 +481,7 @@ interface DevReloadMessage {
   type: "extension-reload";
   extensionId: string;
   version: string;
-  archiveUrl: string;         // http://localhost:4100/my-extension.tar.gz
+  archiveUrl: string; // http://localhost:4100/my-extension.tar.gz
   timestamp: number;
 }
 ```
@@ -597,13 +618,12 @@ CoCalc's frontend (in `packages/static` webpack/esbuild config or at app startup
 import { setupExtensionImportMap } from "@cocalc/frontend/extensions/import-map";
 
 setupExtensionImportMap({
-  "react": React,
+  react: React,
   "@cocalc/util": () => import("@cocalc/util"),
   "@cocalc/conat": () => import("@cocalc/conat"),
-  "@cocalc/frontend/frame-editors/code-editor/codemirror-editor":
-    () => import("./frame-editors/code-editor/codemirror-editor"),
-  "@cocalc/frontend/extensions/hooks":
-    () => import("./extensions/hooks"),
+  "@cocalc/frontend/frame-editors/code-editor/codemirror-editor": () =>
+    import("./frame-editors/code-editor/codemirror-editor"),
+  "@cocalc/frontend/extensions/hooks": () => import("./extensions/hooks"),
   "@cocalc/editor-extensions": () => import("@cocalc/editor-extensions"),
   // ... more as needed
 });
@@ -677,11 +697,13 @@ These changes fix bugs/limitations in CoCalc's own internals to make the extensi
 Each editor can be converted independently. The conversion for a simple editor like CSV:
 
 **Before** (3 files, ~120 lines):
+
 - `register.ts` -- calls `register_file_editor`
 - `editor.ts` -- defines EditorSpec + `createEditor()`
 - `actions.ts` -- extends CodeEditorActions with `_raw_default_frame_tree()` + `_init2()`
 
 **After** (1 file, ~40 lines):
+
 - `index.ts` -- single `defineEditor()` call. No actions.ts needed because the SDK synthesizes Actions from `sync` + `defaultLayout`.
 
 ---
@@ -804,6 +826,7 @@ Admin settings include:
 - [ ] Make `file_associations` observable; fix `code-editor/register.ts` snapshot timing
 
 **Files to modify**:
+
 - `src/packages/frontend/frame-editors/frame-tree/types.ts`
 - `src/packages/frontend/frame-editors/frame-tree/frame-tree.tsx`
 - `src/packages/frontend/frame-editors/frame-tree/leaf.tsx`
@@ -857,6 +880,7 @@ Admin settings include:
 - [ ] Unit tests for defineEditor/defineFrame/actionsFactory/signature verification
 
 **Files to create**:
+
 - `src/packages/editor-extensions/package.json` (publishable as `@cocalc/editor-extensions`)
 - `src/packages/editor-extensions/tsconfig.json`
 - `src/packages/editor-extensions/index.ts`
@@ -891,6 +915,7 @@ Admin settings include:
   - Skip signature verification only when: localhost URL AND (dev build OR user has developer-mode flag)
   - Re-fetch, re-extract, re-register on reload signal
 - [ ] Add project settings UI: "Editor Extensions" section (per-project, shared by all project users)
+  - Backed by project-scoped conat DKV (`project_id`, name: `editor-extensions`), not `projects.settings`
   - Install/enable/disable extensions by archive URL
   - Map file extensions to editors
   - Shows verification status (signed by which supplier, or "dev mode" for localhost)
@@ -899,10 +924,12 @@ Admin settings include:
 - [ ] End-to-end dev test: run dev server, configure localhost URL, edit code, see auto-reload
 
 **Files to modify**:
+
 - `src/packages/frontend/frame-editors/csv-editor/` (rewrite to use SDK)
 - `src/packages/frontend/frame-editors/register.ts` (add dynamic loading path)
 
 **Files to create**:
+
 - `src/packages/frontend/project/settings/editor-extensions.tsx`
 - `src/packages/frontend/account/editor-extensions.tsx`
 - `src/packages/frontend/extensions/dev-reload-listener.ts` (WebSocket client for dev server)

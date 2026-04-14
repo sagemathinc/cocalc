@@ -26,6 +26,10 @@ import {
   TypedMap,
 } from "@cocalc/frontend/app-framework";
 import { Listings, listings } from "@cocalc/frontend/conat/listings";
+import {
+  openProjectEditorConfig,
+  type ProjectEditorExtensionsConfig,
+} from "@cocalc/frontend/extensions/project-config";
 import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
 import { get_local_storage } from "@cocalc/frontend/misc";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
@@ -160,6 +164,7 @@ export interface ProjectStoreState {
   // Project Settings
   get_public_path_id?: (path: string) => any;
   stripped_public_paths: any; //computed(immutable.List)
+  extension_config?: ProjectEditorExtensionsConfig;
 
   // Project Info
   show_project_info_explanation?: boolean;
@@ -195,6 +200,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
   private previous_runstate: string | undefined;
   private listings: { [compute_server_id: number]: Listings } = {};
   public readonly computeServerIdLocalStorageKey: string;
+  private closeProjectEditorConfig?: () => void;
+  private projectEditorConfigDestroyed = false;
 
   // Function to call to initialize one of the tables in this store.
   // This is purely an optimization, so project_log, project_log_all and public_paths
@@ -216,6 +223,28 @@ export class ProjectStore extends Store<ProjectStoreState> {
   }
 
   _init = (): void => {
+    this.projectEditorConfigDestroyed = false;
+    void openProjectEditorConfig(this.project_id, (extension_config) => {
+      if (this.projectEditorConfigDestroyed) {
+        return;
+      }
+      this.redux.getProjectActions(this.project_id)?.setState({
+        extension_config,
+      } as any);
+    })
+      .then((close) => {
+        if (this.projectEditorConfigDestroyed) {
+          close();
+          return;
+        }
+        this.closeProjectEditorConfig = close;
+      })
+      .catch((err) => {
+        console.warn(
+          `Failed to initialize project editor extension config for ${this.project_id}: ${err}`,
+        );
+      });
+
     // If we are explicitly listed as a collaborator on this project,
     // watch for this to change, and if it does, close the project.
     // This avoids leaving it open after we are removed, which is confusing,
@@ -234,6 +263,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
   };
 
   destroy = (): void => {
+    this.projectEditorConfigDestroyed = true;
+    this.closeProjectEditorConfig?.();
+    delete this.closeProjectEditorConfig;
     const projects_store = this.redux.getStore("projects");
     if (projects_store !== undefined) {
       projects_store.removeListener("change", this._projects_store_change);
@@ -353,6 +385,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Settings
       stripped_public_paths: this.selectors.stripped_public_paths.fn,
+      extension_config: undefined,
 
       other_settings: undefined,
 

@@ -17,6 +17,7 @@ import {
 import { React } from "@cocalc/frontend/app-framework";
 
 import { alert_message } from "./alerts";
+import { getProjectEditorId } from "./extensions/project-config";
 import { extensionRegistry } from "./extensions/registry";
 import { file_associations, resolve_file_type } from "./file-associations";
 import { EditorLoadError } from "./file-editors-error";
@@ -74,6 +75,7 @@ export function icon(ext: string): string | undefined {
     resolve_candidate(
       candidates,
       ext,
+      undefined,
       undefined,
       builtin_default_editor_id_for_ext(ext),
     )?.icon ?? candidates?.[candidates.length - 1]?.icon
@@ -212,6 +214,7 @@ function resolve_candidate(
   candidates: FileEditorSpec[] | undefined,
   fileKey: string,
   editorId?: string,
+  projectEditorId?: string,
   defaultEditorId?: string,
 ): FileEditorSpec | undefined {
   if (candidates == null || candidates.length === 0) {
@@ -221,6 +224,7 @@ function resolve_candidate(
     extensionRegistry.getEditorCandidatesForFileKey(fileKey),
     {
       editorId,
+      projectEditorId,
       builtinEditorId: defaultEditorId,
     },
   );
@@ -275,12 +279,16 @@ function get_ed(
   const defaultEditorId = builtin_default_editor_id(path, ext);
 
   const resolved = resolve_file_type(path, ext);
+  const projectEditorId =
+    getProjectEditorId(project_id, resolved.key) ??
+    getProjectEditorId(project_id, resolved.ext);
   const exact =
     resolved.key !== resolved.ext
       ? resolve_candidate(
           file_editors[resolved.key],
           resolved.key,
           editorId,
+          projectEditorId,
           defaultEditorId,
         )
       : undefined;
@@ -292,12 +300,13 @@ function get_ed(
     file_editors[resolved.ext],
     resolved.ext,
     editorId,
+    projectEditorId,
     defaultEditorId,
   );
   if (spec == null) {
     // Log when falling back to unknown editor
     logFallback(ext, path);
-    spec = resolve_candidate(file_editors[""], "", editorId);
+    spec = resolve_candidate(file_editors[""], "", editorId, projectEditorId);
   }
   if (spec == null) {
     // This happens if the editors haven't been loaded yet.  A valid use
