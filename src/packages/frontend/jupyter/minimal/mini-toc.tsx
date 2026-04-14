@@ -101,6 +101,7 @@ export const MiniTOC: React.FC<MiniTOCProps> = React.memo(
               className={isCurrent ? undefined : "mini-toc-entry"}
               onClick={() => {
                 const cellId = sectionBlocks[blockIndex].startCellId;
+                frameActions.current?.set_mode("escape");
                 frameActions.current?.set_cur_id(cellId);
                 frameActions.current?.scroll("cell top");
               }}
@@ -119,13 +120,13 @@ export const MiniTOC: React.FC<MiniTOCProps> = React.memo(
               title={actions ? `${title} — double-click to run section` : title}
               style={{
                 color: isCurrent ? COLORS.GRAY_M : COLORS.GRAY_L,
-                fontSize: `${Math.round((fontSize ?? 14) * 0.78)}px`,
+                fontSize: `${Math.round((fontSize ?? 14) * 0.9)}px`,
                 cursor: "pointer",
                 textAlign: "right",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                lineHeight: `${Math.round((fontSize ?? 14) * 1.15)}px`,
+                lineHeight: `${Math.round((fontSize ?? 14) * 1.3)}px`,
                 fontWeight: isCurrent ? 600 : 400,
                 userSelect: "none",
               }}
