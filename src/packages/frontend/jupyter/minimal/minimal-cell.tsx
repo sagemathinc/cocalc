@@ -25,7 +25,7 @@ import { CellToolbar } from "@cocalc/frontend/jupyter/cell-toolbar";
 import { CellInput } from "@cocalc/frontend/jupyter/cell-input";
 
 import { LLMCellTool } from "@cocalc/frontend/jupyter/llm/cell-tool";
-import { CellChatButton } from "@cocalc/frontend/jupyter/cell-buttonbar";
+import { CellChatButton, CellChatUnreadBadge } from "@cocalc/frontend/jupyter/cell-chat-button";
 import { CodeBarDropdownMenu } from "@cocalc/frontend/jupyter/cell-buttonbar-menu";
 import { MinimalCodePreview } from "./minimal-code-preview";
 import { CODE_BAR_BTN_STYLE, RUN_ALL_CELLS_ABOVE_ICON, RUN_ALL_CELLS_BELOW_ICON } from "@cocalc/frontend/jupyter/consts";
@@ -121,6 +121,8 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
     const [mdHovered, setMdHovered] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const [rowHovered, setRowHovered] = useState(false);
+    const outputRef = useRef<HTMLDivElement>(null);
+    const [outputHeight, setOutputHeight] = useState<number>(0);
 
     // FileContext that suppresses CellButtonBar and other extras in minimal mode
     const minimalFileContext = { ...fileContext, disableExtraButtons: true };
@@ -129,6 +131,9 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
     const isCode = cellType === "code";
     const isMarkdown = cellType === "markdown";
     const input = cell.get("input") || "";
+    const sourceHidden = !!cell.getIn(["metadata", "jupyter", "source_hidden"]);
+    const isNotEditable = !cell.getIn(["metadata", "editable"], true);
+    const isNotDeletable = !cell.getIn(["metadata", "deletable"], true);
 
     // Track whether cell input changed since last execution
     const lastExecHashRef = useRef<{ execCount: number | undefined; hash: number } | null>(null);
@@ -329,6 +334,24 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
       return "Run this cell";
     }, [cellStart, cellEnd]);
 
+    // Measure output *content* height (not the flex-stretched container)
+    const outputContentRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      const el = outputContentRef.current;
+      if (!el) return;
+      const ro = new ResizeObserver(([entry]) => {
+        setOutputHeight(entry.contentRect.height);
+      });
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
+
+    const viewportHalf = frameHeight ? Math.round(frameHeight * 0.5) : 400;
+    // View mode: match output height (the code fades out if taller)
+    const codePreviewMaxHeight = outputHeight || undefined;
+    // Edit mode: max of output height and 50% viewport
+    const codeEditMaxHeight = Math.max(outputHeight, viewportHalf);
+
     // Show section divider for the first cell in every block
     const isBlockStart = positionInBlock === 0;
     const showSectionDivider = isBlockStart;
@@ -458,6 +481,8 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           start={cell.get("start")}
           end={cell.get("end")}
           isDirty={isDirty}
+          isNotEditable={isNotEditable}
+          isNotDeletable={isNotDeletable}
         />
 
         {/* Content area — toolbar + output/code columns */}
@@ -474,6 +499,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           <div style={{ display: "flex", flexDirection: "row", alignItems: "stretch", flex: 1 }}>
         {/* Output column */}
         <div
+          ref={outputRef}
           style={{
             flex: `${outputFlex} 1 0`,
             minWidth: 0,
@@ -483,6 +509,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
             position: "relative",
           }}
         >
+          <div ref={outputContentRef}>
           {/* Zen mode: floating toolbar inside output area */}
           {zenMode && (
             <div
@@ -668,6 +695,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               </Tooltip>
             </div>
           )}
+          </div>{/* end outputContentRef */}
         </div>
 
         {/* Code column — hidden entirely in zen + wide mode */}
@@ -675,9 +703,10 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           style={{
             flex: `${codeFlex} 1 0`,
             minWidth: 0,
-            overflow: "hidden",
+            overflow: "visible",
             transition: COLUMN_TRANSITION,
             position: "relative",
+            zIndex: 1,
             borderLeft: zenMode ? "none" : "1px solid #eee",
           }}
         >{showCode && (<>
@@ -692,6 +721,8 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                 gap: "2px",
                 alignItems: "center",
                 visibility: rowHovered || menuOpen ? "visible" : "hidden",
+                position: "relative",
+                zIndex: 2,
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -718,20 +749,52 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                 cell={cell}
                 onOpenChange={setMenuOpen}
               />
+              {/* Unread badge — always visible even when toolbar is hidden */}
+              {!(rowHovered || menuOpen) && actions && project_id && !actions.is_closed() && (
+                <div style={{ visibility: "visible" }}>
+                  <CellChatUnreadBadge
+                    cellId={id}
+                    project_id={project_id}
+                    path={(actions as any).path}
+                  />
+                </div>
+              )}
             </div>
           )}
-          {isCode && !isActiveEditing && (
+          {isCode && !isActiveEditing && !sourceHidden && (
             <MinimalCodePreview
               value={input}
               cmOptions={cmOpts}
               fontSize={font_size}
               onActivate={handleActivateCode}
               highlighted={rowHovered}
+              maxHeight={codePreviewMaxHeight}
             />
+          )}
+          {isCode && !isActiveEditing && sourceHidden && (
+            <div
+              style={{
+                color: COLORS.GRAY_L,
+                fontSize: "14px",
+                padding: "4px 8px",
+                cursor: "pointer",
+              }}
+              title="Input is hidden — click to show"
+              onClick={() => {
+                actions?.toggle_jupyter_metadata_boolean(id, "source_hidden");
+              }}
+            >
+              <Icon name="ellipsis" />
+            </div>
           )}
           {isCode && isActiveEditing && (
             <div
-              style={{ position: "relative" }}
+              style={{
+                position: "relative",
+                maxHeight: `${codeEditMaxHeight}px`,
+                overflowY: "auto",
+                overflowX: "hidden",
+              }}
               onBlur={(e) => {
                 // Close editor when focus leaves the entire editing area
                 // (but not when clicking buttons inside it)
