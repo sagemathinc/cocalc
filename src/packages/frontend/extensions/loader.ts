@@ -1,4 +1,8 @@
-import type { ExtensionDefinition } from "@cocalc/editor-extensions";
+import {
+  verifyExtensionArchiveSignature,
+  type ExtensionDefinition,
+  type VerifiedExtensionArchiveSignature,
+} from "@cocalc/editor-extensions";
 
 import { extensionRegistry } from "./registry";
 import {
@@ -7,10 +11,22 @@ import {
   loadExtensionImports,
   listExtensionImports,
 } from "./import-map";
+import {
+  getTrustedExtensionSuppliers,
+  shouldSkipExtensionSignatureVerification,
+} from "./trust";
 
 export interface LoadedExtensionBundle {
   bundleUrl: string;
   extension: ExtensionDefinition;
+  verification:
+    | {
+        mode: "signed";
+        digestHex: string;
+        supplierId: string;
+        supplierName?: string;
+      }
+    | { mode: "dev-unsigned" };
 }
 
 const bundleLoadCache = new Map<string, Promise<LoadedExtensionBundle>>();
@@ -417,6 +433,7 @@ async function loadArchiveBundle(
     (cachedArchive != null
       ? recordToExtractedArchive(cachedArchive)
       : await extractExtensionArchive(await fetchBundleBytes(bundleUrl)));
+  const verification = await verifyExtractedArchive(bundleUrl, archive);
   await executeBundleSource(
     `${bundleUrl}#${archive.mainPath}`,
     decodeText(archive.files.get(archive.mainPath)!),
@@ -431,13 +448,18 @@ async function loadArchiveBundle(
   await putStoredArchive(
     extractedArchiveToRecord(bundleUrl, archive, loaded.definition),
   );
-  return { bundleUrl, extension: loaded.definition };
+  return { bundleUrl, extension: loaded.definition, verification };
 }
 
 async function loadJavascriptBundle(
   bundleUrl: string,
   bytes?: Uint8Array,
 ): Promise<LoadedExtensionBundle> {
+  if (!shouldSkipExtensionSignatureVerification(bundleUrl)) {
+    throw new Error(
+      `Unsigned extension JavaScript bundles are only allowed from localhost in developer mode: ${bundleUrl}`,
+    );
+  }
   const before = new Map(
     extensionRegistry
       .listRegistered()
@@ -452,7 +474,31 @@ async function loadJavascriptBundle(
       `Extension bundle ${bundleUrl} did not register an extension`,
     );
   }
-  return { bundleUrl, extension: loaded.definition };
+  return {
+    bundleUrl,
+    extension: loaded.definition,
+    verification: { mode: "dev-unsigned" },
+  };
+}
+
+async function verifyExtractedArchive(
+  bundleUrl: string,
+  archive: ExtractedExtensionArchive,
+): Promise<LoadedExtensionBundle["verification"]> {
+  if (shouldSkipExtensionSignatureVerification(bundleUrl)) {
+    return { mode: "dev-unsigned" };
+  }
+  const verified: VerifiedExtensionArchiveSignature =
+    await verifyExtensionArchiveSignature({
+      files: archive.files,
+      trustedSuppliers: getTrustedExtensionSuppliers(),
+    });
+  return {
+    mode: "signed",
+    digestHex: verified.digestHex,
+    supplierId: verified.supplier.id,
+    supplierName: verified.supplier.name,
+  };
 }
 
 export async function resolveExtensionAssetUrl(uri: string): Promise<string> {
