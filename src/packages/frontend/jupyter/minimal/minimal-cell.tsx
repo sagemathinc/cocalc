@@ -3,12 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Tooltip } from "antd";
+import { Button, Dropdown, Tooltip } from "antd";
 import type { Map } from "immutable";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 
 import { redux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, isIconName } from "@cocalc/frontend/components";
+import { jupyter } from "@cocalc/frontend/i18n";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { openAssistantWithPrefill } from "@cocalc/frontend/frame-editors/llm/assistant-seed";
 import { clear_selection } from "@cocalc/frontend/misc/clear-selection";
@@ -25,7 +27,7 @@ import { CellInput } from "@cocalc/frontend/jupyter/cell-input";
 import { LLMCellTool } from "@cocalc/frontend/jupyter/llm/cell-tool";
 import { CodeBarDropdownMenu } from "@cocalc/frontend/jupyter/cell-buttonbar-menu";
 import { MinimalCodePreview } from "./minimal-code-preview";
-import { CODE_BAR_BTN_STYLE } from "@cocalc/frontend/jupyter/consts";
+import { CODE_BAR_BTN_STYLE, RUN_ALL_CELLS_ABOVE_ICON, RUN_ALL_CELLS_BELOW_ICON } from "@cocalc/frontend/jupyter/consts";
 import { MinimalGutter, type CellRunState, formatDuration, formatTimeAgo } from "./minimal-gutter";
 import {
   CELL_ROW_STYLE,
@@ -100,7 +102,6 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
       cell_toolbar,
       positionInBlock,
       blockSize,
-      headingLevel,
       blockCellIds,
       isFirst,
       isLast,
@@ -113,6 +114,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
       frameHeight,
     } = props;
 
+    const intl = useIntl();
     const frameActions = useNotebookFrameActions();
     const fileContext = useFileContext();
     const [mdHovered, setMdHovered] = useState(false);
@@ -165,6 +167,99 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
     }, [actions]);
 
     const isBusy = cellRunState === "running" || cellRunState === "queued";
+
+    const handleRunSectionAbove = useCallback(() => {
+      if (!actions || !blockCellIds) return;
+      const idx = blockCellIds.indexOf(id);
+      if (idx <= 0) return;
+      const cells_map = actions.store.get("cells");
+      for (let i = 0; i < idx; i++) {
+        const c = cells_map?.get(blockCellIds[i]);
+        if (c && (c.get("cell_type") || "code") === "code") {
+          frameActions.current?.run_cell(blockCellIds[i]);
+        }
+      }
+    }, [actions, blockCellIds, id]);
+
+    const handleRunSectionBelow = useCallback(() => {
+      if (!actions || !blockCellIds) return;
+      const idx = blockCellIds.indexOf(id);
+      if (idx === -1) return;
+      const cells_map = actions.store.get("cells");
+      for (let i = idx; i < blockCellIds.length; i++) {
+        const c = cells_map?.get(blockCellIds[i]);
+        if (c && (c.get("cell_type") || "code") === "code") {
+          frameActions.current?.run_cell(blockCellIds[i]);
+        }
+      }
+    }, [actions, blockCellIds, id]);
+
+    function renderRunDropdownButton(extraStyle?: React.CSSProperties) {
+      const icon = isBusy ? "stop" : "step-forward";
+      const label = isBusy ? "Stop" : "Run";
+      const tooltip = isBusy ? "Interrupt execution" : runTooltip;
+      const onClick = isBusy ? handleStop : handleRun;
+      const btnStyle = isBusy
+        ? { ...CODE_BAR_BTN_STYLE, color: COLORS.ANTD_RED, ...extraStyle }
+        : { ...CODE_BAR_BTN_STYLE, ...extraStyle };
+
+      const sectionIdx = blockCellIds?.indexOf(id) ?? -1;
+      const hasSection = blockCellIds != null && blockCellIds.length > 1;
+
+      const items: any[] = [];
+      if (hasSection) {
+        items.push(
+          {
+            key: "section-above",
+            icon: <Icon name={RUN_ALL_CELLS_ABOVE_ICON} />,
+            label: "Run above in section",
+            disabled: sectionIdx <= 0,
+            onClick: handleRunSectionAbove,
+          },
+          {
+            key: "section-below",
+            icon: <Icon name={RUN_ALL_CELLS_BELOW_ICON} rotate={"90"} />,
+            label: "Run cell and below in section",
+            onClick: handleRunSectionBelow,
+          },
+          { type: "divider" },
+        );
+      }
+      items.push(
+        {
+          key: "all-above",
+          icon: <Icon name={RUN_ALL_CELLS_ABOVE_ICON} />,
+          label: intl.formatMessage(jupyter.commands.run_all_cells_above_menu),
+          onClick: () => actions?.run_all_above_cell(id),
+        },
+        {
+          key: "all-below",
+          icon: <Icon name={RUN_ALL_CELLS_BELOW_ICON} rotate={"90"} />,
+          label: intl.formatMessage(jupyter.commands.run_all_cells_below_menu),
+          onClick: () => actions?.run_all_below_cell(id),
+        },
+      );
+
+      return (
+        <div>
+          <Dropdown.Button
+            size="small"
+            type="text"
+            trigger={["click"]}
+            mouseLeaveDelay={1.5}
+            icon={<Icon name="angle-down" />}
+            onClick={onClick}
+            menu={{ items }}
+          >
+            <Tooltip placement="top" title={tooltip}>
+              <span style={btnStyle}>
+                {isIconName(icon) && <Icon name={icon} />} {label}
+              </span>
+            </Tooltip>
+          </Dropdown.Button>
+        </div>
+      );
+    }
 
     const handleActivateCode = useCallback(() => {
       if (read_only) return;
@@ -404,19 +499,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {isCode && !read_only && (
-                <Tooltip title={isBusy ? "Interrupt execution" : runTooltip} placement="left">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<Icon name={isBusy ? "stop" : "play"} />}
-                    onClick={isBusy ? handleStop : handleRun}
-                    style={isBusy ? { ...CODE_BAR_BTN_STYLE, color: COLORS.ANTD_RED } : CODE_BAR_BTN_STYLE}
-                  >
-                    {isBusy ? "Stop" : "Run"}
-                  </Button>
-                </Tooltip>
-              )}
+              {isCode && !read_only && renderRunDropdownButton()}
               {isCode && !read_only && llmTools && actions && (
                 <LLMCellTool
                   id={id}
@@ -452,10 +535,24 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           )}
           {isCode && cell.get("output") == null && !input.trim() && !read_only && !zenMode && (
             <div style={{ color: COLORS.GRAY_L, padding: "8px 4px", fontSize: "13px" }}>
+              {"Write "}
               <a onClick={handleActivateCode} style={{ color: COLORS.GRAY_L }}>
-                Write code
+                code
               </a>
-              {" or "}
+              {", "}
+              <a
+                style={{ color: COLORS.GRAY_L }}
+                onClick={() => {
+                  frameActions.current?.set_selected_cell_type("markdown");
+                  // Small delay so cell type change propagates before opening editor
+                  setTimeout(() => {
+                    frameActions.current?.switch_md_cell_to_edit(id);
+                  }, 0);
+                }}
+              >
+                text
+              </a>
+              {", or "}
               <a
                 style={{ color: COLORS.GRAY_L }}
                 onClick={() => {
@@ -572,9 +669,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
             overflow: "hidden",
             transition: COLUMN_TRANSITION,
             position: "relative",
-            borderLeft: zenMode || (positionInBlock === 0 && headingLevel > 0)
-              ? "none"
-              : "1px solid #eee",
+            borderLeft: zenMode ? "none" : "1px solid #eee",
           }}
         >{showCode && (<>
           {/* Cell action toolbar — hover only, above code */}
@@ -591,21 +686,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {!read_only && (
-                <Tooltip title={isBusy ? "Interrupt execution" : runTooltip} placement="left">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<Icon name={isBusy ? "stop" : "play"} />}
-                    onClick={isBusy ? handleStop : handleRun}
-                    style={isBusy
-                      ? { ...CODE_BAR_BTN_STYLE, marginRight: "auto", color: COLORS.ANTD_RED }
-                      : { ...CODE_BAR_BTN_STYLE, marginRight: "auto" }}
-                  >
-                    {isBusy ? "Stop" : "Run"}
-                  </Button>
-                </Tooltip>
-              )}
+              {!read_only && renderRunDropdownButton({ marginRight: "auto" })}
               {!read_only && llmTools && actions && (
                 <LLMCellTool
                   id={id}

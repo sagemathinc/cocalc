@@ -29,6 +29,8 @@ import ProgressEstimate from "../components/progress-estimate";
 import { jupyter as jupyterI18n, labels } from "../i18n";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
+import { SwitchToMinimalButton, SwitchToRegularButton } from "./minimal/frame-type-toggle";
+import MinimalNotebookHelp from "./minimal/minimal-help";
 import { ALERT_COLS } from "./usage";
 
 const KERNEL_NAME_STYLE: CSS = {
@@ -770,33 +772,6 @@ export function Kernel({
         </div>
         {renderTip(get_kernel_name(), renderUsage())}
         <div style={{ flex: 1 }} />
-        {!read_only &&
-          backend_state === "running" &&
-          kernel_state === "busy" && (
-            <Tooltip
-              title={intl.formatMessage({
-                id: "jupyter.status.interrupt_tooltip",
-                defaultMessage: "Interrupt the running computation",
-              })}
-            >
-              <Button
-                type="text"
-                size="small"
-                onClick={() => actions.signal("SIGINT")}
-              >
-                <Icon name="stop" /> Stop
-              </Button>
-            </Tooltip>
-          )}
-        {!read_only && kernel != null && !no_kernel && (
-          <Button
-            type="text"
-            size="small"
-            onClick={() => void actions.confirm_restart()}
-          >
-            <Icon name="redo" /> Restart
-          </Button>
-        )}
         {/* Layout and zen controls for minimal notebook */}
         {onLayoutChange && (
           <>
@@ -847,6 +822,8 @@ export function Kernel({
             </span>
           </Tooltip>
         )}
+        {onLayoutChange && <MinimalNotebookHelp />}
+        {onLayoutChange && <SwitchToRegularButton />}
       </div>
     );
   }
@@ -881,6 +858,7 @@ export function Kernel({
             {renderTip(get_kernel_name(), renderUsage())}
           </div>
         )}
+        {!IS_MOBILE && <SwitchToMinimalButton />}
       </div>
     </div>
   );
