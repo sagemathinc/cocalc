@@ -162,6 +162,16 @@ export default function Message({
   numChildren,
   threadViewMode = false,
 }: Props) {
+  // Hide empty cell-anchored thread root messages — they only exist as
+  // anchors and should not display a visible chat bubble.
+  if (
+    message.get("cell_id") &&
+    !message.get("reply_to") &&
+    newest_content(message).trim() === ""
+  ) {
+    return null;
+  }
+
   const intl = useIntl();
 
   const showAISummarize = redux

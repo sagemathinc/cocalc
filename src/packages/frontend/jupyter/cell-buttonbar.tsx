@@ -7,20 +7,24 @@
 React component that describes the input of a cell
 */
 
-import { Button, Dropdown, Tooltip } from "antd";
+import type { MenuProps } from "antd";
+import { Badge, Button, Dropdown, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Map } from "immutable";
 import React, { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { useFrameContext } from "@cocalc/frontend/app-framework";
+import { useFrameContext, useRedux } from "@cocalc/frontend/app-framework";
+import { useThreadList } from "@cocalc/frontend/chat/threads";
 import { Icon, isIconName } from "@cocalc/frontend/components";
+import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { jupyter, labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { LLMTools } from "@cocalc/jupyter/types";
 import { CellType } from "@cocalc/util/jupyter/types";
+import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { CodeBarDropdownMenu } from "./cell-buttonbar-menu";
 import { CellIndexNumber } from "./cell-index-number";
@@ -296,6 +300,13 @@ export const CellButtonBar: React.FC<Props> = React.memo(
         {renderCodeBarLLMButtons()}
         {renderMarkdownEditButton()}
         {renderCodeBarFormatButton()}
+        {actions && !actions.is_closed() && (
+          <CellChatButton
+            cellId={id}
+            project_id={project_id}
+            path={path}
+          />
+        )}
         {renderDropdownMenu()}
         <CellIndexNumber index={index} />
       </div>
@@ -303,6 +314,105 @@ export const CellButtonBar: React.FC<Props> = React.memo(
   },
   areEqual,
 );
+
+export function CellChatButton({
+  cellId,
+  project_id,
+  path,
+}: {
+  cellId: string;
+  project_id: string;
+  path: string;
+}) {
+  const frameContext = useFrameContext();
+  const chatPath = chatFile(path);
+  const chatMessages = useRedux(["messages"], project_id, chatPath);
+  const allThreads = useThreadList(chatMessages);
+  const cellThreads = React.useMemo(
+    () => allThreads.filter((t) => t.rootMessage?.get("cell_id") === cellId),
+    [allThreads, cellId],
+  );
+  const totalMessages = React.useMemo(
+    () => cellThreads.reduce((s, t) => s + t.messageCount, 0),
+    [cellThreads],
+  );
+
+  const menuItems: MenuProps["items"] = [];
+  for (const t of cellThreads) {
+    menuItems.push({
+      key: t.key,
+      label: (
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {t.label}
+          <Badge
+            size="small"
+            count={t.messageCount}
+            color={COLORS.GRAY_L}
+          />
+        </span>
+      ),
+      onClick: () => {
+        (frameContext.actions as any).openCellChatThread?.(t.key);
+        track("jupyter_cell_buttonbar", {
+          button: "chat-thread",
+          project_id,
+          path,
+        });
+      },
+    });
+  }
+  if (cellThreads.length > 0) {
+    menuItems.push({ type: "divider" });
+  }
+  menuItems.push({
+    key: "new-thread",
+    icon: <Icon name="plus" />,
+    label: "New Thread",
+    onClick: () => {
+      (frameContext.actions as any).openCellChatNewThread?.(cellId);
+      track("jupyter_cell_buttonbar", {
+        button: "chat-new",
+        project_id,
+        path,
+      });
+    },
+  });
+
+  return (
+    <div>
+      <Dropdown.Button
+        size="small"
+        type="text"
+        trigger={["click"]}
+        mouseLeaveDelay={1.5}
+        icon={<Icon name="angle-down" />}
+        onClick={() => {
+          (frameContext.actions as any).openCellChat?.(cellId);
+          track("jupyter_cell_buttonbar", {
+            button: "chat",
+            project_id,
+            path,
+          });
+        }}
+        menu={{ items: menuItems }}
+      >
+        <Tooltip placement="top" title="Discuss this cell in side chat">
+          <span style={CODE_BAR_BTN_STYLE}>
+            <Icon name="comment" /> Chat
+            {totalMessages > 0 && (
+              <Badge
+                size="small"
+                count={totalMessages}
+                color={COLORS.GRAY_L}
+                style={{ marginLeft: 4 }}
+              />
+            )}
+          </span>
+        </Tooltip>
+      </Dropdown.Button>
+    </div>
+  );
+}
 
 function ComputeServerPrompt({ id }) {
   return (
