@@ -40,7 +40,7 @@ export const time_travel: EditorDescription = {
 } as const;
 
 const EDITOR_SPEC = {
-  time_travel,
+  timetravel: time_travel,
 } as const;
 
 export const Editor = createEditor({

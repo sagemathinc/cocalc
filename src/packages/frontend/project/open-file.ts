@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -9,8 +9,9 @@ import { callback } from "awaiting";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
+import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { remove } from "@cocalc/frontend/project-file";
+import { builtin_default_editor_id } from "@cocalc/frontend/project-file";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { retry_until_success } from "@cocalc/util/async-utils";
@@ -25,11 +26,11 @@ import { SITE_NAME } from "@cocalc/util/theme";
 import { normalize } from "./utils";
 import { syncdbPath as ipynbSyncdbPath } from "@cocalc/util/jupyter/names";
 import { termPath } from "@cocalc/util/terminal/names";
-import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 
 export interface OpenFileOpts {
   path: string;
   ext?: string; // if given, use editor for this extension instead of whatever extension path has.
+  editorId?: string; // if given, use this editor instead of resolving by extension.
   line?: number; // mainly backward compat for now
   fragmentId?: FragmentId; // optional URI fragment identifier that describes position in this document to jump to when we actually open it, which could be long in the future, e.g., due to shift+click to open a background tab.  Inspiration from https://en.wikipedia.org/wiki/URI_fragment
   foreground?: boolean;
@@ -60,6 +61,7 @@ export async function open_file(
   opts = defaults(opts, {
     path: required,
     ext: undefined,
+    editorId: undefined,
     line: undefined,
     fragmentId: undefined,
     foreground: true,
@@ -173,6 +175,7 @@ export async function open_file(
     // TODO: old projects will not have the new realpath api call -- can delete this try/catch at some point.
   }
   let ext = opts.ext ?? filename_extension(opts.path).toLowerCase();
+  let editorId = opts.editorId ?? builtin_default_editor_id(opts.path, ext);
 
   // Next get the group.
   let group: string;
@@ -194,9 +197,9 @@ export async function open_file(
     return;
   }
 
-  const is_public = group === "public";
+  const isPublicGroup = group === "public";
 
-  if (!is_public) {
+  if (!isPublicGroup) {
     // Check if have capability to open this file.  Important
     // to only do this if not public, since again, if public we
     // are not even using the project (it is all client side).
@@ -237,13 +240,13 @@ export async function open_file(
     }
   }
 
-  if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
+  if (!isPublicGroup && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
     // NOTE: This is REALLY REALLY ANCIENT support for a 20-year old format...
     await open_sagenb_worksheet({ ...opts, project_id: actions.project_id });
     return;
   }
 
-  if (!is_public) {
+  if (!isPublicGroup) {
     get_side_chat_state(actions.project_id, opts);
   }
 
@@ -252,28 +255,17 @@ export async function open_file(
     return;
   }
 
-  // Only generate the editor component if we don't have it already
-  // Also regenerate if view type (public/not-public) changes.
-  // (TODO: get rid of that change code since public is deprecated)
+  // Only generate the editor component if we don't have it already.
   const open_files = store.get("open_files");
   if (open_files == null || actions.open_files == null) {
     // project is closing
     return;
   }
-  const file_info = open_files.getIn([opts.path, "component"], {
-    is_public: false,
-  }) as any;
-  if (!alreadyOpened || file_info.is_public !== is_public) {
-    const was_public = file_info.is_public;
-
-    if (was_public != null && was_public !== is_public) {
-      actions.open_files.delete(opts.path);
-      remove(opts.path, redux, actions.project_id, was_public);
-    }
-
+  if (!alreadyOpened) {
     // Add it to open files
     actions.open_files.set(opts.path, "ext", ext);
-    actions.open_files.set(opts.path, "component", { is_public });
+    actions.open_files.set(opts.path, "editorId", editorId);
+    actions.open_files.set(opts.path, "component", {});
     actions.open_files.set(opts.path, "chat_width", opts.chat_width);
     if (opts.chat) {
       actions.open_chat({ path: opts.path });

@@ -53,7 +53,13 @@ import { get_file_editor } from "./register";
 import { TabsContainer } from "./tabs-container";
 import { FrameTitleBar } from "./title-bar";
 import * as tree_ops from "./tree-ops";
-import { EditorDescription, EditorSpec, EditorState, NodeDesc } from "./types";
+import {
+  EditorDescription,
+  EditorSpec,
+  EditorState,
+  NodeDesc,
+  getEditorDescription,
+} from "./types";
 
 interface FrameTreeProps {
   actions: Actions;
@@ -71,7 +77,6 @@ interface FrameTreeProps {
   has_uncommitted_changes: boolean;
   has_unsaved_changes: boolean;
   is_only: boolean;
-  is_public: boolean;
   is_saving: boolean;
   is_visible: boolean;
   local_view_state: Map<string, any>;
@@ -102,7 +107,6 @@ function shouldMemoize(prev, next) {
     "has_uncommitted_changes",
     "has_unsaved_changes",
     "is_only",
-    "is_public",
     "is_saving",
     "is_visible",
     "local_view_state",
@@ -136,7 +140,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       has_uncommitted_changes,
       has_unsaved_changes,
       is_only,
-      is_public,
       is_saving,
       is_visible,
       local_view_state,
@@ -186,7 +189,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           has_uncommitted_changes={has_uncommitted_changes}
           has_unsaved_changes={has_unsaved_changes}
           is_only={false}
-          is_public={is_public}
           is_saving={is_saving}
           is_visible={is_visible}
           local_view_state={local_view_state}
@@ -214,9 +216,12 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     }
 
     function get_editor_actions(desc: NodeDesc): Actions | undefined {
-      if (desc.get("type") == "cm" && editor_spec["cm"] == null) {
+      if (
+        desc.get("type") == "cm" &&
+        getEditorDescription(editor_spec, "cm") == null
+      ) {
         // make it so the spec includes info about cm editor.
-        editor_spec.cm = copy(cm_spec);
+        editor_spec[cm_spec.type] = copy(cm_spec);
       }
 
       if (desc.get("type") == "cm" && desc.get("path", path) != path) {
@@ -296,7 +301,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       ) {
         if (path_leaf.slice(path_leaf.length - 12) != ".time-travel") {
           path_leaf = hidden_meta_file(path_leaf, "time-travel");
-          const editor = get_file_editor("time-travel", false);
+          const editor = get_file_editor("time-travel");
           if (editor == null) throw Error("bug -- editor must exist");
           name_leaf = editor.init(path_leaf, redux, project_id_leaf);
           const actions2: TimeTravelActions = redux.getActions(name_leaf);
@@ -335,7 +340,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           editor_state={editor_state}
           font_size={font_size}
           is_fullscreen={is_only || desc.get("id") === full_id}
-          is_public={is_public}
           is_subframe={is_subframe}
           is_visible={is_visible}
           local_view_state={local_view_state}
@@ -380,19 +384,19 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       // NOTE: get_editor_actions may mutate props.editor_spec
       // if necessary for subframe, etc. So we call it first!
       let editor_actions: Actions | undefined,
-        spec: EditorDescription,
+        spec: EditorDescription | undefined,
         component: any;
       try {
         editor_actions = get_editor_actions(desc);
         if (editor_actions == null) {
           return <Loading />;
         }
-        spec = editor_spec[type];
+        spec = getEditorDescription(editor_spec, type);
         component = spec != null ? spec.component : undefined;
         if (component == null) {
           throw Error(
             `unknown type '${type}'. Known types for this editor: ${JSON.stringify(
-              Object.keys(editor_spec),
+              Object.values(editor_spec).map(({ type }) => type),
             )}`,
           );
         }
@@ -406,7 +410,11 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       return (
         <FrameLeafContainer
           id={desc.get("id")}
-          frameLabel={isIntlMessage(spec?.short) ? spec.short.defaultMessage : (spec?.short ?? desc.get("type"))}
+          frameLabel={
+            isIntlMessage(spec?.short)
+              ? spec.short.defaultMessage
+              : (spec?.short ?? desc.get("type"))
+          }
           contextValue={{
             id: desc.get("id"),
             project_id,
@@ -421,8 +429,8 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           style={spec != null ? spec.style : undefined}
           onClick={() => actions.set_active_id(desc.get("id"), true)}
           onTouchStart={() => actions.set_active_id(desc.get("id"))}
-          titlebar={render_titlebar(desc, spec, editor_actions)}
-          leaf={render_leaf(desc, component, spec, editor_actions)}
+          titlebar={render_titlebar(desc, spec!, editor_actions)}
+          leaf={render_leaf(desc, component, spec!, editor_actions)}
         />
       );
     }
@@ -569,7 +577,12 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             flex: 1,
             overflow: "hidden",
           }
-        : { display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" };
+        : {
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            overflow: "hidden",
+          };
 
       return (
         <div
@@ -618,7 +631,11 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     }
 
     return (
-      <div className={"smc-vfill"} style={{ overflow: "clip" }} ref={elementRef}>
+      <div
+        className={"smc-vfill"}
+        style={{ overflow: "clip" }}
+        ref={elementRef}
+      >
         {render_root()}
       </div>
     );

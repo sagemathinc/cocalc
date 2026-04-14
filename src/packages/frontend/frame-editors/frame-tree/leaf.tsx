@@ -45,7 +45,6 @@ interface Props {
   editor_state: EditorState;
   font_size: number;
   is_fullscreen: boolean;
-  is_public: boolean;
   is_subframe: boolean;
   local_view_state: Map<string, any>;
   path: string;
@@ -79,7 +78,6 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
       editor_state,
       font_size,
       is_fullscreen,
-      is_public,
       is_subframe,
       is_visible,
       local_view_state,
@@ -161,7 +159,6 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
         gutters: spec.gutters != null ? spec.gutters : [],
         is_current: desc.get("id") === active_id,
         is_fullscreen,
-        is_public,
         is_subframe,
         is_visible,
         local_view_state,
@@ -172,7 +169,7 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
         path,
         placeholder,
         project_id,
-        read_only: desc.get("read_only", read_only || is_public),
+        read_only: desc.get("read_only", read_only),
         reload_images: !!spec.reload_images,
         reload,
         resize,

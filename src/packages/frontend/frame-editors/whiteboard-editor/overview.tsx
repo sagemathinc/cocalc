@@ -91,7 +91,12 @@ export default function Overview() {
               page here. You can drag pages to reorder them in the{" "}
               <a
                 onClick={() => {
-                  actions.show_focused_frame_of_type("pages", "col", true, 0.2);
+                  actions.show_focused_frame_of_type(
+                    "whiteboard-pages",
+                    "col",
+                    true,
+                    0.2,
+                  );
                 }}
               >
                 pages frame

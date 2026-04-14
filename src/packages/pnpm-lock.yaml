@@ -328,6 +328,8 @@ importers:
         specifier: ^2.5.1
         version: 2.7.0
 
+  editor-extensions: {}
+
   file-server:
     dependencies:
       '@cocalc/backend':
@@ -376,6 +378,9 @@ importers:
       '@cocalc/conat':
         specifier: workspace:*
         version: link:../conat
+      '@cocalc/editor-extensions':
+        specifier: workspace:*
+        version: link:../editor-extensions
       '@cocalc/frontend':
         specifier: workspace:*
         version: 'link:'

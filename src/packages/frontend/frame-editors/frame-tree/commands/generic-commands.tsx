@@ -33,6 +33,7 @@ import userTracking from "@cocalc/frontend/user-tracking";
 import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 import { filename_extension } from "@cocalc/util/misc";
 import { RUN_COMMANDS } from "@cocalc/frontend/frame-editors/code-editor/editor";
+import { getEditorDescription } from "../types";
 import { addCommands } from "./commands";
 import {
   BUILD_ON_SAVE_ICON_DISABLED,
@@ -558,7 +559,9 @@ addCommands({
       // If a time_travel frame type is available and the
       // user does NOT shift+click, then open as a frame.
       // Otherwise, it opens as a new tab.
-      const frame = !event.shiftKey && props.editor_spec["time_travel"] != null;
+      const frame =
+        !event.shiftKey &&
+        getEditorDescription(props.editor_spec, "timetravel") != null;
       props.actions.time_travel({
         frame,
       });

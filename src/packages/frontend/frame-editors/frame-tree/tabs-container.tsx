@@ -15,12 +15,17 @@ import type { MenuProps } from "antd";
 import type { Map } from "immutable";
 import type { List } from "immutable";
 import { Icon } from "@cocalc/frontend/components/icon";
-import type { IconName } from "@cocalc/frontend/components/icon";
+import type { IconRef } from "@cocalc/frontend/components/icon";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { isIntlMessage } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 import { path_split } from "@cocalc/util/misc";
-import type { EditorSpec, NodeDesc } from "./types";
+import {
+  getEditorDescription,
+  getEditorDescriptions,
+  type EditorSpec,
+  type NodeDesc,
+} from "./types";
 import { FRAME_TAB_BAR_STYLE, buildSwitchToFileItems } from "./style";
 import type { Rendered } from "@cocalc/frontend/app-framework";
 import type { FrameDragData } from "./dnd/frame-dnd-provider";
@@ -54,7 +59,7 @@ function DraggableTabLabel({
   frameId: string;
   frameType: string;
   label: string;
-  iconName: IconName;
+  iconName: IconRef;
   tabsId: string;
   childIds: string[];
   onClose: () => void;
@@ -246,7 +251,7 @@ export function TabsContainer({
       .map((child: Map<string, any>, i: number) => {
         const type = child.get("type");
         const frameId = child.get("id") as string;
-        const spec = editor_spec?.[type];
+        const spec = getEditorDescription(editor_spec, type);
         const rawLabel = spec?.short ?? spec?.name ?? type;
         const childPath: string | undefined = child.get("path");
         // cm (code editor) frames always show their filename — either
@@ -267,7 +272,7 @@ export function TabsContainer({
             : isIntlMessage(rawLabel)
               ? rawLabel.defaultMessage
               : rawLabel;
-        const iconName: IconName =
+        const iconName: IconRef =
           type === "node" ? "column-width" : (spec?.icon ?? "file");
         return {
           key: String(i),
@@ -309,8 +314,8 @@ export function TabsContainer({
     }
 
     // Frame types from editor_spec
-    for (const type in editor_spec) {
-      const spec = editor_spec[type];
+    for (const spec of getEditorDescriptions(editor_spec)) {
+      const type = spec.type;
       if (!spec) continue;
       const rawLabel = spec.short ?? spec.name ?? type;
       const label = isIntlMessage(rawLabel)

@@ -42,6 +42,8 @@ import { init as initIframeComm } from "./iframe-communication";
 import { init as initCrashBanner } from "./crash-banner";
 import { init as initCustomize } from "./customize";
 import { init as initProjectInviteToken } from "./collaborators/handle-project-invite";
+import { initExtensionImportMap } from "./extensions/import-map";
+import { initExtensionManifestRegistration } from "./extensions/register";
 
 // Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
 // This import of codemirror forces the initial full load of codemirror
@@ -54,6 +56,8 @@ import { init as initLast } from "./last";
 import { render } from "./app/render";
 
 export async function init() {
+  initExtensionImportMap();
+  initExtensionManifestRegistration();
   initJqueryPlugins();
   initAccount(redux);
   initApp();

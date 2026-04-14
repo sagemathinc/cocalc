@@ -113,7 +113,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   }
 
   _raw_default_frame_tree(): FrameTree {
-    return { type: "time_travel" };
+    return { type: "timetravel" };
   }
 
   init_frame_tree = () => {};

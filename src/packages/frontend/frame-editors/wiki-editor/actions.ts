@@ -20,10 +20,8 @@ export class Actions extends MarkdownActions {
   private _last_wiki_hash: number | undefined = undefined;
 
   _init2(): void {
-    if (!this.is_public) {
-      // one extra thing after base class init...
-      this._init_wiki2html();
-    }
+    // one extra thing after base class init...
+    this._init_wiki2html();
   }
 
   _init_wiki2html(): void {
@@ -56,20 +54,16 @@ export class Actions extends MarkdownActions {
   }
 
   _raw_default_frame_tree(): FrameTree {
-    if (this.is_public) {
-      return { type: "cm" };
-    } else {
-      return {
-        direction: "col",
-        type: "node",
-        first: {
-          type: "cm",
-        },
-        second: {
-          type: "html",
-        },
-      };
-    }
+    return {
+      direction: "col",
+      type: "node",
+      first: {
+        type: "cm",
+      },
+      second: {
+        type: "html",
+      },
+    };
   }
 
   print(id: string): void {

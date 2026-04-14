@@ -138,10 +138,10 @@ const EDITOR_SPEC = {
   slate,
   cm,
   markdown,
-  markdown_table_of_contents,
+  "markdown-toc": markdown_table_of_contents,
   terminal,
   settings: SETTINGS_SPEC,
-  time_travel,
+  timetravel: time_travel,
 };
 
 export const Editor = createEditor({

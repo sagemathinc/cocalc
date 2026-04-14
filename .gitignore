@@ -117,6 +117,7 @@ src/smc-build/prometheus/alertmanager.yml
 **/octave-workspace
 **/.cache/
 .gitignore
+!src/packages/editor-extensions/.gitignore
 postgres-env
 
 # related to testing

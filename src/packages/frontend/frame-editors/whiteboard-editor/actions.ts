@@ -109,8 +109,8 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         direction: "row",
         type: "node",
         pos: 0.6,
-        first: { type: "pages" },
-        second: { type: "search" },
+        first: { type: "whiteboard-pages" },
+        second: { type: "whiteboard-search" },
       },
       pos: 0.8,
     };
@@ -1398,7 +1398,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     const type = node?.get("type");
     if (
       type == this.mainFrameType ||
-      type == "slideshow" // might change shortcuts for slideshow?
+      type == "slides-slideshow" // might change shortcuts for slideshow?
     ) {
       this.enableWhiteboardKeyHandler(id);
     } else {
@@ -1503,7 +1503,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
-      "table_of_contents",
+      "markdown-toc",
       "col",
       true,
       0.2,
@@ -1518,10 +1518,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       // no need since not initialized yet or already closed.
       return;
     }
-    if (
-      !force &&
-      !this.get_matching_frame({ type: "whiteboard_table_of_contents" })
-    ) {
+    if (!force && !this.get_matching_frame({ type: "markdown-toc" })) {
       // There is no table of contents frame so don't update that info.
       return;
     }

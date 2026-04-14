@@ -246,7 +246,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     const open = this.get("open_files")?.toJS();
     if (open != null) {
       for (const path in open) {
-        remove(path, redux, this.project_id, false);
+        remove(path, redux, this.project_id);
       }
     }
   };
@@ -402,8 +402,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       fn: () => {
         // The explorer has its own browsing path, independent of the
         // project-wide current_path (which tracks the active file context).
-        const explorerPath =
-          this.get("explorer_browsing_path") ?? "";
+        const explorerPath = this.get("explorer_browsing_path") ?? "";
         const listingStored = this.getIn([
           "directory_listings",
           this.get("compute_server_id"),

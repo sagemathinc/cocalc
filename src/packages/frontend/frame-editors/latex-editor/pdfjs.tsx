@@ -793,7 +793,7 @@ export function PDFJS({
 
   // Check if there's an output panel in the frame tree
   const hasOutputPanel = useCallback(() => {
-    return actions.get_matching_frame({ type: "output" }) != null;
+    return actions.get_matching_frame({ type: "latex-output" }) != null;
   }, [actions]);
 
   // Check if we should show the new layout nag banner

@@ -1,0 +1,25 @@
+{
+  "name": "@cocalc/editor-extensions",
+  "version": "0.0.1",
+  "description": "Thin SDK for CoCalc editor extensions",
+  "exports": {
+    ".": "./dist/index.js",
+    "./*": "./dist/*.js"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "clean": "rm -rf node_modules dist",
+    "build": "pnpm exec tsc --build",
+    "test": "echo 'no tests yet'"
+  },
+  "files": [
+    "dist/**",
+    "typings/**",
+    "package.json"
+  ],
+  "license": "SEE LICENSE.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  }
+}

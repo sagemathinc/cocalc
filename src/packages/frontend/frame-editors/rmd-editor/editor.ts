@@ -161,12 +161,12 @@ const build: EditorDescription = {
 
 const EDITOR_SPEC = {
   cm,
-  iframe,
-  pdfjs_canvas,
-  markdown,
-  build,
+  "preview-html": iframe,
+  "pdfjs-canvas": pdfjs_canvas,
+  "markdown-rendered": markdown,
+  "rmd-build": build,
   terminal,
-  time_travel,
+  timetravel: time_travel,
   settings: SETTINGS_SPEC,
 } as const;
 

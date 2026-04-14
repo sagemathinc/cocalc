@@ -51,7 +51,7 @@ const cm: EditorDescription = {
 } as const;
 
 const EDITOR_SPEC = {
-  grid,
+  "csv-grid": grid,
   cm,
   terminal,
   time_travel,

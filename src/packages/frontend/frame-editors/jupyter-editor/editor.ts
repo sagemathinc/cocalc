@@ -176,17 +176,17 @@ const jupyter_raw: EditorDescription = {
 } as const;
 
 export const EDITOR_SPEC = {
-  jupyter_cell_notebook,
-  jupyter_minimal,
-  commands_guide,
-  jupyter_slideshow_revealjs,
-  jupyter_table_of_contents,
-  introspect,
+  jupyter: jupyter_cell_notebook,
+  "jupyter-minimal": jupyter_minimal,
+  snippets: commands_guide,
+  "slideshow-revealjs": jupyter_slideshow_revealjs,
+  "jupyter-toc": jupyter_table_of_contents,
+  "jupyter-introspect": introspect,
   shell: jupyter_console,
   terminal,
-  time_travel,
-  jupyter_json,
-  jupyter_raw,
+  timetravel: time_travel,
+  jupyter_json_view: jupyter_json,
+  jupyter_json_edit: jupyter_raw,
   search,
 } as const;
 

@@ -19,8 +19,12 @@ const MINIMAL = `\\documentclass{article}
 
 const HELP_URL = "https://doc.cocalc.com/latex.html";
 
-// NOTE: These names are the keys in EDITOR_SPEC in editor.ts, not the type field
-const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build", "output"] as const;
+const VIEWERS = [
+  "preview-pdf-canvas",
+  "preview-pdf-native",
+  "latex-build",
+  "latex-output",
+] as const;
 
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
@@ -183,6 +187,27 @@ export class Actions extends BaseActions<LatexEditorState> {
   // Debounced version - initialized in _init2()
   update_pdf: (time: number, force: boolean) => void;
 
+  protected canonical_frame_type(type: string): string {
+    switch (type) {
+      case "build":
+        return "latex-build";
+      case "error":
+        return "errors";
+      case "latex_table_of_contents":
+        return "latex-toc";
+      case "output":
+        return "latex-output";
+      case "pdf_embed":
+        return "preview-pdf-native";
+      case "pdfjs_canvas":
+        return "preview-pdf-canvas";
+      case "word_count":
+        return "latex-word_count";
+      default:
+        return super.canonical_frame_type(type);
+    }
+  }
+
   // Auto-sync function for cursor position changes (forward sync: source → PDF)
   private async handle_cursor_sync_to_pdf(
     line: number,
@@ -223,40 +248,38 @@ export class Actions extends BaseActions<LatexEditorState> {
       leading: false,
       trailing: true,
     });
-    if (!this.is_public) {
-      this.init_bad_filename();
-      this.init_ext_filename(); // safe to set before syncstring init
-      this._init_syncstring_value();
-      this.init_ext_path(); // must come after syncstring init
-      this.init_latexmk();
-      // This breaks browser spellcheck.
-      // this._init_spellcheck();
-      // init_config is async — it must complete (setting build_command)
-      // before the BuildCoordinator is created, otherwise a late-join
-      // attempt may fire with an empty build_command and silently bail.
-      this.init_config().then(() => {
-        if (this._state === "closed") return;
-        this._init_build_coordinator();
-      });
-      if (!this.knitr) {
-        this.output_directory = this.output_directory_path();
-      }
-      this._syncstring.on(
-        "change",
-        debounce(this.updateTableOfContents.bind(this), 1500),
-      );
-      this._syncstring.on(
-        "change",
-        debounce(this.ensureNonempty.bind(this), 1500),
-      );
-      this._project_started_listener = () => {
-        void this._handle_project_started();
-      };
-      this.redux
-        .getProjectStore(this.project_id)
-        .on("started", this._project_started_listener);
-      void this._init_pdf_directory_watcher();
+    this.init_bad_filename();
+    this.init_ext_filename(); // safe to set before syncstring init
+    this._init_syncstring_value();
+    this.init_ext_path(); // must come after syncstring init
+    this.init_latexmk();
+    // This breaks browser spellcheck.
+    // this._init_spellcheck();
+    // init_config is async — it must complete (setting build_command)
+    // before the BuildCoordinator is created, otherwise a late-join
+    // attempt may fire with an empty build_command and silently bail.
+    this.init_config().then(() => {
+      if (this._state === "closed") return;
+      this._init_build_coordinator();
+    });
+    if (!this.knitr) {
+      this.output_directory = this.output_directory_path();
     }
+    this._syncstring.on(
+      "change",
+      debounce(this.updateTableOfContents.bind(this), 1500),
+    );
+    this._syncstring.on(
+      "change",
+      debounce(this.ensureNonempty.bind(this), 1500),
+    );
+    this._project_started_listener = () => {
+      void this._handle_project_started();
+    };
+    this.redux
+      .getProjectStore(this.project_id)
+      .on("started", this._project_started_listener);
+    void this._init_pdf_directory_watcher();
     this.word_count = reuseInFlight(this._word_count.bind(this));
   }
 
@@ -770,49 +793,41 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // this was the default until we made the new output.tsx one-stop-shop panel the default
   _classic_frame_tree_layout(): FrameTree {
-    if (this.is_public) {
-      return { type: "cm" };
-    } else {
-      return {
+    return {
+      type: "node",
+      direction: "col",
+      first: {
+        direction: "row",
         type: "node",
-        direction: "col",
-        first: {
-          direction: "row",
-          type: "node",
-          first: { type: "cm" },
-          second: {
-            type: "node",
-            direction: "col",
-            first: { type: "latex_table_of_contents" },
-            second: { type: "error" },
-            pos: 0.3,
-          },
-          pos: 0.7,
-        },
+        first: { type: "cm" },
         second: {
-          direction: "row",
           type: "node",
-          first: { type: "pdfjs_canvas" },
-          second: { type: "build" },
-          pos: 0.7,
+          direction: "col",
+          first: { type: "latex-toc" },
+          second: { type: "errors" },
+          pos: 0.3,
         },
-        pos: 0.5,
-      };
-    }
+        pos: 0.7,
+      },
+      second: {
+        direction: "row",
+        type: "node",
+        first: { type: "preview-pdf-canvas" },
+        second: { type: "latex-build" },
+        pos: 0.7,
+      },
+      pos: 0.5,
+    };
   }
 
   _new_frame_tree_layout(): FrameTree {
-    if (this.is_public) {
-      return { type: "cm" };
-    } else {
-      return {
-        type: "node",
-        direction: "col",
-        first: { type: "cm" },
-        second: { type: "output" },
-        pos: 0.5,
-      };
-    }
+    return {
+      type: "node",
+      direction: "col",
+      first: { type: "cm" },
+      second: { type: "latex-output" },
+      pos: 0.5,
+    };
   }
 
   // Override to make new layout the default
@@ -820,12 +835,11 @@ export class Actions extends BaseActions<LatexEditorState> {
     return this._new_frame_tree_layout();
   }
 
-  // Frame types (EDITOR_SPEC keys) that already display build errors.
   // https://github.com/sagemathinc/cocalc/issues/8659
   private static ERROR_DISPLAY_FRAMES = [
-    "output",
-    "build",
-    "error",
+    "latex-output",
+    "latex-build",
+    "errors",
   ] as const;
 
   private hasErrorDisplayFrame(): boolean {
@@ -1104,7 +1118,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     // update word count asynchronously
     let run_word_count: any = null;
-    if (this._has_frame_of_type("word_count")) {
+    if (this._has_frame_of_type("latex-word_count")) {
       run_word_count = this.word_count(time, force);
     }
     // update_pdf=false, because it is deferred until the end
@@ -1734,12 +1748,13 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   _get_most_recent_pdfjs(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      (node) => node.get("type").indexOf("pdfjs") != -1,
+      (node) =>
+        this.canonical_frame_type(node.get("type")) === "preview-pdf-canvas",
     );
   }
 
   _get_most_recent_output_panel(): string | undefined {
-    let result = this._get_most_recent_active_frame_id_of_type("output");
+    let result = this._get_most_recent_active_frame_id_of_type("latex-output");
     // console.log(
     //   "LaTeX: _get_most_recent_output_panel() via active history returning",
     //   result,
@@ -1747,7 +1762,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     // If no recently active output panel found, look for any output panel
     if (!result) {
-      result = this._get_any_frame_id_of_type("output");
+      result = this._get_any_frame_id_of_type("latex-output");
       //console.log("LaTeX: _get_any_frame_id_of_type() returning", result);
     }
 
@@ -1756,12 +1771,13 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // Helper method to find any frame of the given type, regardless of activity history
   _get_any_frame_id_of_type(type: string): string | undefined {
+    type = this.canonical_frame_type(type);
     const tree = this._get_tree();
     const leaf_ids = tree_ops.get_leaf_ids(tree);
 
     for (const id in leaf_ids) {
       const node = tree_ops.get_node(tree, id);
-      if (node && node.get("type") === type) {
+      if (node && this.canonical_frame_type(node.get("type")) === type) {
         return id;
       }
     }
@@ -1831,7 +1847,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (!pdfjs_id) {
         // no pdfjs preview, so make one
         // console.log("LaTeX forward sync: Creating new PDFJS panel");
-        this.split_frame("col", this._get_active_id(), "pdfjs_canvas");
+        this.split_frame("col", this._get_active_id(), "preview-pdf-canvas");
         pdfjs_id = this._get_most_recent_pdfjs();
         if (!pdfjs_id) {
           throw Error("BUG -- there must be a pdfjs frame.");
@@ -1860,7 +1876,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   _is_output_panel(id: string): boolean {
     const frame = this._get_frame_node(id);
     const frameType = frame?.get("type");
-    return frameType === "output";
+    return this.canonical_frame_type(frameType) === "latex-output";
   }
 
   // Public method to save local view state (delegates to parent's debounced method)
@@ -1989,7 +2005,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   ): Promise<void> {
     // only run word count if at least one such panel exists or skipFramePopup is true
     if (!skipFramePopup) {
-      this.show_recently_focused_frame_of_type("word_count");
+      this.show_recently_focused_frame_of_type("latex-word_count");
     }
 
     try {
@@ -2039,8 +2055,9 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   set_frame_type(id: string, type: string): void {
+    type = this.canonical_frame_type(type);
     super.set_frame_type(id, type);
-    if (type === "time_travel" && this.knitr) {
+    if (type === "timetravel" && this.knitr) {
       // Use the source .rnw/.rtex path for time travel frames.
       this.set_frame_tree({ id, path: this.filename_knitr });
     }
@@ -2083,7 +2100,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       super.print(id);
       return;
     }
-    if (type.indexOf("pdf") != -1 || type === "output") {
+    if (type.indexOf("pdf") != -1 || type === "latex-output") {
       this.print_pdf();
       return;
     }
@@ -2116,12 +2133,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   public async show_table_of_contents(
     _id: string | undefined = undefined,
   ): Promise<void> {
-    const id = this.show_focused_frame_of_type(
-      "latex_table_of_contents",
-      "col",
-      true,
-      1 / 3,
-    );
+    const id = this.show_focused_frame_of_type("latex-toc", "col", true, 1 / 3);
     // the click to select TOC focuses the active id back on the notebook
     await delay(0);
     if (this._state === "closed") return;
@@ -2135,8 +2147,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     if (
       !force &&
-      !this.get_matching_frame({ type: "latex_table_of_contents" }) &&
-      !this.get_matching_frame({ type: "output" })
+      !this.get_matching_frame({ type: "latex-toc" }) &&
+      !this.get_matching_frame({ type: "latex-output" })
     ) {
       // There is no table of contents frame or output frame so don't update that info.
       return;

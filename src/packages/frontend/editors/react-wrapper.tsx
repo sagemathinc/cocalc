@@ -7,7 +7,7 @@
    the UI using React without having to rewrite all the editors.
 
    This should be used ONLY for sagews and jupyter classic and NOTHING ELSE.
-   TODO: There are still some is_public editors, but we shouldn't use any of them.
+   TODO: This should be used only for legacy non-react editors.
 */
 
 import { debounce } from "lodash";
@@ -98,7 +98,6 @@ export function register_nonreact_editor(opts: {
   f: (project_id: string, filename: string, extra_opts: object) => any;
   ext: string | string[];
   icon?: string;
-  is_public?: boolean;
 }): void {
   // Circle import issue -- since editor imports react-wrapper:
   const { file_options } = require("../editor");
@@ -108,13 +107,11 @@ export function register_nonreact_editor(opts: {
   // use non-react editors:
   /* console.log("register_nonreact_editor", {
     ext: opts.ext,
-    is_public: opts.is_public,
   });
   */
 
   register_file_editor({
     ext: opts.ext,
-    is_public: opts.is_public,
     icon: opts.icon,
     init(path: string, _redux, project_id: string): string {
       const key = get_key(project_id, path);
@@ -158,9 +155,6 @@ export function register_nonreact_editor(opts: {
     },
 
     save(path: string, _redux, project_id: string): void {
-      if (opts.is_public) {
-        return;
-      }
       const f = editors[get_key(project_id, path)]?.save;
       if (f != null) f();
     },

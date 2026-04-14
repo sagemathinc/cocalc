@@ -88,7 +88,12 @@ import {
 } from "./frame-editor-settings";
 import { SaveButton } from "./save-button";
 import TitleBarTour from "./title-bar-tour";
-import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
+import {
+  ConnectionStatus,
+  EditorDescription,
+  EditorSpec,
+  getEditorDescription,
+} from "./types";
 import type { FrameDragData } from "./dnd/frame-dnd-provider";
 import { TITLE_BAR_BORDER, buildSwitchToFileItems } from "./style";
 
@@ -191,7 +196,6 @@ export interface FrameTitleBarProps {
   id: string;
   is_full?: boolean;
   is_only?: boolean; // is the only frame
-  is_public?: boolean; // public view of a file
   is_paused?: boolean;
   type: string; // type of editor
   spec: EditorDescription;
@@ -274,8 +278,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     const ext = props.path ? filename_extension(props.path) : "";
     return ext ? `${ext}-${props.type}` : props.type;
   }, [props.type, props.path]);
-  const { toolbarButtons, setToolbarButtons } =
-    useFrameEditorToolbarButtons(frameEditorName, legacyEditorType);
+  const { toolbarButtons, setToolbarButtons } = useFrameEditorToolbarButtons(
+    frameEditorName,
+    legacyEditorType,
+  );
   // REDUX:
   // state that is associated with the file being edited, not the
   // frame tree/tab in which this sits.  Note some more should
@@ -343,7 +349,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     "show_uncommitted_changes",
   ]);
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
-  const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
   const otherSettings = useRedux(["account", "other_settings"]);
   //  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
   const darkMode = otherSettings.get("dark_mode");
@@ -676,7 +681,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             // user does NOT shift+click, then open as a frame.
             // Otherwise, it opens as a new tab.
             const frame =
-              !event.shiftKey && props.editor_spec["time_travel"] != null;
+              !event.shiftKey &&
+              getEditorDescription(props.editor_spec, "timetravel") != null;
             props.actions.time_travel({
               frame,
             });
@@ -810,7 +816,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           props.editor_actions.set_show_uncommitted_changes
         }
         read_only={read_only}
-        is_public={is_public}
         is_saving={is_saving}
         no_labels={noLabel}
         size={button_size()}
@@ -1049,7 +1054,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         <Icon name="bars" />
         <span style={{ marginLeft: 4, fontWeight: 450, whiteSpace: "nowrap" }}>
           {(() => {
-            const spec = props.editor_spec?.[props.type];
+            const spec =
+              props.editor_spec == null
+                ? undefined
+                : getEditorDescription(props.editor_spec, props.type);
             if (!spec) return props.type;
             return (
               manageCommands.spec2display(spec, "short") ||
@@ -1265,7 +1273,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       title = props.title;
     }
     if (props.editor_spec != null) {
-      const spec = props.editor_spec[props.type];
+      const spec = getEditorDescription(props.editor_spec, props.type);
       if (spec != null) {
         if (!title) {
           if (spec.name) {

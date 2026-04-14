@@ -213,17 +213,17 @@ const pdf_embed: EditorDescription = {
 
 const EDITOR_SPEC = {
   cm,
-  output,
-  pdfjs_canvas,
-  error,
-  build,
-  latex_table_of_contents,
-  word_count,
+  "latex-output": output,
+  "preview-pdf-canvas": pdfjs_canvas,
+  errors: error,
+  "latex-build": build,
+  "latex-toc": latex_table_of_contents,
+  "latex-word_count": word_count,
   terminal,
   //settings: SETTINGS_SPEC,
-  time_travel,
+  timetravel: time_travel,
   // See https://github.com/sagemathinc/cocalc/issues/5114
-  ...(!IS_IPAD && !IS_IOS ? { pdf_embed } : undefined),
+  ...(!IS_IPAD && !IS_IOS ? { "preview-pdf-native": pdf_embed } : undefined),
 } as const;
 
 export const Editor = createEditor({
