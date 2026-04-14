@@ -442,6 +442,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
 
           cellRunState={cellRunState}
           onRun={isCode ? handleRun : undefined}
+          onStop={isCode ? handleStop : undefined}
           onInsertCell={
             actions
               ? () => actions.insert_cell_adjacent(id, 1)
