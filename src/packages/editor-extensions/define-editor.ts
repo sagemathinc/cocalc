@@ -6,6 +6,7 @@ import {
   normalizeExtensionSource,
   normalizeExtensions,
   normalizeFilenames,
+  normalizeNativeFrames,
   normalizeFrameDefinition,
   validateFrameTree,
   validateNamespacedId,
@@ -35,6 +36,7 @@ export function defineEditor(
     source: normalizeExtensionSource(definition.source),
     extensions: normalizeExtensions(definition.extensions),
     filenames: normalizeFilenames(definition.filenames),
+    nativeFrames: normalizeNativeFrames(definition.nativeFrames),
     frames,
     defaultLayout: validateFrameTree(definition.defaultLayout),
   };

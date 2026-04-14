@@ -79,6 +79,16 @@ export function normalizeFilenames(filenames: string[] | undefined): string[] {
   return [...new Set(filenames)];
 }
 
+export function normalizeNativeFrames(
+  nativeFrames: string[] | undefined,
+): string[] {
+  if (nativeFrames == null) {
+    return [];
+  }
+  assertStringArray("nativeFrames", nativeFrames);
+  return [...new Set(nativeFrames)];
+}
+
 export function validateFrameTree(
   tree: ExtensionFrameTree | undefined,
 ): ExtensionFrameTree | undefined {

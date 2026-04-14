@@ -12,6 +12,7 @@ import {
 } from "@cocalc/frontend/components/icon";
 import { exact_filename_key } from "@cocalc/frontend/file-associations";
 import { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
+import { cm } from "@cocalc/frontend/frame-editors/code-editor/editor";
 import {
   createEditor,
   type EditorProps,
@@ -22,8 +23,16 @@ import type {
   EditorSpec,
   FrameTree,
 } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor";
+import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
 
 import { extensionRegistry } from "./registry";
+
+const NATIVE_EDITOR_FRAMES: Readonly<Record<string, EditorDescription>> = {
+  cm,
+  terminal,
+  timetravel: time_travel,
+};
 
 interface ExtensionActionsClass {
   new (name: string, redux: any): CodeEditorActions;
@@ -112,12 +121,25 @@ function toEditorDescription(
 }
 
 function toEditorSpec(definition: EditorExtensionDefinition): EditorSpec {
-  return Object.fromEntries(
-    Object.entries(definition.frames).map(([type, frame]) => [
-      type,
-      toEditorDescription(frame),
-    ]),
-  );
+  const native: EditorSpec = {};
+  for (const type of definition.nativeFrames) {
+    const spec = NATIVE_EDITOR_FRAMES[type];
+    if (spec == null) {
+      throw new Error(
+        `Editor extension "${definition.id}" references unknown native frame "${type}"`,
+      );
+    }
+    native[type] = spec;
+  }
+  return {
+    ...native,
+    ...Object.fromEntries(
+      Object.entries(definition.frames).map(([type, frame]) => [
+        type,
+        toEditorDescription(frame),
+      ]),
+    ),
+  };
 }
 
 function defaultFrameTree(definition: EditorExtensionDefinition): FrameTree {

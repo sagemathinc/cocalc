@@ -81,6 +81,7 @@ export interface BaseExtensionDefinition extends Omit<
 export interface EditorExtensionDefinitionInput extends BaseExtensionDefinitionInput {
   extensions?: string[];
   filenames?: string[];
+  nativeFrames?: string[];
   frames: Record<string, ExtensionFrameDefinitionInput>;
   defaultLayout?: ExtensionFrameTree;
   sync?: ExtensionSyncSpec;
@@ -91,6 +92,7 @@ export interface EditorExtensionDefinition extends BaseExtensionDefinition {
   kind: "editor";
   extensions: string[];
   filenames: string[];
+  nativeFrames: string[];
   frames: Record<string, ExtensionFrameDefinition>;
   defaultLayout?: ExtensionFrameTree;
   sync?: ExtensionSyncSpec;
