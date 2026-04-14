@@ -201,9 +201,16 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const handleCellListRef = useCallback((node: any) => {
     cellListDivRef.current = node;
     frameActions.current?.set_cell_list_div(node);
-    // Hide native scrollbar when minimap is active
-    if (node && cellViewMode === "minimal") {
+  }, []);
+
+  // Toggle native scrollbar visibility reactively when cellViewMode changes
+  useEffect(() => {
+    const node = cellListDivRef.current;
+    if (!node) return;
+    if (cellViewMode === "minimal") {
       node.classList.add("minimap-hide-scrollbar");
+    } else {
+      node.classList.remove("minimap-hide-scrollbar");
     }
   }, [cellViewMode]);
 

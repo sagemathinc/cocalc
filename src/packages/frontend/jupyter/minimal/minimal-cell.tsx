@@ -128,6 +128,9 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
     const isCode = cellType === "code";
     const isMarkdown = cellType === "markdown";
     const input = cell.get("input") || "";
+    const sourceHidden = !!cell.getIn(["metadata", "jupyter", "source_hidden"]);
+    const isNotEditable = !cell.getIn(["metadata", "editable"], true);
+    const isNotDeletable = !cell.getIn(["metadata", "deletable"], true);
 
     // Track whether cell input changed since last execution
     const lastExecHashRef = useRef<{ execCount: number | undefined; hash: number } | null>(null);
@@ -457,6 +460,8 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           start={cell.get("start")}
           end={cell.get("end")}
           isDirty={isDirty}
+          isNotEditable={isNotEditable}
+          isNotDeletable={isNotDeletable}
         />
 
         {/* Content area — toolbar + output/code columns */}
@@ -667,9 +672,10 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           style={{
             flex: `${codeFlex} 1 0`,
             minWidth: 0,
-            overflow: "hidden",
+            overflow: "visible",
             transition: COLUMN_TRANSITION,
             position: "relative",
+            zIndex: 1,
             borderLeft: zenMode ? "none" : "1px solid #eee",
           }}
         >{showCode && (<>
@@ -684,6 +690,8 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                 gap: "2px",
                 alignItems: "center",
                 visibility: rowHovered || menuOpen ? "visible" : "hidden",
+                position: "relative",
+                zIndex: 2,
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -705,7 +713,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               />
             </div>
           )}
-          {isCode && !isActiveEditing && (
+          {isCode && !isActiveEditing && !sourceHidden && (
             <MinimalCodePreview
               value={input}
               cmOptions={cmOpts}
@@ -713,6 +721,22 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               onActivate={handleActivateCode}
               highlighted={rowHovered}
             />
+          )}
+          {isCode && !isActiveEditing && sourceHidden && (
+            <div
+              style={{
+                color: COLORS.GRAY_L,
+                fontSize: "14px",
+                padding: "4px 8px",
+                cursor: "pointer",
+              }}
+              title="Input is hidden — click to show"
+              onClick={() => {
+                actions?.toggle_jupyter_metadata_boolean(id, "source_hidden");
+              }}
+            >
+              <Icon name="ellipsis" />
+            </div>
           )}
           {isCode && isActiveEditing && (
             <div
