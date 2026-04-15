@@ -42,9 +42,6 @@ import { init as initIframeComm } from "./iframe-communication";
 import { init as initCrashBanner } from "./crash-banner";
 import { init as initCustomize } from "./customize";
 import { init as initProjectInviteToken } from "./collaborators/handle-project-invite";
-import { initBuiltinExtensionBundles } from "./extensions/builtin";
-import { initExtensionImportMap } from "./extensions/import-map";
-import { initExtensionManifestRegistration } from "./extensions/register";
 
 // Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
 // This import of codemirror forces the initial full load of codemirror
@@ -57,13 +54,8 @@ import { init as initLast } from "./last";
 import { render } from "./app/render";
 
 export async function init() {
+  const { initExtensionImportMap } = await import("./extensions/import-map");
   initExtensionImportMap();
-  try {
-    await initBuiltinExtensionBundles();
-  } catch (err) {
-    console.warn(`Failed to initialize builtin extension bundles: ${err}`);
-  }
-  initExtensionManifestRegistration();
   initJqueryPlugins();
   initAccount(redux);
   initApp();
@@ -88,5 +80,20 @@ export async function init() {
     // don't insert the crash banner until the main app has rendered,
     // or user would see the banner for a moment.
     initCrashBanner();
+  }
+  const [
+    { initBuiltinExtensionBundles },
+    { initExtensionManifestRegistration },
+  ] = await Promise.all([
+    import("./extensions/builtin"),
+    import("./extensions/register"),
+  ]);
+  initExtensionManifestRegistration();
+  // Load builtin extension bundles after everything is initialized and rendered.
+  // Extension-backed editors will show a loading state until the bundle is ready.
+  try {
+    await initBuiltinExtensionBundles();
+  } catch (err) {
+    console.warn(`Failed to initialize builtin extension bundles: ${err}`);
   }
 }

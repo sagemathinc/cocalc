@@ -11,10 +11,6 @@ import {
   loadExtensionImports,
   listExtensionImports,
 } from "./import-map";
-import {
-  getTrustedExtensionSuppliers,
-  shouldSkipExtensionSignatureVerification,
-} from "./trust";
 
 export interface LoadedExtensionBundle {
   bundleUrl: string;
@@ -65,6 +61,20 @@ interface StoredExtensionArchive {
 
 interface LoadExtensionBundleOptions {
   trust?: "default" | "builtin";
+}
+
+interface ExtensionTrustHelpers {
+  getTrustedExtensionSuppliers: typeof import("./trust").getTrustedExtensionSuppliers;
+  shouldSkipExtensionSignatureVerification: typeof import("./trust").shouldSkipExtensionSignatureVerification;
+}
+
+async function getExtensionTrustHelpers(): Promise<ExtensionTrustHelpers> {
+  const trust = await import("./trust");
+  return {
+    getTrustedExtensionSuppliers: trust.getTrustedExtensionSuppliers,
+    shouldSkipExtensionSignatureVerification:
+      trust.shouldSkipExtensionSignatureVerification,
+  };
 }
 
 function toArrayBuffer(data: Uint8Array): ArrayBuffer {
@@ -507,6 +517,8 @@ async function loadJavascriptBundle(
   bundleUrl: string,
   bytes?: Uint8Array,
 ): Promise<LoadedExtensionBundle> {
+  const { shouldSkipExtensionSignatureVerification } =
+    await getExtensionTrustHelpers();
   if (!shouldSkipExtensionSignatureVerification(bundleUrl)) {
     throw new Error(
       `Unsigned extension JavaScript bundles are only allowed from localhost in developer mode: ${bundleUrl}`,
@@ -541,6 +553,10 @@ async function verifyExtractedArchive(
   if (options.trust === "builtin") {
     return { mode: "builtin" };
   }
+  const {
+    getTrustedExtensionSuppliers,
+    shouldSkipExtensionSignatureVerification,
+  } = await getExtensionTrustHelpers();
   if (shouldSkipExtensionSignatureVerification(bundleUrl)) {
     return { mode: "dev-unsigned" };
   }
