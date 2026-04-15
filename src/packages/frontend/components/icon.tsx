@@ -9,7 +9,6 @@ import React from "react";
 import type { IconRef as ExtensionIconRef } from "@cocalc/editor-extensions";
 
 import { CSS } from "@cocalc/frontend/app-framework";
-import { resolveExtensionAssetUrl } from "@cocalc/frontend/extensions/loader";
 import useOnFrontend from "./use-on-frontend";
 
 import {
@@ -706,6 +705,20 @@ export const IconName = undefined; // Javascript needs this, though we are only 
 type NonBuiltinIconRef = Exclude<ExtensionIconRef, string>;
 export type IconRef = IconName | NonBuiltinIconRef;
 
+type ExtensionAssetResolver = (uri: string) => Promise<string>;
+
+const EXTENSION_ASSET_RESOLVER_KEY = Symbol.for(
+  "cocalc.editor-extensions.asset-resolver",
+);
+
+function getExtensionAssetResolver(): ExtensionAssetResolver | undefined {
+  const root = globalThis as Record<PropertyKey, unknown>;
+  const resolver = root[EXTENSION_ASSET_RESOLVER_KEY];
+  return typeof resolver === "function"
+    ? (resolver as ExtensionAssetResolver)
+    : undefined;
+}
+
 // Typeguard so can tell if a string is name of an icon and also
 // make typescript happy.
 export function isIconName(name?: unknown): name is IconName {
@@ -810,6 +823,12 @@ function useResolvedIconSrc(icon?: NonBuiltinIconRef): string | undefined {
       };
     }
     setSrc(undefined);
+    const resolveExtensionAssetUrl = getExtensionAssetResolver();
+    if (resolveExtensionAssetUrl == null) {
+      return () => {
+        active = false;
+      };
+    }
     resolveExtensionAssetUrl(icon.uri)
       .then((resolved) => {
         if (active) {

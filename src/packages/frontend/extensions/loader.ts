@@ -32,6 +32,10 @@ export interface LoadedExtensionBundle {
 const bundleLoadCache = new Map<string, Promise<LoadedExtensionBundle>>();
 const assetUrlCache = new Map<string, Promise<string>>();
 
+const EXTENSION_ASSET_RESOLVER_KEY = Symbol.for(
+  "cocalc.editor-extensions.asset-resolver",
+);
+
 const EXTENSION_ARCHIVE_DB = "cocalc-editor-extensions";
 const EXTENSION_ARCHIVE_DB_VERSION = 1;
 const EXTENSION_ARCHIVE_STORE = "archives";
@@ -535,6 +539,9 @@ export async function resolveExtensionAssetUrl(uri: string): Promise<string> {
     throw err;
   }
 }
+
+(globalThis as Record<PropertyKey, unknown>)[EXTENSION_ASSET_RESOLVER_KEY] =
+  resolveExtensionAssetUrl;
 
 export async function loadExtensionBundle(
   bundleUrl: string,
