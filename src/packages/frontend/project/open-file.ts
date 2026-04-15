@@ -10,6 +10,7 @@ import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
 import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
+import { ensureBuiltinExtensionBundles } from "@cocalc/frontend/extensions/builtin";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { builtin_default_editor_id } from "@cocalc/frontend/project-file";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
@@ -176,6 +177,15 @@ export async function open_file(
   }
   let ext = opts.ext ?? filename_extension(opts.path).toLowerCase();
   let editorId = opts.editorId ?? builtin_default_editor_id(opts.path, ext);
+
+  if (editorId === "cocalc/csv-editor") {
+    try {
+      await ensureBuiltinExtensionBundles();
+    } catch (err) {
+      console.warn(`Failed to initialize builtin editor bundles: ${err}`);
+    }
+    editorId = opts.editorId ?? builtin_default_editor_id(opts.path, ext);
+  }
 
   // Next get the group.
   let group: string;

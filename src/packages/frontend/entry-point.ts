@@ -81,6 +81,9 @@ export async function init() {
     // or user would see the banner for a moment.
     initCrashBanner();
   }
+  // Initialize extension registration after the app has rendered to avoid
+  // startup module-evaluation cycles. File-open paths that truly depend on a
+  // builtin extension explicitly await readiness on demand.
   const [
     { initBuiltinExtensionBundles },
     { initExtensionManifestRegistration },
@@ -89,8 +92,6 @@ export async function init() {
     import("./extensions/register"),
   ]);
   initExtensionManifestRegistration();
-  // Load builtin extension bundles after everything is initialized and rendered.
-  // Extension-backed editors will show a loading state until the bundle is ready.
   try {
     await initBuiltinExtensionBundles();
   } catch (err) {

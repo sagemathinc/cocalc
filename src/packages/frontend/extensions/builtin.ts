@@ -13,15 +13,21 @@ interface BuiltinExtensionIndex {
   builtins?: BuiltinExtensionArchive[];
 }
 
+let builtinExtensionBundlesPromise: Promise<void> | undefined;
+
+function builtinBasePath(): string {
+  return appBasePath === "/" ? "" : appBasePath;
+}
+
 function builtinIndexUrl(): string {
-  return `${appBasePath}/static/editor-extensions/index.json`;
+  return `${builtinBasePath()}/static/editor-extensions/index.json`;
 }
 
 function builtinArchiveUrl(path: string): string {
-  return `${appBasePath}/static/${path}`;
+  return `${builtinBasePath()}/static/${path}`;
 }
 
-export async function initBuiltinExtensionBundles(): Promise<void> {
+async function loadBuiltinExtensionBundles(): Promise<void> {
   const response = await fetch(builtinIndexUrl());
   if (!response.ok) {
     if (response.status === 404) {
@@ -37,4 +43,13 @@ export async function initBuiltinExtensionBundles(): Promise<void> {
       trust: "builtin",
     });
   }
+}
+
+export async function ensureBuiltinExtensionBundles(): Promise<void> {
+  builtinExtensionBundlesPromise ??= loadBuiltinExtensionBundles();
+  return await builtinExtensionBundlesPromise;
+}
+
+export async function initBuiltinExtensionBundles(): Promise<void> {
+  await ensureBuiltinExtensionBundles();
 }
