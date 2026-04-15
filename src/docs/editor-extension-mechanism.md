@@ -227,7 +227,7 @@ interface EditorExtensionManifest {
   priority?: number; // higher wins when multiple editors claim same extension
 
   // Bundle (for externally distributed extensions)
-  bundleUrl?: string; // URL to the signed archive (.tar.gz)
+  bundleUrl?: string; // URL to the signed archive (.zip)
 }
 
 // Icon reference types -- preserves hardened typing for built-ins
@@ -290,7 +290,7 @@ dkv.set("config", {
   installed: [
     {
       id: "my-org/csv-viewer",
-      bundleUrl: "https://cdn.example.com/csv-viewer@1.0.0/extension.js",
+      bundleUrl: "https://cdn.example.com/csv-viewer@1.0.0.zip",
       enabled: true,
     },
   ],
@@ -331,7 +331,7 @@ dkv.set("ext-override:csv", {
 
 ## Distribution Model (Ideal Goal)
 
-The end goal is that an editor extension is a **signed archive** (`.tar.gz`) containing a self-contained JS bundle, manifest, assets, and cryptographic signature. The development and distribution flow looks like this:
+The end goal is that an editor extension is a **signed archive** (`.zip`) containing a self-contained JS bundle, manifest, assets, and cryptographic signature. The development and distribution flow looks like this:
 
 ### Extension author workflow
 
@@ -343,7 +343,7 @@ The end goal is that an editor extension is a **signed archive** (`.tar.gz`) con
    - Packages icons/assets as separate files in `assets/`
    - Generates `manifest.json` from the `defineEditor()` metadata
    - **Signs the archive** with the supplier's private key -> `signature.json`
-   - Produces a `.tar.gz` archive containing everything
+   - Produces a `.zip` archive containing everything
 4. **Publish** -- The signed archive is hosted somewhere accessible: GitHub Releases, a CDN, etc.
 
 ### What the archive contains
@@ -401,7 +401,7 @@ registerExtension(extension);
 ### How CoCalc loads extensions
 
 1. **Discovery** -- The extension registry checks project settings for configured extension archive URLs
-2. **Download** -- `loader.ts` fetches the `.tar.gz` archive
+2. **Download** -- `loader.ts` fetches the `.zip` archive
 3. **Verify** -- Verify signature against admin-configured trusted supplier public keys. Reject if unsigned or untrusted.
 4. **Extract + cache** -- Extract archive contents, cache in browser storage (IndexedDB) keyed by `[id]@[version]`. Assets become available as blob URLs.
 5. **Load** -- Execute `extension.js` via dynamic `import()` or `<script>` injection
@@ -438,14 +438,14 @@ npx @cocalc/editor-extensions dev --no-watch
 
 # Production build + package + sign
 npm run build        # compile extension.js
-npm run package      # create signed .tar.gz archive
+npm run package      # create signed .zip archive
 ```
 
 **What `npx @cocalc/editor-extensions dev` does:**
 
 1. **Watch** -- Monitors `src/` and `assets/` for changes (via chokidar or similar)
 2. **Rebuild** -- On change (or manual trigger with `--no-watch`), runs esbuild to produce `extension.js`, regenerates `manifest.json`
-3. **Package** -- Creates an unsigned `.tar.gz` archive in memory (no signing in dev mode)
+3. **Package** -- Creates an unsigned `.zip` archive in memory (no signing in dev mode)
 4. **Serve** -- Starts a local HTTP server (default `http://localhost:4100`) serving the archive
 5. **Notify** -- Sends a WebSocket message to CoCalc's frontend telling it to re-fetch and reload the extension
 
@@ -467,7 +467,7 @@ cd ~/p/my-extension
 npx @cocalc/editor-extensions dev               # serves on localhost:4100
 
 # In CoCalc (localhost:5002) project settings → Editor Extensions:
-#   Add extension: http://localhost:4100/my-extension.tar.gz
+#   Add extension: http://localhost:4100/my-extension.zip
 #   (dev mode indicator shown -- unsigned, localhost)
 
 # Now: edit src/my-component.tsx → dev server rebuilds → CoCalc auto-reloads → see changes
@@ -481,7 +481,7 @@ interface DevReloadMessage {
   type: "extension-reload";
   extensionId: string;
   version: string;
-  archiveUrl: string; // http://localhost:4100/my-extension.tar.gz
+  archiveUrl: string; // http://localhost:4100/my-extension.zip
   timestamp: number;
 }
 ```
@@ -510,7 +510,7 @@ cocalc-extension-template/
     extension.js
     signature.json
     assets/icon.svg
-    my-extension-1.0.0.tar.gz  -- final signed archive
+    my-extension-1.0.0.zip  -- final signed archive
   README.md               -- how to develop, build, sign, publish
 ```
 
@@ -606,7 +606,7 @@ packages/editor-extensions/
     dev.ts              -- `npx @cocalc/editor-extensions dev` entry point
     build.ts            -- `npx @cocalc/editor-extensions build` entry point
     package.ts          -- `npx @cocalc/editor-extensions package` (archive + sign)
-    dev-server.ts       -- HTTP server for .tar.gz + WebSocket for reload notifications
+    dev-server.ts       -- HTTP server for .zip + WebSocket for reload notifications
 ```
 
 ### Host-side injection setup
@@ -714,10 +714,10 @@ Extensions are like apps installed in an OS -- they run with full privileges in 
 
 ### Signed archive format
 
-Extensions are distributed as signed `.tar.gz` archives (not bare `.js` files):
+Extensions are distributed as signed `.zip` archives (not bare `.js` files):
 
 ```
-my-extension-1.0.0.tar.gz
+my-extension-1.0.0.zip
   manifest.json          -- extension manifest (id, version, extensions, icon refs, etc.)
   extension.js           -- the compiled JS bundle
   signature.json         -- { algorithm, supplierKeyId, signature }
@@ -868,7 +868,7 @@ Admin settings include:
 - [ ] Set up `@cocalc/editor-extensions` as externally resolvable at runtime (global or import map)
 - [ ] Implement `registerExtension()` self-registration entry point
 - [ ] Implement archive loading in `loader.ts`:
-  - Download `.tar.gz`, extract, verify signature
+  - Download `.zip`, extract, verify signature
   - Cache extracted contents in IndexedDB keyed by `[id]@[version]`
   - Resolve bundle asset URIs to blob URLs
 - [ ] Design and implement signing/verification schema:
@@ -994,7 +994,7 @@ After each phase:
 - **SDK architecture**: Thin SDK (types + API + CLI). Heavy packages injected at runtime via import map. No circular deps.
 - **Icon typing**: Preserve `IconName` literal union for built-ins, extend with `{ type: "bundle" | "external", ... }` object types. No string heuristics.
 - **Extension hot-reload**: Yes, via WebSocket from dev server to CoCalc frontend. Part of Phase 2.
-- **Bundle format**: Signed `.tar.gz` archives, not bare `.js` files. Contains manifest, code, assets, signature.
+- **Bundle format**: Signed `.zip` archives, not bare `.js` files. Contains manifest, code, assets, signature.
 - **Trust model**: Ed25519 signing. Admin manages trusted supplier public keys. `localhost` URLs skip verification only on dev builds or with explicit developer-mode flag.
 - **Editor IDs**: All editors (built-in and extensions) have stable manifest IDs. Stored per-tab for "Open with..." persistence.
 - **File-type resolution**: Unified resolver handles extensions, exact filenames, and metadata (mode, icon, etc.).

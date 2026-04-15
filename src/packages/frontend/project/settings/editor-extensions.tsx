@@ -294,7 +294,7 @@ export const ProjectEditorExtensions: React.FC<Props> = ({
           <Input
             value={bundleUrl}
             onChange={(event) => setBundleUrl(event.target.value)}
-            placeholder="https://example.com/my-extension.tar.gz"
+            placeholder="https://example.com/my-extension.zip"
           />
           <Button loading={saving} onClick={() => void addExtension()}>
             Add URL

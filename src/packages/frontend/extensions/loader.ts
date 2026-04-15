@@ -137,37 +137,41 @@ function diffRegisteredExtensions(before: Map<string, number>) {
 }
 
 function isArchiveBundleUrl(bundleUrl: string): boolean {
-  return /\.tar\.gz(?:[?#].*)?$/i.test(bundleUrl);
+  return /\.zip(?:[?#].*)?$/i.test(bundleUrl);
 }
 
-function isGzipData(data: Uint8Array): boolean {
-  return data.length >= 2 && data[0] === 0x1f && data[1] === 0x8b;
+function isZipData(data: Uint8Array): boolean {
+  return (
+    data.length >= 4 &&
+    data[0] === 0x50 &&
+    data[1] === 0x4b &&
+    data[2] === 0x03 &&
+    data[3] === 0x04
+  );
 }
 
-async function gunzip(data: Uint8Array): Promise<Uint8Array> {
+async function inflateRaw(data: Uint8Array): Promise<Uint8Array> {
   if (typeof DecompressionStream === "undefined") {
-    throw new Error("Browser does not support gzip decompression streams");
+    throw new Error("Browser does not support decompression streams");
   }
   const stream = new Blob([toArrayBuffer(data)])
     .stream()
-    .pipeThrough(new DecompressionStream("gzip"));
+    .pipeThrough(new DecompressionStream("deflate-raw"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-function readNullTerminatedAscii(data: Uint8Array): string {
-  let end = data.indexOf(0);
-  if (end === -1) {
-    end = data.length;
-  }
-  return new TextDecoder("utf-8").decode(data.slice(0, end));
+function uint16(data: Uint8Array, offset: number): number {
+  return new DataView(data.buffer, data.byteOffset, data.byteLength).getUint16(
+    offset,
+    true,
+  );
 }
 
-function parseTarSize(header: Uint8Array): number {
-  const raw = readNullTerminatedAscii(header).trim().replace(/\0+$/, "");
-  if (raw === "") {
-    return 0;
-  }
-  return Number.parseInt(raw.replace(/\s+$/, ""), 8);
+function uint32(data: Uint8Array, offset: number): number {
+  return new DataView(data.buffer, data.byteOffset, data.byteLength).getUint32(
+    offset,
+    true,
+  );
 }
 
 function normalizeArchivePath(path: string): string {
@@ -204,34 +208,69 @@ function stripCommonArchiveRoot(
   );
 }
 
-function untar(data: Uint8Array): Map<string, Uint8Array> {
+async function unzip(data: Uint8Array): Promise<Map<string, Uint8Array>> {
   const files = new Map<string, Uint8Array>();
-  let offset = 0;
-  while (offset + 512 <= data.length) {
-    const header = data.slice(offset, offset + 512);
-    const empty = header.every((value) => value === 0);
-    if (empty) {
+  const eocdSignature = 0x06054b50;
+  const centralDirectorySignature = 0x02014b50;
+  const localHeaderSignature = 0x04034b50;
+
+  let eocdOffset = -1;
+  for (let offset = data.length - 22; offset >= 0; offset--) {
+    if (uint32(data, offset) === eocdSignature) {
+      eocdOffset = offset;
       break;
     }
-    const name = normalizeArchivePath(
-      readNullTerminatedAscii(header.slice(0, 100)),
+  }
+  if (eocdOffset === -1) {
+    throw new Error("ZIP archive is missing end-of-central-directory record");
+  }
+
+  const centralDirectorySize = uint32(data, eocdOffset + 12);
+  const centralDirectoryOffset = uint32(data, eocdOffset + 16);
+  let offset = centralDirectoryOffset;
+  const encoder = new TextDecoder("utf-8");
+
+  while (offset < centralDirectoryOffset + centralDirectorySize) {
+    if (uint32(data, offset) !== centralDirectorySignature) {
+      throw new Error("Invalid ZIP central directory entry");
+    }
+    const compressionMethod = uint16(data, offset + 10);
+    const compressedSize = uint32(data, offset + 20);
+    const filenameLength = uint16(data, offset + 28);
+    const extraLength = uint16(data, offset + 30);
+    const commentLength = uint16(data, offset + 32);
+    const localHeaderOffset = uint32(data, offset + 42);
+    const filename = normalizeArchivePath(
+      encoder.decode(data.slice(offset + 46, offset + 46 + filenameLength)),
     );
-    const prefix = normalizeArchivePath(
-      readNullTerminatedAscii(header.slice(345, 500)),
-    );
-    const typeFlag = readNullTerminatedAscii(header.slice(156, 157));
-    const size = parseTarSize(header.slice(124, 136));
-    const fullPath =
-      prefix === "" ? name : normalizeArchivePath(`${prefix}/${name}`);
-    const fileStart = offset + 512;
-    const fileEnd = fileStart + size;
+    offset += 46 + filenameLength + extraLength + commentLength;
+
+    if (filename === "" || filename.endsWith("/")) {
+      continue;
+    }
+    if (uint32(data, localHeaderOffset) !== localHeaderSignature) {
+      throw new Error(`Invalid ZIP local header for "${filename}"`);
+    }
+    const localFilenameLength = uint16(data, localHeaderOffset + 26);
+    const localExtraLength = uint16(data, localHeaderOffset + 28);
+    const fileStart =
+      localHeaderOffset + 30 + localFilenameLength + localExtraLength;
+    const fileEnd = fileStart + compressedSize;
     if (fileEnd > data.length) {
-      throw new Error(`Truncated tar archive entry "${fullPath}"`);
+      throw new Error(`Truncated ZIP archive entry "${filename}"`);
     }
-    if (fullPath !== "" && (typeFlag === "" || typeFlag === "0")) {
-      files.set(fullPath, data.slice(fileStart, fileEnd));
+    const compressed = data.slice(fileStart, fileEnd);
+    if (compressionMethod === 0) {
+      files.set(filename, compressed);
+      continue;
     }
-    offset = fileStart + Math.ceil(size / 512) * 512;
+    if (compressionMethod === 8) {
+      files.set(filename, await inflateRaw(compressed));
+      continue;
+    }
+    throw new Error(
+      `Unsupported ZIP compression method ${compressionMethod} for "${filename}"`,
+    );
   }
   return files;
 }
@@ -386,8 +425,7 @@ function recordToExtractedArchive(
 async function extractExtensionArchive(
   archiveData: Uint8Array,
 ): Promise<ExtractedExtensionArchive> {
-  const tarData = await gunzip(archiveData);
-  const files = stripCommonArchiveRoot(untar(tarData));
+  const files = stripCommonArchiveRoot(await unzip(archiveData));
   const manifestData = files.get("manifest.json");
   const manifest =
     manifestData == null
@@ -570,7 +608,7 @@ export async function loadExtensionBundle(
       return await loadArchiveBundle(bundleUrl, undefined, options);
     }
     const bytes = await fetchBundleBytes(bundleUrl);
-    if (isGzipData(bytes)) {
+    if (isZipData(bytes)) {
       return await loadArchiveBundle(
         bundleUrl,
         await extractExtensionArchive(bytes),

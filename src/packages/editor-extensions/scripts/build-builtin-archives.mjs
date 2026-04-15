@@ -1,4 +1,4 @@
-import { gzipSync } from "node:zlib";
+import { deflateRawSync } from "node:zlib";
 import {
   cpSync,
   existsSync,
@@ -21,58 +21,118 @@ function ensureDir(dir) {
   mkdirSync(dir, { recursive: true });
 }
 
-function writeField(buffer, offset, length, value) {
-  const content = Buffer.from(value, "utf8");
-  content.copy(buffer, offset, 0, Math.min(content.length, length));
-}
-
-function writeOctal(buffer, offset, length, value) {
-  const octal = value.toString(8).padStart(length - 1, "0");
-  writeField(buffer, offset, length, `${octal}\0`);
-}
-
-function checksum(header) {
-  let sum = 0;
-  for (const byte of header) {
-    sum += byte;
+function crc32Table() {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) {
+      c = (c & 1) === 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    }
+    table[n] = c >>> 0;
   }
-  return sum;
+  return table;
 }
 
-function tarHeader(name, size) {
-  const header = Buffer.alloc(512, 0);
-  writeField(header, 0, 100, name);
-  writeOctal(header, 100, 8, 0o644);
-  writeOctal(header, 108, 8, 0);
-  writeOctal(header, 116, 8, 0);
-  writeOctal(header, 124, 12, size);
-  writeOctal(header, 136, 12, 0);
-  header.fill(0x20, 148, 156);
-  writeField(header, 156, 1, "0");
-  writeField(header, 257, 6, "ustar");
-  writeField(header, 263, 2, "00");
-  const sum = checksum(header);
-  writeField(header, 148, 8, `${sum.toString(8).padStart(6, "0")}\0 `);
-  return header;
-}
+const CRC32_TABLE = crc32Table();
 
-function padToBlock(buffer) {
-  const remainder = buffer.length % 512;
-  if (remainder === 0) {
-    return buffer;
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const value of buffer) {
+    crc = CRC32_TABLE[(crc ^ value) & 0xff] ^ (crc >>> 8);
   }
-  return Buffer.concat([buffer, Buffer.alloc(512 - remainder, 0)]);
+  return (crc ^ 0xffffffff) >>> 0;
 }
 
-function tarGzip(files) {
-  const chunks = [];
+function dosDateTime() {
+  const now = new Date();
+  const year = Math.max(1980, now.getUTCFullYear());
+  const date =
+    ((year - 1980) << 9) | ((now.getUTCMonth() + 1) << 5) | now.getUTCDate();
+  const time =
+    (now.getUTCHours() << 11) |
+    (now.getUTCMinutes() << 5) |
+    Math.floor(now.getUTCSeconds() / 2);
+  return { date, time };
+}
+
+function uint16(value) {
+  const buffer = Buffer.alloc(2);
+  buffer.writeUInt16LE(value, 0);
+  return buffer;
+}
+
+function uint32(value) {
+  const buffer = Buffer.alloc(4);
+  buffer.writeUInt32LE(value >>> 0, 0);
+  return buffer;
+}
+
+function zip(files) {
+  const localParts = [];
+  const centralParts = [];
+  let localOffset = 0;
+  const { date, time } = dosDateTime();
+
   for (const { name, data } of files) {
-    const content = Buffer.isBuffer(data) ? data : Buffer.from(data);
-    chunks.push(tarHeader(name, content.length));
-    chunks.push(padToBlock(content));
+    const filename = Buffer.from(name, "utf8");
+    const raw = Buffer.isBuffer(data) ? data : Buffer.from(data);
+    const compressed = deflateRawSync(raw);
+    const checksum = crc32(raw);
+
+    const localHeader = Buffer.concat([
+      uint32(0x04034b50),
+      uint16(20),
+      uint16(0),
+      uint16(8),
+      uint16(time),
+      uint16(date),
+      uint32(checksum),
+      uint32(compressed.length),
+      uint32(raw.length),
+      uint16(filename.length),
+      uint16(0),
+      filename,
+    ]);
+    localParts.push(localHeader, compressed);
+
+    const centralHeader = Buffer.concat([
+      uint32(0x02014b50),
+      uint16(20),
+      uint16(20),
+      uint16(0),
+      uint16(8),
+      uint16(time),
+      uint16(date),
+      uint32(checksum),
+      uint32(compressed.length),
+      uint32(raw.length),
+      uint16(filename.length),
+      uint16(0),
+      uint16(0),
+      uint16(0),
+      uint16(0),
+      uint32(0),
+      uint32(localOffset),
+      filename,
+    ]);
+    centralParts.push(centralHeader);
+    localOffset += localHeader.length + compressed.length;
   }
-  chunks.push(Buffer.alloc(1024, 0));
-  return gzipSync(Buffer.concat(chunks), { mtime: 0 });
+
+  const centralDirectory = Buffer.concat(centralParts);
+  const localData = Buffer.concat(localParts);
+  const endOfCentralDirectory = Buffer.concat([
+    uint32(0x06054b50),
+    uint16(0),
+    uint16(0),
+    uint16(files.length),
+    uint16(files.length),
+    uint32(centralDirectory.length),
+    uint32(localData.length),
+    uint16(0),
+  ]);
+
+  return Buffer.concat([localData, centralDirectory, endOfCentralDirectory]);
 }
 
 function listBuiltinDirs() {
@@ -85,7 +145,7 @@ function listBuiltinDirs() {
 }
 
 function archiveFilename(manifest) {
-  return `${manifest.id.replace(/[\\/]/g, "-")}@${manifest.version}.tar.gz`;
+  return `${manifest.id.replace(/[\\/]/g, "-")}@${manifest.version}.zip`;
 }
 
 function buildBuiltin(builtinName) {
@@ -147,7 +207,7 @@ function buildBuiltin(builtinName) {
 
   const filename = archiveFilename(manifest);
   const archivePath = path.join(outputRoot, filename);
-  writeFileSync(archivePath, tarGzip(archiveFiles));
+  writeFileSync(archivePath, zip(archiveFiles));
   return {
     id: manifest.id,
     version: manifest.version,
