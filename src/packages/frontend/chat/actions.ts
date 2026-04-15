@@ -1450,7 +1450,12 @@ export class ChatActions extends Actions<ChatState> {
   // Always create a new thread anchored to the given cell.
   createCellThread = (cellId: string, cellLabel?: string): string | null => {
     const name = cellLabel || "Cell discussion";
-    const timeStamp = this.sendChat({ input: "", cell_id: cellId, name });
+    const timeStamp = this.sendChat({
+      input: "",
+      cell_id: cellId,
+      name,
+      noNotification: true,
+    });
     return timeStamp || null;
   };
 }

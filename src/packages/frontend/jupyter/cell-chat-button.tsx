@@ -38,12 +38,26 @@ function useCellThreads(
     () =>
       allThreads
         .filter((t) => t.rootMessage?.get("cell_id") === cellId)
-        .map((t) => ({
-          // Exclude the empty anchor root from messageCount — it's not a real message.
-          // Don't adjust unreadCount: the root is already read (created by the user).
-          ...t,
-          messageCount: Math.max(t.messageCount - 1, 0),
-        })),
+        .map((t) => {
+          // Exclude the empty anchor root from counts — it's not a real message.
+          // Only subtract from unreadCount if the root itself is counted as unread
+          // (i.e., root timestamp > lastread, which happens when the viewer hasn't
+          // seen the thread yet).
+          // Only subtract from unreadCount when using timestamp-based tracking
+          // and the root is actually newer than lastread. For legacy threads
+          // (lastReadTimestamp == null), unreadCount is computed from the
+          // count-based read-* field where the root is already accounted for.
+          const rootDate = t.rootMessage?.get("date")?.valueOf() ?? 0;
+          const rootIsUnread =
+            t.lastReadTimestamp != null && rootDate > t.lastReadTimestamp;
+          return {
+            ...t,
+            messageCount: Math.max(t.messageCount - 1, 0),
+            unreadCount: rootIsUnread
+              ? Math.max(t.unreadCount - 1, 0)
+              : t.unreadCount,
+          };
+        }),
     [allThreads, cellId],
   );
   const totalMessages = React.useMemo(
