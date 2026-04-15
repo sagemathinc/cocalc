@@ -764,6 +764,8 @@ export function NotebookAgent({
     if (msg.sender === "assistant") {
       // Strip tool invocation blocks (machine-readable JSON)
       content = content.replace(/^```tool\n[\s\S]*?\n```\s*$/gm, "").trim();
+      // Also strip unclosed tool blocks — some models omit the closing ```
+      content = content.replace(/^```tool\n[\s\S]*/m, "").trim();
       // Some LLMs echo the tool call JSON or code with literal \n escapes
       // in their prose. Convert escaped newlines to real ones so
       // StaticMarkdown can render them properly — but only outside

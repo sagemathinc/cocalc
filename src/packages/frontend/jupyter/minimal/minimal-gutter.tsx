@@ -43,7 +43,7 @@ export type CellRunState =
 const RUN_STATE_COLORS: Record<CellRunState, string> = {
   idle: "var(--cocalc-border-light, #eee)",
   running: "var(--cocalc-success, #5cb85c)",
-  queued: "#2e7d32",       // dark green — waiting to run
+  queued: "var(--cocalc-run, #389e0d)", // waiting to run
   error: "var(--cocalc-error, #ff4d4f)",
   stale: "var(--cocalc-border-light, #eee)",
   markdown: "var(--cocalc-border-light, #eee)",
@@ -56,9 +56,10 @@ interface MinimalGutterProps {
   positionInBlock: number;
   blockSize: number;
   showBlockLine: boolean;
-  isLastInBlock: boolean;
+
   cellRunState: CellRunState;
   onRun?: () => void;
+  onStop?: () => void;
   onInsertCell?: () => void;
   onToggleSection?: () => void;
   blockHighlighted?: boolean;
@@ -72,6 +73,10 @@ interface MinimalGutterProps {
   end?: number;
   /** Cell input changed since last execution */
   isDirty?: boolean;
+  /** Cell metadata: editable=false */
+  isNotEditable?: boolean;
+  /** Cell metadata: deletable=false */
+  isNotDeletable?: boolean;
 }
 
 const CURRENT_COLOR = "var(--cocalc-primary, #42a5f5)";
@@ -84,17 +89,20 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
     showBlockLine,
     cellRunState,
     onRun,
+    onStop,
     onInsertCell,
     onToggleSection,
     blockHighlighted,
     onHoverBlock,
-    isLastInBlock,
+
     isCurrent,
     isSelected,
     read_only,
     start,
     end,
     isDirty,
+    isNotEditable,
+    isNotDeletable,
   }) => {
     const [hovered, setHovered] = useState(false);
     const { project_id, path } = useFrameContext();
@@ -184,7 +192,9 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
                       ? lineColor
                       : isCurrent || isSelected
                         ? CURRENT_COLOR
-                        : blockHighlighted ? "var(--cocalc-border, #ccc)" : lineColor,
+                        : blockHighlighted
+                          ? "var(--cocalc-border, #ccc)"
+                          : lineColor,
                   transition: "background-color 150ms ease",
                 }}
               />
@@ -211,34 +221,104 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
                       : "var(--cocalc-text-primary-strong, #555)",
               }}
             >
-              <span style={{ fontSize: "11px", color: "var(--cocalc-text-primary, #888)", fontWeight: 400 }}>#</span>
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "var(--cocalc-text-primary, #888)",
+                  fontWeight: 400,
+                }}
+              >
+                #
+              </span>
               <span style={{ fontSize: "13px" }}>{index + 1}</span>
             </div>
           </Tooltip>
 
-          {/* Play button */}
-          {isCode && !read_only && onRun && (
-            <Tooltip title={runTooltip} placement="left">
-              <Button
-                type="text"
-                size="small"
-                icon={<Icon name="play" />}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRun();
-                }}
+          {/* Lock / protected indicators */}
+          {isNotEditable && (
+            <Tooltip title="Protected from modifications" placement="left">
+              <span
                 style={{
-                  color: hovered ? "var(--cocalc-text-primary-strong, #555)" : isDirty ? "var(--cocalc-text-primary, #888)" : "var(--cocalc-border, #ccc)",
-                  transition: "color 150ms ease",
+                  color: "var(--cocalc-text-primary, #888)",
+                  fontSize: "12px",
                   zIndex: 2,
+                  marginTop: "2px",
                 }}
-              />
+              >
+                <Icon name="lock" />
+              </span>
+            </Tooltip>
+          )}
+          {isNotDeletable && (
+            <Tooltip title="Protected from deletion" placement="left">
+              <span
+                style={{
+                  color: "var(--cocalc-text-primary, #888)",
+                  fontSize: "12px",
+                  zIndex: 2,
+                  marginTop: "2px",
+                }}
+              >
+                <Icon name="ban" />
+              </span>
             </Tooltip>
           )}
 
-          {/* [+] insert cell at end of section */}
-          {isLastInBlock && !read_only && onInsertCell && (
+          {/* Play / Stop button */}
+          {isCode &&
+            !read_only &&
+            onRun &&
+            (() => {
+              const isBusy =
+                cellRunState === "running" || cellRunState === "queued";
+              if (isBusy && onStop) {
+                return (
+                  <Tooltip title="Interrupt execution" placement="left">
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<Icon name="stop" />}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onStop();
+                      }}
+                      style={{
+                        color: "var(--cocalc-error, #ff4d4f)",
+                        transition: "color 150ms ease",
+                        zIndex: 2,
+                      }}
+                    />
+                  </Tooltip>
+                );
+              }
+              return (
+                <Tooltip title={runTooltip} placement="left">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<Icon name="play" />}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRun();
+                    }}
+                    style={{
+                      color: hovered
+                        ? "var(--cocalc-text-primary-strong, #555)"
+                        : isDirty
+                          ? "var(--cocalc-text-primary, #888)"
+                          : "var(--cocalc-border, #ccc)",
+                      transition: "color 150ms ease",
+                      zIndex: 2,
+                    }}
+                  />
+                </Tooltip>
+              );
+            })()}
+
+          {/* [+] insert cell below — visible on hover for every cell */}
+          {!read_only && onInsertCell && (
             <Tooltip title="Insert cell below" placement="right">
               <Button
                 type="text"
@@ -251,10 +331,13 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
                   onInsertCell();
                 }}
                 style={{
-                  color: hovered ? "var(--cocalc-text-primary-strong, #555)" : "var(--cocalc-border-light, #e0e0e0)",
+                  color: hovered
+                    ? "var(--cocalc-text-primary-strong, #555)"
+                    : "var(--cocalc-border-light, #e0e0e0)",
                   marginTop: "auto",
-                  transition: "color 150ms ease",
+                  transition: "color 150ms ease, opacity 150ms ease",
                   zIndex: 2,
+                  opacity: hovered ? 1 : 0,
                 }}
               />
             </Tooltip>

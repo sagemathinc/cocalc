@@ -669,22 +669,27 @@ export function MessageList({
     // After suppression ends, update lastread for whatever is currently
     // visible. This handles threads where all messages fit in the viewport
     // and no further scroll events will fire.
-    const replayVisibleRange = () => {
-      if (
-        selectedThread &&
-        actions?.updateLastRead &&
-        lastEndIndexRef.current >= 0 &&
-        sortedDates.length > 0
-      ) {
-        const visibleDateStr =
-          sortedDates[
-            Math.min(lastEndIndexRef.current, sortedDates.length - 1)
-          ];
-        if (visibleDateStr) {
-          const visibleDateMs = parseFloat(visibleDateStr);
-          if (Number.isFinite(visibleDateMs)) {
-            actions.updateLastRead(selectedThread, visibleDateMs);
-          }
+    const replayVisibleRange = (retries = 0) => {
+      if (!selectedThread || !actions?.updateLastRead || sortedDates.length === 0) {
+        return;
+      }
+      if (lastEndIndexRef.current < 0) {
+        // Virtuoso hasn't fired rangeChanged yet — retry briefly
+        if (retries < 3) {
+          timersRef.current.push(
+            setTimeout(() => replayVisibleRange(retries + 1), 200),
+          );
+        }
+        return;
+      }
+      const visibleDateStr =
+        sortedDates[
+          Math.min(lastEndIndexRef.current, sortedDates.length - 1)
+        ];
+      if (visibleDateStr) {
+        const visibleDateMs = parseFloat(visibleDateStr);
+        if (Number.isFinite(visibleDateMs)) {
+          actions.updateLastRead(selectedThread, visibleDateMs);
         }
       }
     };

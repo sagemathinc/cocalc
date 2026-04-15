@@ -58,6 +58,7 @@ import {
   useThreadList,
 } from "./threads";
 import type { ThreadListItem, ThreadSection } from "./threads";
+import { CellAnchorButton } from "./cell-anchor-banner";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -283,6 +284,12 @@ export function ChatPanel({
       ),
     }));
   }, [threads]);
+
+  const selectedThreadCellId = useMemo(() => {
+    if (!singleThreadView || !selectedThreadKey) return undefined;
+    const thread = threads.find((t) => t.key === selectedThreadKey);
+    return thread?.rootMessage?.get("cell_id") as string | undefined;
+  }, [singleThreadView, selectedThreadKey, threads]);
 
   useEffect(() => {
     if (
@@ -1058,9 +1065,16 @@ export function ChatPanel({
           padding: "10px",
           display: "flex",
           gap: "8px",
-          justifyContent: "flex-end",
+          alignItems: "center",
         }}
       >
+        {selectedThreadCellId && (
+          <CellAnchorButton
+            cellId={selectedThreadCellId}
+            actions={actions}
+          />
+        )}
+        <div style={{ flex: 1 }} />
         <Button
           icon={<Icon name="bars" />}
           onClick={() => setSidebarVisible(true)}

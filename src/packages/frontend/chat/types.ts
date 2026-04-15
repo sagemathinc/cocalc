@@ -39,6 +39,9 @@ export interface ChatMessage {
   editing?: { [author_id: string]: "FUTURE" | null };
   folding?: string[];
   feedback?: { [account_id: string]: Feedback };
+  // When set on a root message (no reply_to), anchors this chat thread
+  // to a specific Jupyter notebook cell.
+  cell_id?: string;
 }
 
 // this type isn't explicitly used anywhere yet, but the actual structure is and I just
@@ -69,6 +72,7 @@ export type ChatMessageTyped = TypedMap<{
   }>;
   folding?: List<string>;
   feedback?: Map<string, Feedback>; // encoded as map of {[account_id]:Feedback}
+  cell_id?: string;
 }>;
 
 export type ChatMessages = TypedMap<{

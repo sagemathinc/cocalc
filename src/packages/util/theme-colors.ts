@@ -172,9 +172,9 @@ export interface BaseColors {
   text?: string; // main text color (default near-black)
 }
 
-export const THEME_INTENSITY_MIN = 80;
+export const THEME_INTENSITY_MIN = 50;
 export const THEME_INTENSITY_DEFAULT = 100;
-export const THEME_INTENSITY_MAX = 120;
+export const THEME_INTENSITY_MAX = 150;
 
 // ---------------------------------------------------------------------------
 // Derive a full LIGHT ColorTheme from base colors
