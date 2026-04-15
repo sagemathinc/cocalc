@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2021-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -105,6 +105,7 @@ export const POLICIES = {
   terms: { label: "Terms of Service", hide: (c) => !c.onCoCalcCom },
   copyright: { label: "Copyright", hide: (c) => !c.onCoCalcCom },
   privacy: { label: "Privacy", hide: (c) => !c.onCoCalcCom },
+  dpa: { label: "DPA", hide: (c) => !c.onCoCalcCom },
   trust: { label: "Trust", hide: (c) => !c.onCoCalcCom },
   thirdparties: { label: "Third Parties", hide: (c) => !c.onCoCalcCom },
   ferpa: { label: "FERPA", hide: (c) => !c.onCoCalcCom },

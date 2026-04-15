@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2021-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -58,6 +58,18 @@ const dataSourceCoCalcCom = [
       <>
         The <A href="/policies/privacy">Privacy Policy</A> describes how
         SageMath, Inc. respects the privacy of its users.
+      </>
+    ),
+  },
+  {
+    link: "/policies/dpa",
+    title: "Data Processing Addendum (DPA)",
+    logo: "file",
+    description: (
+      <>
+        The <A href="/policies/dpa">Data Processing Addendum</A> sets out
+        contractual terms for the processing of personal data on behalf of our
+        customers.
       </>
     ),
   },

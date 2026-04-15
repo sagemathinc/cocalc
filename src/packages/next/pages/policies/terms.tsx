@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2021-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -33,7 +33,7 @@ export default function TermsOfService({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Terms of Service</h1>
-              <h2>Last Updated: January 27, 2025</h2>
+              <h2>Last Updated: April 15, 2026</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -172,7 +172,8 @@ export default function TermsOfService({ customize }) {
                 You may access your Account data via our application programming
                 interface ("<b>API</b>"). Your use of the API, including use
                 through a third party product that accesses the Services, is
-                subject to these Terms as well as the following specific terms:{" "}
+                subject to these Terms as well as the following specific
+                terms:{" "}
               </p>
               <ul>
                 <li>
@@ -273,7 +274,11 @@ export default function TermsOfService({ customize }) {
                   https://cocalc.com/policies/privacy
                 </A>
                 ) for information on how we collect, use and disclose
-                information from our users.{" "}
+                information from our users. Where SageMath, Inc. processes
+                personal data on your behalf as a Data Processor, such
+                processing is governed by our Data Processing Addendum (
+                <A href="/policies/dpa">https://cocalc.com/policies/dpa</A>),
+                which is hereby incorporated into these Terms by reference.{" "}
               </p>
               <h1>Content and Content Rights</h1>
               <p>
@@ -298,7 +303,8 @@ export default function TermsOfService({ customize }) {
                 copyright, trademark, and other laws of the United States and
                 foreign countries. You agree not to remove, alter or obscure any
                 copyright, trademark, service mark or other proprietary rights
-                notices incorporated in or accompanying the Services or Content.{" "}
+                notices incorporated in or accompanying the Services or
+                Content.{" "}
               </p>
               <h2>Rights in User Content Granted by You</h2>
               <p>
@@ -311,7 +317,8 @@ export default function TermsOfService({ customize }) {
                 you hereby grant to Account holders and non-Account holder users
                 of the Services who are permitted access to your Files the right
                 to use your Files in accordance with the applicable File
-                Licenses you have indicated govern use of your Files (if any).{" "}
+                Licenses you have indicated govern use of your Files (if
+                any).{" "}
               </p>
               <p>
                 You are solely responsible for all your User Content. You
@@ -396,7 +403,8 @@ export default function TermsOfService({ customize }) {
                   Avoid, bypass, remove, deactivate, impair, descramble or
                   otherwise circumvent any technological measure implemented by
                   SMI or any of SMI’s providers or any other third party
-                  (including another user) to protect the Services or Content;{" "}
+                  (including another user) to protect the Services or
+                  Content;{" "}
                 </li>
                 <li>
                   Attempt to access or search the Services or Content or
@@ -513,7 +521,8 @@ export default function TermsOfService({ customize }) {
                 HORSES, WORMS, OR OTHER COMPUTER PROGRAMMING DEVICES WHICH MAY
                 DAMAGE A USER’S COMPUTER, SYSTEM OR DATA OR PREVENT THE USER
                 FROM USING ITS COMPUTER, SYSTEM OR DATA. YOU KNOWINGLY AND
-                FREELY ASSUME ALL RISK WHEN USING THE SERVICES AND THE CONTENT.{" "}
+                FREELY ASSUME ALL RISK WHEN USING THE SERVICES AND THE
+                CONTENT.{" "}
               </p>
               <p className="uppercase">
                 THE CONTENT PROVIDED BY ACCOUNT HOLDERS AND THE USE OF CONTENT
