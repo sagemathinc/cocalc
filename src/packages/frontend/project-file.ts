@@ -18,6 +18,7 @@ export {
   builtin_default_editor_id,
   icon,
   register_file_editor,
+  has_registered_editor,
   initialize,
   initializeAsync,
   generateAsync,

@@ -69,6 +69,10 @@ interface FileEditorSpec {
 const file_editors: { [ext: string]: FileEditorSpec[] } = {};
 const file_editors_by_id: { [id: string]: FileEditorSpec } = {};
 
+export function has_registered_editor(editorId: string | undefined): boolean {
+  return editorId != null && file_editors_by_id[editorId] != null;
+}
+
 export function icon(ext: string): string | undefined {
   const candidates = file_editors[ext];
   return (
