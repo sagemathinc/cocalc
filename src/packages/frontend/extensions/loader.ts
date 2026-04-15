@@ -20,6 +20,7 @@ export interface LoadedExtensionBundle {
   bundleUrl: string;
   extension: ExtensionDefinition;
   verification:
+    | { mode: "builtin" }
     | {
         mode: "signed";
         digestHex: string;
@@ -60,6 +61,10 @@ interface StoredExtensionArchive {
   version: string;
   mainPath: string;
   files: Array<{ path: string; bytes: ArrayBuffer }>;
+}
+
+interface LoadExtensionBundleOptions {
+  trust?: "default" | "builtin";
 }
 
 function toArrayBuffer(data: Uint8Array): ArrayBuffer {
@@ -425,6 +430,7 @@ async function fetchBundleBytes(bundleUrl: string): Promise<Uint8Array> {
 async function loadArchiveBundle(
   bundleUrl: string,
   extracted?: ExtractedExtensionArchive,
+  options: LoadExtensionBundleOptions = {},
 ): Promise<LoadedExtensionBundle> {
   const before = new Map(
     extensionRegistry
@@ -437,7 +443,11 @@ async function loadArchiveBundle(
     (cachedArchive != null
       ? recordToExtractedArchive(cachedArchive)
       : await extractExtensionArchive(await fetchBundleBytes(bundleUrl)));
-  const verification = await verifyExtractedArchive(bundleUrl, archive);
+  const verification = await verifyExtractedArchive(
+    bundleUrl,
+    archive,
+    options,
+  );
   await executeBundleSource(
     `${bundleUrl}#${archive.mainPath}`,
     decodeText(archive.files.get(archive.mainPath)!),
@@ -488,7 +498,11 @@ async function loadJavascriptBundle(
 async function verifyExtractedArchive(
   bundleUrl: string,
   archive: ExtractedExtensionArchive,
+  options: LoadExtensionBundleOptions = {},
 ): Promise<LoadedExtensionBundle["verification"]> {
+  if (options.trust === "builtin") {
+    return { mode: "builtin" };
+  }
   if (shouldSkipExtensionSignatureVerification(bundleUrl)) {
     return { mode: "dev-unsigned" };
   }
@@ -545,6 +559,7 @@ export async function resolveExtensionAssetUrl(uri: string): Promise<string> {
 
 export async function loadExtensionBundle(
   bundleUrl: string,
+  options: LoadExtensionBundleOptions = {},
 ): Promise<LoadedExtensionBundle> {
   const cached = bundleLoadCache.get(bundleUrl);
   if (cached != null) {
@@ -552,13 +567,14 @@ export async function loadExtensionBundle(
   }
   const promise = (async () => {
     if (isArchiveBundleUrl(bundleUrl)) {
-      return await loadArchiveBundle(bundleUrl);
+      return await loadArchiveBundle(bundleUrl, undefined, options);
     }
     const bytes = await fetchBundleBytes(bundleUrl);
     if (isGzipData(bytes)) {
       return await loadArchiveBundle(
         bundleUrl,
         await extractExtensionArchive(bytes),
+        options,
       );
     }
     return await loadJavascriptBundle(bundleUrl, bytes);

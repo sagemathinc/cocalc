@@ -1,20 +1,13 @@
-/*
- *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
- *  License: MS-RSL – see LICENSE.md for details
- */
-
-/*
-Register the CSV editor
-*/
-
 import { defineEditor, registerExtension } from "@cocalc/editor-extensions";
-import { CodemirrorEditor } from "../code-editor/codemirror-editor";
-import Grid from "./grid";
+import { CodemirrorEditor } from "@cocalc/frontend/frame-editors/code-editor/codemirror-editor";
+import Grid from "@cocalc/frontend/frame-editors/csv-editor/grid";
 
 registerExtension(
   defineEditor({
     id: "cocalc/csv-editor",
     name: "CSV Editor",
+    version: "0.0.1",
+    source: "builtin",
     extensions: ["csv"],
     icon: "csv",
     nativeFrames: ["timetravel"],

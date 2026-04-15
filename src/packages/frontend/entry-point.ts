@@ -42,6 +42,7 @@ import { init as initIframeComm } from "./iframe-communication";
 import { init as initCrashBanner } from "./crash-banner";
 import { init as initCustomize } from "./customize";
 import { init as initProjectInviteToken } from "./collaborators/handle-project-invite";
+import { initBuiltinExtensionBundles } from "./extensions/builtin";
 import { initExtensionImportMap } from "./extensions/import-map";
 import { initExtensionManifestRegistration } from "./extensions/register";
 
@@ -57,6 +58,11 @@ import { render } from "./app/render";
 
 export async function init() {
   initExtensionImportMap();
+  try {
+    await initBuiltinExtensionBundles();
+  } catch (err) {
+    console.warn(`Failed to initialize builtin extension bundles: ${err}`);
+  }
   initExtensionManifestRegistration();
   initJqueryPlugins();
   initAccount(redux);

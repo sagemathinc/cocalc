@@ -9,7 +9,9 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
-    "build": "pnpm exec tsc --build",
+    "build": "pnpm exec tsc --build && pnpm run build-builtin",
+    "build-builtin": "node ./scripts/build-builtin-archives.mjs",
+    "serve-builtin": "cd dist/builtin && python3 -m http.server 4312",
     "test": "echo 'no tests yet'"
   },
   "files": [
