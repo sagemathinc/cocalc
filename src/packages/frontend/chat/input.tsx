@@ -106,6 +106,12 @@ export default function ChatInput({
       ) {
         return;
       }
+      // If the actual current input has been cleared (e.g. after sending)
+      // but this debounced call still carries the old value, skip the save
+      // to avoid resurrecting a deleted draft.
+      if (input && !currentInputRef.current) {
+        return;
+      }
       onChange(input);
       lastSavedRef.current = input;
       // also save to syncdb, so we have undo, etc.

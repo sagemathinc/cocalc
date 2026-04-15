@@ -856,7 +856,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               </div>
             </div>
           )}
-          {/* Markdown cell toolbar in code column — 3-dot menu for cell actions */}
+          {/* Markdown cell toolbar in code column — chat + 3-dot menu */}
           {isMarkdown && (
             <div
               style={{
@@ -864,11 +864,19 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                 justifyContent: "flex-end",
                 padding: "0 4px",
                 minHeight: "22px",
+                gap: "2px",
                 alignItems: "center",
                 visibility: rowHovered || menuOpen ? "visible" : "hidden",
               }}
               onClick={(e) => e.stopPropagation()}
             >
+              {actions && project_id && !actions.is_closed() && (
+                <CellChatButton
+                  cellId={id}
+                  project_id={project_id}
+                  path={(actions as any).path}
+                />
+              )}
               <CodeBarDropdownMenu
                 actions={actions}
                 frameActions={frameActions}
@@ -876,6 +884,16 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                 cell={cell}
                 onOpenChange={setMenuOpen}
               />
+              {/* Unread badge — always visible even when toolbar is hidden */}
+              {!(rowHovered || menuOpen) && actions && project_id && !actions.is_closed() && (
+                <div style={{ visibility: "visible" }}>
+                  <CellChatUnreadBadge
+                    cellId={id}
+                    project_id={project_id}
+                    path={(actions as any).path}
+                  />
+                </div>
+              )}
             </div>
           )}
         </>)}

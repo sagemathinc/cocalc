@@ -539,56 +539,41 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   }
 
   // Open the side chat and select (or create) a thread anchored to the given cell.
-  public async openCellChat(cellId: string): Promise<void> {
-    this.show_focused_frame_of_type("chat", "col", false, 0.7);
-    const cellLabel = this.getCellLabel(cellId);
-    for (const d of [1, 10, 50, 200, 500]) {
+  private async waitForChatActions(): Promise<ReturnType<
+    typeof getSideChatActions
+  > | null> {
+    for (const d of [1, 10, 50, 200, 500, 1000, 2000, 4000]) {
       await delay(d);
-      if (this._state === "closed") return;
+      if (this._state === "closed") return null;
       const chatActions = getSideChatActions({
         project_id: this.project_id,
         path: this.path,
       });
-      if (chatActions?.syncdb) {
-        chatActions.findOrCreateCellThread(cellId, cellLabel);
-        return;
-      }
+      if (chatActions?.syncdb) return chatActions;
     }
+    return null;
+  }
+
+  public async openCellChat(cellId: string): Promise<void> {
+    this.show_focused_frame_of_type("chat", "col", false, 0.7);
+    const cellLabel = this.getCellLabel(cellId);
+    const chatActions = await this.waitForChatActions();
+    chatActions?.findOrCreateCellThread(cellId, cellLabel);
   }
 
   // Open the side chat and always create a new thread anchored to the given cell.
   public async openCellChatNewThread(cellId: string): Promise<void> {
     this.show_focused_frame_of_type("chat", "col", false, 0.7);
     const cellLabel = this.getCellLabel(cellId);
-    for (const d of [1, 10, 50, 200, 500]) {
-      await delay(d);
-      if (this._state === "closed") return;
-      const chatActions = getSideChatActions({
-        project_id: this.project_id,
-        path: this.path,
-      });
-      if (chatActions?.syncdb) {
-        chatActions.createCellThread(cellId, cellLabel);
-        return;
-      }
-    }
+    const chatActions = await this.waitForChatActions();
+    chatActions?.createCellThread(cellId, cellLabel);
   }
 
   // Open the side chat and select a specific thread by key.
   public async openCellChatThread(threadKey: string): Promise<void> {
     this.show_focused_frame_of_type("chat", "col", false, 0.7);
-    for (const d of [1, 10, 50, 200, 500]) {
-      await delay(d);
-      if (this._state === "closed") return;
-      const chatActions = getSideChatActions({
-        project_id: this.project_id,
-        path: this.path,
-      });
-      if (chatActions?.syncdb) {
-        chatActions.setSelectedThread(threadKey);
-        return;
-      }
-    }
+    const chatActions = await this.waitForChatActions();
+    chatActions?.setSelectedThread(threadKey);
   }
 
   public async show_table_of_contents(
