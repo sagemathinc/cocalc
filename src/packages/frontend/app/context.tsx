@@ -13,15 +13,19 @@ import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { ACTIVITY_BAR_LABELS } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { A11Y } from "@cocalc/util/consts/ui";
 import {
+  adjustThemeIntensity,
   type BaseColors,
   type ColorTheme,
   deriveAccessibilityTheme,
   lighten,
+  LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS,
   type NativeDarkMode,
+  normalizeThemeIntensity,
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
   OTHER_SETTINGS_RANDOM_THEME_SEED,
+  OTHER_SETTINGS_THEME_INTENSITY,
   deriveDarkTheme,
   resolveUserTheme,
 } from "@cocalc/util/theme";
@@ -175,6 +179,10 @@ export function useAntdStyleProvider() {
 
   // Parse accessibility settings
   const accessibilityStr = other_settings?.get(A11Y);
+  const themeIntensity = normalizeThemeIntensity(
+    other_settings?.get(OTHER_SETTINGS_THEME_INTENSITY),
+    other_settings?.get(LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS),
+  );
   let accessibilityEnabled = false;
   if (accessibilityStr) {
     try {
@@ -184,9 +192,10 @@ export function useAntdStyleProvider() {
       // Ignore parse errors
     }
   }
-  const effectiveColorTheme = accessibilityEnabled
-    ? deriveAccessibilityTheme(colorTheme)
-    : colorTheme;
+  const effectiveColorTheme = adjustThemeIntensity(
+    accessibilityEnabled ? deriveAccessibilityTheme(colorTheme) : colorTheme,
+    themeIntensity,
+  );
 
   const borderStyle = rounded
     ? undefined

@@ -10,11 +10,12 @@ Our predefined terminal color themes.
 import { ITheme, Terminal } from "@xterm/xterm";
 import { COLOR_THEMES, getThemeName } from "./theme-data";
 
-/** Read a CSS variable from document.body, with fallback. */
+/** Read a CSS variable from the document root, with fallback. */
 function cssVar(name: string, fallback: string): string {
   if (typeof document === "undefined") return fallback;
   return (
-    getComputedStyle(document.body).getPropertyValue(name).trim() || fallback
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim() ||
+    fallback
   );
 }
 

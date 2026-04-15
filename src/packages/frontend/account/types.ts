@@ -60,6 +60,8 @@ export interface AccountState {
     dark_mode_brightness: number;
     dark_mode_contrast: number;
     dark_mode_sepia: number;
+    theme_intensity?: number;
+    theme_brightness?: number;
     news_read_until: number; // JavaScript timestamp in milliseconds
     [OTHER_SETTINGS_USER_DEFINED_LLM]: string; // string is JSON: CustomLLM[]
     [OTHER_SETTINGS_LOCALE_KEY]?: string;

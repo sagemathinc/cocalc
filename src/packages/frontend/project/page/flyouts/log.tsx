@@ -30,7 +30,10 @@ import {
   EventRecordMap,
   to_search_string,
 } from "@cocalc/frontend/project/history/types";
-import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
+import {
+  getOpenFilePath,
+  handleFileEntryClick,
+} from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
 import {
@@ -83,7 +86,7 @@ function deriveFiles(
     .valueSeq()
     .filter(
       (entry: EventRecordMap) =>
-        entry.getIn(["event", "filename"]) &&
+        getOpenFilePath(entry.getIn(["event", "filename"])) != null &&
         entry.getIn(["event", "event"]) === "open",
     )
     .sort((a, b) => getTime(b) - getTime(a))
@@ -91,20 +94,22 @@ function deriveFiles(
       // pick all files if not deduplicated
       if (!deduplicate) return true;
       // otherwise, we check if the filename already appeared in the sorted list
-      const fn = entry.getIn(["event", "filename"]);
+      const fn = getOpenFilePath(entry.getIn(["event", "filename"]));
+      if (fn == null) return false;
       if (dedupe.includes(fn)) return false;
       dedupe.push(fn);
       return true;
     })
     .filter((entry: EventRecordMap) => {
       if (searchTerm === "") return true;
-      const fName = entry.getIn(["event", "filename"], "").toLowerCase();
+      const fName = getOpenFilePath(entry.getIn(["event", "filename"]));
+      if (fName == null) return false;
       return search_match(fName, searchWords);
     })
     .slice(0, max)
     .map((entry: EventRecordMap) => {
       return {
-        filename: entry.getIn(["event", "filename"]),
+        filename: getOpenFilePath(entry.getIn(["event", "filename"])) ?? "",
         time: entry.get("time"),
         account_id: entry.get("account_id"),
       };
@@ -146,7 +151,7 @@ function isProjectEvent(event: string, entry: EventRecordMap): boolean {
 
 function isFileEvent(event: string, entry: EventRecordMap): boolean {
   if (event === "open") {
-    if (typeof entry.getIn(["event", "filename"]) === "string") {
+    if (getOpenFilePath(entry.getIn(["event", "filename"])) != null) {
       return true;
     }
   }
@@ -644,7 +649,10 @@ export function LogFlyout({
               <Button
                 size="small"
                 type="text"
-                style={{ float: "right", color: "var(--cocalc-text-primary, #5f5f5f)" }}
+                style={{
+                  float: "right",
+                  color: "var(--cocalc-text-primary, #5f5f5f)",
+                }}
                 onClick={() => actions?.resetFlyoutLogFilter()}
                 icon={<Icon name="close-circle-filled" />}
               >

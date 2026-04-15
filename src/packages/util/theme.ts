@@ -55,6 +55,7 @@ export const SENDGRID_ASM_NEWSLETTER = 698;
 
 // Re-export the dynamic theme system so consumers can import from here
 export {
+  adjustThemeIntensity,
   type BaseColors,
   COLOR_THEMES,
   type ColorTheme,
@@ -66,14 +67,20 @@ export {
   getColorTheme,
   getRandomizedTheme,
   hexToRgb,
+  LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS,
   luminance,
   mixColors,
   type NativeDarkMode,
+  normalizeThemeIntensity,
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
   OTHER_SETTINGS_RANDOM_THEME_SEED,
+  OTHER_SETTINGS_THEME_INTENSITY,
   PRESET_BASE_COLORS,
+  THEME_INTENSITY_DEFAULT,
+  THEME_INTENSITY_MAX,
+  THEME_INTENSITY_MIN,
   lighten,
   resolveUserTheme,
   THEME_CUSTOM_ID,

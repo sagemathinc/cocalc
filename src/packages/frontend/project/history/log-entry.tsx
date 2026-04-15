@@ -41,7 +41,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { FormattedMessage, useIntl } from "react-intl";
 import { SOFTWARE_ENVIRONMENT_ICON } from "../settings/software-consts";
 import { SystemProcess } from "./system-process";
-import { handleFileEntryClick } from "./utils";
+import { getOpenFileExt, getOpenFilePath, handleFileEntryClick } from "./utils";
 import type {
   AIAssistanceEvent,
   AssistantEvent,
@@ -120,7 +120,11 @@ function TookTime({
     description = `${(Math.round(ms / 100) / 10).toFixed(1)}s`;
   }
 
-  return <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>(took {description})</span>;
+  return (
+    <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
+      (took {description})
+    </span>
+  );
 }
 
 function areEqual(prev: Props, next: Props): boolean {
@@ -156,12 +160,16 @@ export const LogEntry: React.FC<Props> = React.memo(
     const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
 
     function render_open_file(event: OpenFile): React.JSX.Element {
+      const path = getOpenFilePath(event.filename);
+      if (path == null) {
+        return <span>Opened an invalid file entry</span>;
+      }
       return (
         <span>
           Opened
           <Gap />
           <PathLink
-            path={event.filename}
+            path={path}
             full={true}
             style={cursor ? selected_item : undefined}
             trunc={TRUNC}
@@ -171,7 +179,7 @@ export const LogEntry: React.FC<Props> = React.memo(
               track("open-file", {
                 how: "project-log",
                 type: "open_file",
-                path: event.filename,
+                path,
                 project_id,
               })
             }
@@ -701,7 +709,10 @@ export const LogEntry: React.FC<Props> = React.memo(
                 onClick={(e) =>
                   handleFileEntryClick(e, path, project_id, { id: cellId })
                 }
-                style={{ color: "var(--cocalc-text-primary-strong, #434343)", fontWeight: "bold" }}
+                style={{
+                  color: "var(--cocalc-text-primary-strong, #434343)",
+                  fontWeight: "bold",
+                }}
               >
                 cell #{cellNumber}
               </a>
@@ -717,7 +728,10 @@ export const LogEntry: React.FC<Props> = React.memo(
                     line: `${lineNumber}`,
                   })
                 }
-                style={{ color: "var(--cocalc-text-primary-strong, #434343)", fontWeight: "bold" }}
+                style={{
+                  color: "var(--cocalc-text-primary-strong, #434343)",
+                  fontWeight: "bold",
+                }}
               >
                 line #{lineNumber}
               </a>
@@ -1016,7 +1030,7 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "open_project":
           return "folder-open";
         case "open": // open a file
-          const ext = misc.filename_extension(event.filename);
+          const ext = getOpenFileExt(event.filename);
           const info = file_associations[ext];
           if (info == null) return "file-code";
           let x = info.icon;

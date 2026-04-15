@@ -18,6 +18,7 @@ import {
   Card,
   Divider,
   Segmented,
+  Slider,
   Tag,
 } from "antd";
 import { CSSProperties, useCallback, useMemo, useState } from "react";
@@ -27,16 +28,24 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
+import { A11Y } from "@cocalc/util/consts/ui";
 import {
+  adjustThemeIntensity,
   type BaseColors,
   COLOR_THEMES,
   type ColorTheme,
+  deriveAccessibilityTheme,
+  LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS,
   type NativeDarkMode,
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
   OTHER_SETTINGS_RANDOM_THEME_SEED,
+  OTHER_SETTINGS_THEME_INTENSITY,
   PRESET_BASE_COLORS,
+  THEME_INTENSITY_DEFAULT,
+  THEME_INTENSITY_MAX,
+  THEME_INTENSITY_MIN,
   THEME_CUSTOM_ID,
   THEME_RANDOMIZED_ID,
   deriveDarkTheme,
@@ -44,6 +53,7 @@ import {
   generateRandomizedBaseColors,
   getColorTheme,
   getRandomizedTheme,
+  normalizeThemeIntensity,
 } from "@cocalc/util/theme";
 
 const MESSAGES = defineMessages({
@@ -108,6 +118,10 @@ const MESSAGES = defineMessages({
     id: "account.appearance.color_theme.native_dark.description",
     defaultMessage:
       "Automatically derives a dark variant from the selected theme. 'System' follows your OS light/dark preference. Editor and terminal themes switch automatically.",
+  },
+  intensityLabel: {
+    id: "account.appearance.color_theme.intensity",
+    defaultMessage: "Intensity",
   },
   themes: {
     id: "account.appearance.color_theme.themes",
@@ -188,7 +202,11 @@ function ThemeCard({
       }}
     >
       <div
-        style={{ fontWeight: active ? 600 : 400, marginBottom: 3, fontSize: 12 }}
+        style={{
+          fontWeight: active ? 600 : 400,
+          marginBottom: 3,
+          fontSize: 12,
+        }}
       >
         {label ?? theme.name}
       </div>
@@ -307,9 +325,7 @@ function CustomColorEditor({
         return;
       }
       if (key === "text" && luma(hex) > 0.5) {
-        setWarning(
-          "Text must be a dark color to ensure readability.",
-        );
+        setWarning("Text must be a dark color to ensure readability.");
         return;
       }
       setWarning(null);
@@ -496,6 +512,10 @@ export function ColorThemeSelector() {
   const randomSeed = Number(
     other_settings?.get(OTHER_SETTINGS_RANDOM_THEME_SEED) ?? 0,
   );
+  const themeIntensity = normalizeThemeIntensity(
+    other_settings?.get(OTHER_SETTINGS_THEME_INTENSITY),
+    other_settings?.get(LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS),
+  );
 
   const isCustom = currentThemeId === THEME_CUSTOM_ID;
 
@@ -509,6 +529,16 @@ export function ColorThemeSelector() {
     }
     return DEFAULT_CUSTOM;
   }, [customColorsJson]);
+
+  let accessibilityEnabled = false;
+  try {
+    const a11yStr = other_settings?.get(A11Y);
+    if (a11yStr) {
+      accessibilityEnabled = JSON.parse(a11yStr).enabled ?? false;
+    }
+  } catch {
+    // ignore
+  }
 
   // Resolve the effective theme (including dark mode derivation)
   const activeTheme = useMemo(() => {
@@ -530,8 +560,22 @@ export function ColorThemeSelector() {
         typeof window !== "undefined" &&
         window.matchMedia?.("(prefers-color-scheme: dark)").matches);
 
-    return wantDark ? deriveDarkTheme(lightTheme) : lightTheme;
-  }, [currentThemeId, isCustom, customColorsJson, nativeDarkMode, randomSeed]);
+    const resolvedTheme = wantDark ? deriveDarkTheme(lightTheme) : lightTheme;
+    return adjustThemeIntensity(
+      accessibilityEnabled
+        ? deriveAccessibilityTheme(resolvedTheme)
+        : resolvedTheme,
+      themeIntensity,
+    );
+  }, [
+    accessibilityEnabled,
+    currentThemeId,
+    isCustom,
+    customColorsJson,
+    nativeDarkMode,
+    randomSeed,
+    themeIntensity,
+  ]);
 
   const handleSelectPreset = useCallback((id: string) => {
     onChangeSetting(OTHER_SETTINGS_COLOR_THEME, id);
@@ -561,13 +605,15 @@ export function ColorThemeSelector() {
     onChangeSetting(OTHER_SETTINGS_COLOR_THEME, "default");
     onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_COLORS, "");
     onChangeSetting(OTHER_SETTINGS_NATIVE_DARK_MODE, "off");
+    onChangeSetting(OTHER_SETTINGS_THEME_INTENSITY, THEME_INTENSITY_DEFAULT);
     onChangeSetting(OTHER_SETTINGS_RANDOM_THEME_SEED, 0);
   }, []);
 
   const isDefault =
     currentThemeId === "default" &&
     !customColorsJson &&
-    nativeDarkMode === "off";
+    nativeDarkMode === "off" &&
+    themeIntensity === THEME_INTENSITY_DEFAULT;
 
   const themes = Object.entries(COLOR_THEMES);
 
@@ -629,9 +675,59 @@ export function ColorThemeSelector() {
             ]}
           />
         </div>
-        <div style={{ fontSize: 12, color: "var(--cocalc-text-secondary, #808080)" }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--cocalc-text-secondary, #808080)",
+          }}
+        >
           {intl.formatMessage(MESSAGES.nativeDarkDescription)}
         </div>
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 6,
+          }}
+        >
+          <strong>
+            <FormattedMessage {...MESSAGES.intensityLabel} />
+          </strong>
+          <span
+            style={{
+              fontSize: 12,
+              color: "var(--cocalc-text-secondary, #808080)",
+              minWidth: 40,
+              textAlign: "right",
+            }}
+          >
+            {themeIntensity}%
+          </span>
+        </div>
+        <Slider
+          min={THEME_INTENSITY_MIN}
+          max={THEME_INTENSITY_MAX}
+          step={1}
+          value={themeIntensity}
+          onChange={(value) => {
+            if (!Array.isArray(value)) {
+              onChangeSetting(OTHER_SETTINGS_THEME_INTENSITY, value);
+            }
+          }}
+          marks={{
+            [THEME_INTENSITY_MIN]: `${THEME_INTENSITY_MIN}`,
+            [THEME_INTENSITY_DEFAULT]: `${THEME_INTENSITY_DEFAULT}`,
+            [THEME_INTENSITY_MAX]: `${THEME_INTENSITY_MAX}`,
+          }}
+          tooltip={{
+            formatter: (value) => `${value ?? THEME_INTENSITY_DEFAULT}%`,
+          }}
+        />
       </div>
 
       <Divider style={{ margin: "8px 0" }} />
@@ -670,7 +766,13 @@ export function ColorThemeSelector() {
       {/* Custom base-color pickers — shown only when Custom theme is active */}
       {isCustom && (
         <Card size="small" style={{ marginTop: 8 }}>
-          <div style={{ marginBottom: 8, color: "var(--cocalc-text-primary, #5f5f5f)", fontSize: 12 }}>
+          <div
+            style={{
+              marginBottom: 8,
+              color: "var(--cocalc-text-primary, #5f5f5f)",
+              fontSize: 12,
+            }}
+          >
             <FormattedMessage {...MESSAGES.customDescription} />
           </div>
           <CustomColorEditor value={customBase} onChange={handleCustomChange} />

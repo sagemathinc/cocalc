@@ -699,6 +699,7 @@ Table({
             color_theme: "default",
             custom_theme_colors: "",
             native_dark_mode: "off",
+            theme_intensity: 100,
             random_theme_seed: 0,
             news_read_until: 0,
             hide_project_popovers: false,

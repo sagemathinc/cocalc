@@ -205,16 +205,21 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     useStudentProjectFunctionality(project_id);
   const [quickActionsMounted, setQuickActionsMounted] =
     useState<boolean>(isInClipboard);
+  const rawName = item.name as unknown;
+  const safeName = typeof rawName === "string" ? rawName : "";
+  const displayName = safeName || "<invalid path>";
+  const hasValidName = safeName.length > 0;
 
   const selectable = onChecked != null;
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   // -- DnD: drag source + folder drop target --
-  const isParentDir = item.name === "..";
+  const isParentDir = safeName === "..";
   const actionsDisabled = student_project_functionality.disableActions;
-  const isDndEnabled = mode === "files" && !isParentDir && !actionsDisabled;
-  const fullPath = path_to_file(current_path, item.name);
+  const isDndEnabled =
+    mode === "files" && hasValidName && !isParentDir && !actionsDisabled;
+  const fullPath = path_to_file(current_path, safeName);
 
   // Compute paths for dragging: all checked files, plus this one if not already checked
   const dragPaths = React.useMemo(() => {
@@ -313,9 +318,13 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function renderName(): React.JSX.Element {
-    const name = item.name;
+    const name = safeName;
 
-    const path = isActive ? path_split(name).tail : name;
+    const path = hasValidName
+      ? isActive
+        ? path_split(name).tail
+        : name
+      : displayName;
     const { name: basename, ext } = item.isdir
       ? { name: path, ext: "" }
       : separate_file_extension(path);
@@ -332,7 +341,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     return (
       <div
         ref={itemRef}
-        title={name}
+        title={hasValidName ? name : displayName}
         style={{
           ...FILE_ITEM_STYLE,
           ...(multiline ? { whiteSpace: "normal" } : {}),
@@ -370,13 +379,13 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   function renderBodyLeft(): React.JSX.Element {
     const iconName =
       iconNameOverride ??
-      (selectable && showCheckbox && item.name !== ".."
+      (selectable && showCheckbox && safeName !== ".."
         ? selected
           ? "check-square"
           : "square"
         : item.isdir
           ? "folder-open"
-          : (file_options(item.name)?.icon ?? "file"));
+          : (file_options(safeName)?.icon ?? "file"));
 
     return (
       <Icon
@@ -477,7 +486,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         style={FILE_ITEM_BODY_STYLE}
         onClick={handleClick}
         onMouseDown={(e) => {
-          onMouseDown?.(e, item.name);
+          onMouseDown?.(e, safeName);
         }}
         onMouseEnter={handleMouseEnter}
         // additional mouseLeave to prevent stale hover state icon
@@ -487,7 +496,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         {renderExtra(1)}
         {mode === "files" &&
           !actionsDisabled &&
-          item.name !== ".." &&
+          safeName !== ".." &&
           (quickActionsMounted || isInClipboard) && (
             <QuickActionButtons
               project_id={project_id}
@@ -523,7 +532,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function getContextMenu(): MenuProps["items"] {
-    const { name, isdir, is_public, size } = item;
+    const { isdir, is_public, size } = item;
+    const name = safeName;
     const n = checked_files?.size ?? 0;
     // Intentionally keep the current multi-selection when right-clicking another item.
     // This avoids clearing selection due to imprecise context-clicks; follow-up dialogs
@@ -531,7 +541,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     const multiple = n > 1;
 
     const sizeStr = size ? human_readable_size(size) : "";
-    const nameStr = trunc_middle(item.name, 30);
+    const nameStr = trunc_middle(displayName, 30);
     const typeStr = intl.formatMessage(labels.file_or_folder, {
       isDir: String(!!isdir),
     });
@@ -603,7 +613,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         multiple,
         disableActions: student_project_functionality.disableActions,
         inSnapshots: current_path?.startsWith(".snapshots") ?? false,
-        fullPath: path_to_file(current_path, item.name),
+        fullPath: path_to_file(current_path, safeName),
         triggerFileAction: (action) => {
           // Only override selection in single-item mode. In multi mode we preserve
           // the existing checked set (see note above).
@@ -615,8 +625,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
             if (onChecked != null) {
               onChecked(true);
             } else {
-              if (item.name === "..") return;
-              const pathFn = path_to_file(current_path, item.name);
+              if (safeName === "..") return;
+              const pathFn = path_to_file(current_path, safeName);
               actions?.set_file_list_checked([pathFn]);
             }
           }
@@ -717,7 +727,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     >
       <div
         ref={dndRef}
-        key={item.name}
+        key={safeName || displayName}
         className="cc-project-flyout-file-item"
         // additional mouseLeave to prevent stale hover state icon
         onMouseLeave={handleMouseLeave}

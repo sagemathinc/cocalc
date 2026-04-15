@@ -20,10 +20,14 @@ import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { setDarkModeState } from "@cocalc/frontend/account/dark-mode";
 import { A11Y } from "@cocalc/util/consts/ui";
 import {
+  adjustThemeIntensity,
   deriveAccessibilityTheme,
   hexToRgb,
+  LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS,
   lighten,
   mixColors,
+  OTHER_SETTINGS_THEME_INTENSITY,
+  normalizeThemeIntensity,
   type ColorTheme,
 } from "@cocalc/util/theme";
 import { createRoot } from "react-dom/client";
@@ -92,6 +96,10 @@ function App({ children }) {
   };
 
   const colorTheme = useResolvedColorTheme();
+  const themeIntensity = normalizeThemeIntensity(
+    other_settings?.get(OTHER_SETTINGS_THEME_INTENSITY),
+    other_settings?.get(LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS),
+  );
 
   // Check accessibility mode
   let accessibilityEnabled = false;
@@ -101,11 +109,12 @@ function App({ children }) {
   } catch {
     // ignore
   }
-  const effectiveColorTheme = accessibilityEnabled
-    ? deriveAccessibilityTheme(colorTheme)
-    : colorTheme;
+  const effectiveColorTheme = adjustThemeIntensity(
+    accessibilityEnabled ? deriveAccessibilityTheme(colorTheme) : colorTheme,
+    themeIntensity,
+  );
 
-  // Sync the resolved theme to CSS custom properties on <body> so that
+  // Sync the resolved theme to CSS custom properties on <html> so that
   // SASS / plain CSS can also respond to theme changes (e.g. top bar, borders).
   useEffect(() => {
     applyThemeCSSVars(effectiveColorTheme, accessibilityEnabled);
@@ -120,10 +129,11 @@ function App({ children }) {
   );
 }
 
-/** Write a ColorTheme's key fields as --cocalc-* CSS custom properties on document.body.
+/** Write a ColorTheme's key fields as --cocalc-* CSS custom properties on document.documentElement.
  *  When accessibility mode is on, override text/border variables for maximum contrast. */
 function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
-  const s = document.body.style;
+  const rootStyle = document.documentElement.style;
+  const bodyStyle = document.body.style;
   const topBarActive = a11y
     ? mixColors(t.topBarBg, t.bgSelected, t.isDark ? 0.7 : 0.85)
     : mixColors(t.topBarBg, t.bgElevated, t.isDark ? 0.55 : 0.85);
@@ -138,11 +148,12 @@ function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
   const editorTitlebarActive = t.isDark
     ? lighten(t.topBarBg, 0.16)
     : mixColors(t.topBarBg, "#ffffff", 0.7);
+  const errorLight = mixColors(t.bgBase, t.colorError, t.isDark ? 0.2 : 0.08);
 
   const setRgb = (name: string, hex: string) => {
     try {
       const [r, g, b] = hexToRgb(hex);
-      s.setProperty(`${name}-rgb`, `${r}, ${g}, ${b}`);
+      rootStyle.setProperty(`${name}-rgb`, `${r}, ${g}, ${b}`);
     } catch {
       // ignore
     }
@@ -156,63 +167,69 @@ function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
   const topBarText = t.topBarText;
   const topBarTextActive = t.topBarTextActive;
 
-  s.setProperty("--cocalc-bg-base", t.bgBase);
+  rootStyle.setProperty("color-scheme", t.isDark ? "dark" : "light");
+  rootStyle.setProperty("--cocalc-bg-base", t.bgBase);
   setRgb("--cocalc-bg-base", t.bgBase);
-  s.setProperty("--cocalc-bg-elevated", t.bgElevated);
-  s.setProperty("--cocalc-bg-hover", t.bgHover);
-  s.setProperty("--cocalc-bg-selected", t.bgSelected);
-  s.setProperty("--cocalc-text-primary", textPrimary);
-  s.setProperty("--cocalc-text-primary-strong", t.textPrimaryStrong);
-  s.setProperty("--cocalc-text-secondary", textSecondary);
-  s.setProperty("--cocalc-text-tertiary", textTertiary);
-  s.setProperty("--cocalc-text-on-primary", t.textOnPrimary);
-  s.setProperty("--cocalc-border", border);
-  s.setProperty("--cocalc-border-light", borderLight);
-  s.setProperty("--cocalc-top-bar-bg", t.topBarBg);
-  s.setProperty("--cocalc-top-bar-active", topBarActive);
-  s.setProperty("--cocalc-top-bar-hover", t.topBarHover);
-  s.setProperty("--cocalc-top-bar-text", topBarText);
-  s.setProperty("--cocalc-top-bar-text-active", topBarTextActive);
-  s.setProperty("--cocalc-editor-titlebar-bg", editorTitlebarBg);
-  s.setProperty("--cocalc-editor-titlebar-bg-active", editorTitlebarActive);
-  s.setProperty("--cocalc-primary", t.primary);
+  rootStyle.setProperty("--cocalc-bg-elevated", t.bgElevated);
+  rootStyle.setProperty("--cocalc-bg-hover", t.bgHover);
+  rootStyle.setProperty("--cocalc-bg-selected", t.bgSelected);
+  rootStyle.setProperty("--cocalc-text-primary", textPrimary);
+  rootStyle.setProperty("--cocalc-text-primary-strong", t.textPrimaryStrong);
+  rootStyle.setProperty("--cocalc-text-secondary", textSecondary);
+  rootStyle.setProperty("--cocalc-text-tertiary", textTertiary);
+  rootStyle.setProperty("--cocalc-text-muted", textTertiary);
+  rootStyle.setProperty("--cocalc-text-on-primary", t.textOnPrimary);
+  rootStyle.setProperty("--cocalc-border", border);
+  rootStyle.setProperty("--cocalc-border-light", borderLight);
+  rootStyle.setProperty("--cocalc-top-bar-bg", t.topBarBg);
+  rootStyle.setProperty("--cocalc-top-bar-active", topBarActive);
+  rootStyle.setProperty("--cocalc-top-bar-hover", t.topBarHover);
+  rootStyle.setProperty("--cocalc-top-bar-text", topBarText);
+  rootStyle.setProperty("--cocalc-top-bar-text-active", topBarTextActive);
+  rootStyle.setProperty("--cocalc-editor-titlebar-bg", editorTitlebarBg);
+  rootStyle.setProperty(
+    "--cocalc-editor-titlebar-bg-active",
+    editorTitlebarActive,
+  );
+  rootStyle.setProperty("--cocalc-primary", t.primary);
   setRgb("--cocalc-primary", t.primary);
-  s.setProperty("--cocalc-primary-dark", t.primaryDark);
-  s.setProperty("--cocalc-primary-light", t.primaryLight);
-  s.setProperty("--cocalc-primary-lightest", t.primaryLightest);
-  s.setProperty("--cocalc-secondary", t.secondary);
-  s.setProperty("--cocalc-secondary-light", t.secondaryLight);
-  s.setProperty("--cocalc-success", t.colorSuccess);
+  rootStyle.setProperty("--cocalc-primary-dark", t.primaryDark);
+  rootStyle.setProperty("--cocalc-primary-light", t.primaryLight);
+  rootStyle.setProperty("--cocalc-primary-lightest", t.primaryLightest);
+  rootStyle.setProperty("--cocalc-secondary", t.secondary);
+  rootStyle.setProperty("--cocalc-secondary-light", t.secondaryLight);
+  rootStyle.setProperty("--cocalc-success", t.colorSuccess);
   setRgb("--cocalc-success", t.colorSuccess);
-  s.setProperty("--cocalc-warning", t.colorWarning);
+  rootStyle.setProperty("--cocalc-warning", t.colorWarning);
   setRgb("--cocalc-warning", t.colorWarning);
-  s.setProperty("--cocalc-error", t.colorError);
+  rootStyle.setProperty("--cocalc-error", t.colorError);
   setRgb("--cocalc-error", t.colorError);
-  s.setProperty("--cocalc-info", t.colorInfo);
-  s.setProperty("--cocalc-link", t.colorLink);
-  s.setProperty("--cocalc-run", t.run);
+  rootStyle.setProperty("--cocalc-error-light", errorLight);
+  rootStyle.setProperty("--cocalc-info", t.colorInfo);
+  rootStyle.setProperty("--cocalc-link", t.colorLink);
+  rootStyle.setProperty("--cocalc-run", t.run);
   setRgb("--cocalc-run", t.run);
-  s.setProperty("--cocalc-star", t.star);
-  s.setProperty("--cocalc-drag-bar", t.dragBar);
-  s.setProperty("--cocalc-drag-bar-hover", t.dragBarHover);
-  s.setProperty("--cocalc-ai-bg", t.aiBg);
-  s.setProperty("--cocalc-ai-text", t.aiText);
-  s.setProperty("--cocalc-ai-font", t.aiFont);
-  s.setProperty("--cocalc-chat-viewer-bg", t.chatViewerBg);
-  s.setProperty("--cocalc-chat-other-bg", t.chatOtherBg);
+  rootStyle.setProperty("--cocalc-star", t.star);
+  rootStyle.setProperty("--cocalc-drag-bar", t.dragBar);
+  rootStyle.setProperty("--cocalc-drag-bar-hover", t.dragBarHover);
+  rootStyle.setProperty("--cocalc-ai-bg", t.aiBg);
+  rootStyle.setProperty("--cocalc-ai-text", t.aiText);
+  rootStyle.setProperty("--cocalc-ai-font", t.aiFont);
+  rootStyle.setProperty("--cocalc-chat-viewer-bg", t.chatViewerBg);
+  rootStyle.setProperty("--cocalc-chat-other-bg", t.chatOtherBg);
   // Syntax highlighting
-  s.setProperty("--cocalc-syntax-keyword", t.syntaxKeyword);
-  s.setProperty("--cocalc-syntax-string", t.syntaxString);
-  s.setProperty("--cocalc-syntax-comment", t.syntaxComment);
-  s.setProperty("--cocalc-syntax-number", t.syntaxNumber);
-  s.setProperty("--cocalc-syntax-function", t.syntaxFunction);
-  s.setProperty("--cocalc-syntax-variable", t.syntaxVariable);
-  s.setProperty("--cocalc-syntax-type", t.syntaxType);
-  s.setProperty("--cocalc-syntax-operator", t.syntaxOperator);
-  s.setProperty("--cocalc-is-dark", t.isDark ? "1" : "0");
+  rootStyle.setProperty("--cocalc-syntax-keyword", t.syntaxKeyword);
+  rootStyle.setProperty("--cocalc-syntax-string", t.syntaxString);
+  rootStyle.setProperty("--cocalc-syntax-comment", t.syntaxComment);
+  rootStyle.setProperty("--cocalc-syntax-number", t.syntaxNumber);
+  rootStyle.setProperty("--cocalc-syntax-function", t.syntaxFunction);
+  rootStyle.setProperty("--cocalc-syntax-variable", t.syntaxVariable);
+  rootStyle.setProperty("--cocalc-syntax-type", t.syntaxType);
+  rootStyle.setProperty("--cocalc-syntax-operator", t.syntaxOperator);
+  rootStyle.setProperty("--cocalc-is-dark", t.isDark ? "1" : "0");
   // Also set body background so the page chrome matches the theme
-  s.backgroundColor = t.bgBase;
-  s.color = textPrimary;
+  bodyStyle.backgroundColor = t.bgBase;
+  bodyStyle.color = textPrimary;
   // Keep the dark mode state tracker in sync
   setDarkModeState(!!t.isDark);
 }

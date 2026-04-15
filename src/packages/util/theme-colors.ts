@@ -172,6 +172,10 @@ export interface BaseColors {
   text?: string; // main text color (default near-black)
 }
 
+export const THEME_INTENSITY_MIN = 80;
+export const THEME_INTENSITY_DEFAULT = 100;
+export const THEME_INTENSITY_MAX = 120;
+
 // ---------------------------------------------------------------------------
 // Derive a full LIGHT ColorTheme from base colors
 // ---------------------------------------------------------------------------
@@ -322,6 +326,267 @@ export function deriveAccessibilityTheme(theme: ColorTheme): ColorTheme {
     syntaxVariable: isDark ? "#ffffff" : "#1a1a1a",
     aiText: textPrimary,
   };
+}
+
+const COLOR_THEME_COLOR_FIELDS: Array<
+  Exclude<keyof ColorTheme, "name" | "isDark">
+> = [
+  "primary",
+  "primaryDark",
+  "primaryLight",
+  "primaryLightest",
+  "secondary",
+  "secondaryLight",
+  "colorLink",
+  "colorSuccess",
+  "colorWarning",
+  "colorError",
+  "colorInfo",
+  "bgBase",
+  "bgElevated",
+  "bgHover",
+  "bgSelected",
+  "textPrimary",
+  "textPrimaryStrong",
+  "textSecondary",
+  "textTertiary",
+  "textOnPrimary",
+  "border",
+  "borderLight",
+  "topBarBg",
+  "topBarHover",
+  "topBarText",
+  "topBarTextActive",
+  "sidebarActive",
+  "sidebarOpened",
+  "landingBarBg",
+  "landingTopBg",
+  "chatViewerBg",
+  "chatViewerText",
+  "chatOtherBg",
+  "chatOtherText",
+  "dragBar",
+  "dragBarHover",
+  "syntaxKeyword",
+  "syntaxString",
+  "syntaxComment",
+  "syntaxNumber",
+  "syntaxFunction",
+  "syntaxVariable",
+  "syntaxType",
+  "syntaxOperator",
+  "star",
+  "run",
+  "aiBg",
+  "aiText",
+  "aiFont",
+  "signInBg",
+];
+
+function clampThemeIntensity(intensity: number): number {
+  return Math.max(
+    THEME_INTENSITY_MIN,
+    Math.min(THEME_INTENSITY_MAX, Math.round(intensity)),
+  );
+}
+
+function interpolateTheme(
+  from: ColorTheme,
+  to: ColorTheme,
+  amount: number,
+): ColorTheme {
+  const t = Math.max(0, Math.min(1, amount));
+  const result = {
+    ...from,
+    name: from.name,
+    isDark: from.isDark,
+  } as ColorTheme;
+  for (const key of COLOR_THEME_COLOR_FIELDS) {
+    result[key] = mixColors(from[key], to[key], t);
+  }
+  return result;
+}
+
+function deriveDimTheme(theme: ColorTheme): ColorTheme {
+  const isDark = !!theme.isDark;
+  const dimSurface = isDark ? "#000000" : "#d8d8d8";
+  const dimSurfaceLight = isDark ? "#101010" : "#ececec";
+  const dimTextPrimary = isDark ? "#bdbdbd" : "#5a5a5a";
+  const dimTextSecondary = isDark ? "#9f9f9f" : "#757575";
+  const dimTextTertiary = isDark ? "#888888" : "#919191";
+  const dimBorder = isDark ? "#242424" : "#d2d2d2";
+  const dimBorderLight = isDark ? "#1b1b1b" : "#e3e3e3";
+  const subduedPrimary = isDark
+    ? darken(theme.primary, 0.16)
+    : mixColors(theme.primary, dimSurface, 0.2);
+  const subduedSecondary = isDark
+    ? darken(theme.secondary, 0.16)
+    : mixColors(theme.secondary, dimSurfaceLight, 0.18);
+  const subduedInfo = isDark
+    ? darken(theme.colorInfo, 0.16)
+    : mixColors(theme.colorInfo, dimSurface, 0.18);
+  const subduedSuccess = isDark
+    ? darken(theme.colorSuccess, 0.16)
+    : mixColors(theme.colorSuccess, dimSurface, 0.18);
+  const subduedWarning = isDark
+    ? darken(theme.colorWarning, 0.16)
+    : mixColors(theme.colorWarning, dimSurface, 0.18);
+  const subduedError = isDark
+    ? darken(theme.colorError, 0.16)
+    : mixColors(theme.colorError, dimSurface, 0.16);
+
+  return {
+    ...theme,
+    primary: subduedPrimary,
+    primaryDark: isDark
+      ? darken(theme.primaryDark, 0.12)
+      : mixColors(theme.primaryDark, dimSurface, 0.16),
+    primaryLight: isDark
+      ? darken(theme.primaryLight, 0.12)
+      : mixColors(theme.primaryLight, dimSurfaceLight, 0.18),
+    primaryLightest: isDark
+      ? darken(theme.primaryLightest, 0.08)
+      : mixColors(theme.primaryLightest, dimSurfaceLight, 0.12),
+    secondary: subduedSecondary,
+    secondaryLight: isDark
+      ? darken(theme.secondaryLight, 0.1)
+      : mixColors(theme.secondaryLight, dimSurfaceLight, 0.14),
+    colorLink: isDark
+      ? darken(theme.colorLink, 0.14)
+      : mixColors(theme.colorLink, dimSurface, 0.18),
+    colorSuccess: subduedSuccess,
+    colorWarning: subduedWarning,
+    colorError: subduedError,
+    colorInfo: subduedInfo,
+    bgBase: isDark
+      ? darken(theme.bgBase, 0.22)
+      : mixColors(theme.bgBase, dimSurface, 0.3),
+    bgElevated: isDark
+      ? darken(theme.bgElevated, 0.18)
+      : mixColors(theme.bgElevated, dimSurfaceLight, 0.28),
+    bgHover: isDark
+      ? darken(theme.bgHover, 0.14)
+      : mixColors(theme.bgHover, dimSurfaceLight, 0.22),
+    bgSelected: isDark
+      ? darken(theme.bgSelected, 0.18)
+      : mixColors(theme.bgSelected, dimSurfaceLight, 0.2),
+    textPrimary: dimTextPrimary,
+    textPrimaryStrong: isDark ? "#d2d2d2" : "#4d4d4d",
+    textSecondary: dimTextSecondary,
+    textTertiary: dimTextTertiary,
+    textOnPrimary: contrastText(subduedPrimary),
+    border: dimBorder,
+    borderLight: dimBorderLight,
+    topBarBg: isDark
+      ? darken(theme.topBarBg, 0.18)
+      : mixColors(theme.topBarBg, dimSurface, 0.25),
+    topBarHover: isDark
+      ? darken(theme.topBarHover, 0.14)
+      : mixColors(theme.topBarHover, dimSurfaceLight, 0.2),
+    topBarText: isDark ? "#9a9a9a" : "#6e6e6e",
+    topBarTextActive: isDark ? "#c8c8c8" : "#555555",
+    sidebarActive: subduedPrimary,
+    sidebarOpened: isDark
+      ? darken(theme.sidebarOpened, 0.16)
+      : mixColors(theme.sidebarOpened, dimSurface, 0.18),
+    landingBarBg: isDark
+      ? darken(theme.landingBarBg, 0.14)
+      : mixColors(theme.landingBarBg, dimSurface, 0.16),
+    landingTopBg: isDark
+      ? darken(theme.landingTopBg, 0.12)
+      : mixColors(theme.landingTopBg, dimSurfaceLight, 0.14),
+    chatViewerBg: isDark
+      ? darken(theme.chatViewerBg, 0.12)
+      : mixColors(theme.chatViewerBg, dimSurfaceLight, 0.16),
+    chatViewerText: isDark ? "#e0e0e0" : "#4d4d4d",
+    chatOtherBg: isDark
+      ? darken(theme.chatOtherBg, 0.12)
+      : mixColors(theme.chatOtherBg, dimSurfaceLight, 0.18),
+    chatOtherText: dimTextPrimary,
+    dragBar: isDark
+      ? darken(theme.dragBar, 0.16)
+      : mixColors(theme.dragBar, dimBorder, 0.18),
+    dragBarHover: subduedPrimary,
+    syntaxKeyword: isDark
+      ? darken(theme.syntaxKeyword, 0.12)
+      : lighten(theme.syntaxKeyword, 0.14),
+    syntaxString: isDark
+      ? darken(theme.syntaxString, 0.12)
+      : lighten(theme.syntaxString, 0.14),
+    syntaxComment: isDark
+      ? darken(theme.syntaxComment, 0.08)
+      : lighten(theme.syntaxComment, 0.1),
+    syntaxNumber: isDark
+      ? darken(theme.syntaxNumber, 0.12)
+      : lighten(theme.syntaxNumber, 0.14),
+    syntaxFunction: isDark
+      ? darken(theme.syntaxFunction, 0.12)
+      : lighten(theme.syntaxFunction, 0.14),
+    syntaxVariable: isDark
+      ? darken(theme.syntaxVariable, 0.12)
+      : lighten(theme.syntaxVariable, 0.18),
+    syntaxType: isDark
+      ? darken(theme.syntaxType, 0.12)
+      : lighten(theme.syntaxType, 0.14),
+    syntaxOperator: isDark
+      ? darken(theme.syntaxOperator, 0.1)
+      : lighten(theme.syntaxOperator, 0.12),
+    star: isDark
+      ? darken(theme.star, 0.12)
+      : mixColors(theme.star, dimSurfaceLight, 0.14),
+    run: isDark
+      ? darken(theme.run, 0.12)
+      : mixColors(theme.run, dimSurface, 0.16),
+    aiBg: isDark
+      ? darken(theme.aiBg, 0.14)
+      : mixColors(theme.aiBg, dimSurfaceLight, 0.16),
+    aiText: dimTextPrimary,
+    aiFont: isDark
+      ? darken(theme.aiFont, 0.12)
+      : mixColors(theme.aiFont, dimSurface, 0.12),
+    signInBg: isDark
+      ? darken(theme.signInBg, 0.12)
+      : mixColors(theme.signInBg, dimSurfaceLight, 0.14),
+  };
+}
+
+/**
+ * Apply a single intensity control across light and dark themes.
+ * 100 preserves the original theme, higher values move toward a high-contrast
+ * variant, and lower values move toward a dimmed lower-contrast variant.
+ */
+export function normalizeThemeIntensity(
+  intensity: unknown,
+  legacyBrightness?: unknown,
+): number {
+  const raw = Number(intensity ?? legacyBrightness ?? THEME_INTENSITY_DEFAULT);
+  return Number.isFinite(raw)
+    ? clampThemeIntensity(raw)
+    : THEME_INTENSITY_DEFAULT;
+}
+
+export function adjustThemeIntensity(
+  theme: ColorTheme,
+  intensity: number = THEME_INTENSITY_DEFAULT,
+): ColorTheme {
+  const normalized = clampThemeIntensity(intensity);
+  if (normalized === THEME_INTENSITY_DEFAULT) {
+    return theme;
+  }
+  if (normalized > THEME_INTENSITY_DEFAULT) {
+    const highContrast = deriveAccessibilityTheme(theme);
+    const amount =
+      ((normalized - THEME_INTENSITY_DEFAULT) /
+        (THEME_INTENSITY_MAX - THEME_INTENSITY_DEFAULT)) *
+      0.65;
+    return interpolateTheme(theme, highContrast, amount);
+  }
+  const dimmed = deriveDimTheme(theme);
+  const amount =
+    ((THEME_INTENSITY_DEFAULT - normalized) /
+      (THEME_INTENSITY_DEFAULT - THEME_INTENSITY_MIN)) *
+    0.75;
+  return interpolateTheme(theme, dimmed, amount);
 }
 
 // ---------------------------------------------------------------------------
@@ -749,5 +1014,7 @@ export const OTHER_SETTINGS_CUSTOM_THEME_COLORS = "custom_theme_colors";
  *   - "system" → follow prefers-color-scheme media query
  */
 export const OTHER_SETTINGS_NATIVE_DARK_MODE = "native_dark_mode";
+export const OTHER_SETTINGS_THEME_INTENSITY = "theme_intensity";
+export const LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS = "theme_brightness";
 
 export type NativeDarkMode = "off" | "on" | "system";

@@ -21,7 +21,7 @@ import { Loading } from "@cocalc/frontend/components";
 import { path_to_tab } from "@cocalc/util/misc";
 import { useProjectContext } from "../../context";
 import { ChatIndicatorTab } from "./chat-indicator";
-import { CloseEditor } from "./close-editor";
+// import { CloseEditor } from "./close-editor";
 import { ExtraButtons } from "./extra-buttons";
 import { TopBarSaveButton } from "./save-indicator";
 import { ShareIndicatorTab } from "./share-indicator";
@@ -157,7 +157,7 @@ export function TopTabBarActions(
             <ExtraButtons actionsData={actionsData} />
           </>
         ) : undefined}
-        <CloseEditor activeTab={activeTab} project_id={project_id} />
+        {/* Disabled for now. We keep the X on the file tabs for now, <CloseEditor activeTab={activeTab} project_id={project_id} /> */}
       </>
     );
   }

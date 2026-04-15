@@ -192,10 +192,16 @@ export type MiniTermEvent = {
   input: string;
 };
 
+export type OpenFileDescriptor = {
+  path: string;
+  ext?: string;
+  editorId?: string;
+};
+
 export type OpenFile = {
   event: "open";
   action: "open";
-  filename: string;
+  filename: string | OpenFileDescriptor;
   time?: number;
   type?: string;
   // if true, opening a file that was deleted
