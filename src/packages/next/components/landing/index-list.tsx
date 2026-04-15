@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2021-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -38,7 +38,7 @@ type ItemProcessed = Omit<Item, "description" | "link"> & {
 
 interface Props {
   title: ReactNode;
-  description: ReactNode;
+  description?: ReactNode;
   dataSource: Item[];
   updated?: string;
   filter?: (item) => boolean;
@@ -64,7 +64,7 @@ export default function IndexList({ title, description, dataSource }: Props) {
               : item.description,
           link:
             typeof item.link === "function"
-              ? item.link(customize) ?? ""
+              ? (item.link(customize) ?? "")
               : item.link,
         };
       });
@@ -93,7 +93,9 @@ export default function IndexList({ title, description, dataSource }: Props) {
         >
           {title}
         </Title>
-        <Paragraph style={{ fontSize: "13pt" }}>{description}</Paragraph>
+        {description ? (
+          <Paragraph style={{ fontSize: "13pt" }}>{description}</Paragraph>
+        ) : undefined}
         <DataList dataSource={filteredDataSource} />
       </Paragraph>
     </Layout.Content>

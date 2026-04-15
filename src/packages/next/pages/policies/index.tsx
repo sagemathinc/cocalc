@@ -17,11 +17,34 @@ import withCustomize from "lib/with-customize";
 const dataSourceCoCalcCom = [
   {
     link: "/policies/terms",
-    title: "Terms of service",
+    title: "Terms of Service",
     logo: "thumbs-up",
     description: (
       <>
         The <A href="/policies/terms">Terms of Service</A> govern use of CoCalc.
+      </>
+    ),
+  },
+  {
+    link: "/policies/privacy",
+    title: "Privacy Policy",
+    logo: "user-secret",
+    description: (
+      <>
+        The <A href="/policies/privacy">Privacy Policy</A> describes how
+        SageMath, Inc. collects, uses, and discloses personal data.
+      </>
+    ),
+  },
+  {
+    link: "/policies/dpa",
+    title: "Data Processing Addendum",
+    logo: "file",
+    description: (
+      <>
+        The <A href="/policies/dpa">Data Processing Addendum</A> sets out the
+        terms that apply when SageMath, Inc. processes personal data on a
+        user&apos;s behalf.
       </>
     ),
   },
@@ -31,68 +54,43 @@ const dataSourceCoCalcCom = [
     logo: "lock-outlined",
     description: (
       <>
-        The <A href="/policies/trust">{POLICIES.trust.label}</A> page highlights
-        our compliance with laws and frameworks, such as GDPR and SOC 2. We
-        adhere to rigorous standards to protect your data and maintain
-        transparency and accountability in all our operations.
-      </>
-    ),
-  },
-  {
-    link: "/policies/copyright",
-    title: "Copyright policies",
-    logo: "dot-circle",
-    description: (
-      <>
-        The <A href="/policies/copyright">Copyright Policy</A> explains how
-        SageMath, Inc. respects copyright policies, and provides a site that
-        does not infringe on others' copyright.
-      </>
-    ),
-  },
-  {
-    link: "/policies/privacy",
-    title: "Privacy",
-    logo: "user-secret",
-    description: (
-      <>
-        The <A href="/policies/privacy">Privacy Policy</A> describes how
-        SageMath, Inc. respects the privacy of its users.
-      </>
-    ),
-  },
-  {
-    link: "/policies/dpa",
-    title: "Data Processing Addendum (DPA)",
-    logo: "file",
-    description: (
-      <>
-        The <A href="/policies/dpa">Data Processing Addendum</A> sets out
-        contractual terms for the processing of personal data on behalf of our
-        customers.
+        Our <A href="/policies/trust">{POLICIES.trust.label}</A> page summarizes
+        CoCalc&apos;s security and compliance posture, including GDPR and SOC 2
+        information.
       </>
     ),
   },
   {
     link: "/policies/thirdparties",
-    title: "Third parties",
+    title: "Third Parties",
     logo: "users",
     description: (
       <>
-        Our <A href="/policies/thirdparties">List of third parties</A>{" "}
-        enumerates what is used to provide CoCalc.
+        The <A href="/policies/thirdparties">Third Parties</A> page lists key
+        service providers used to operate CoCalc.
+      </>
+    ),
+  },
+  {
+    link: "/policies/copyright",
+    title: "Copyright Policy",
+    logo: "dot-circle",
+    description: (
+      <>
+        The <A href="/policies/copyright">Copyright Policy</A> explains how
+        SageMath, Inc. handles copyright complaints and DMCA notices.
       </>
     ),
   },
   {
     link: "/policies/ferpa",
-    title: "FERPA compliance statement",
+    title: "FERPA Compliance Statement",
     logo: "graduation-cap",
     description: (
       <>
-        <A href="/policies/ferpa">CoCalc's FERPA Compliance statement</A>{" "}
-        explains how we address FERPA requirements at US educational
-        instituations.
+        The <A href="/policies/ferpa">FERPA Compliance Statement</A> explains
+        how CoCalc supports FERPA requirements for U.S. educational
+        institutions.
       </>
     ),
   },
@@ -102,11 +100,8 @@ const dataSourceCoCalcCom = [
     logo: "eye",
     description: (
       <>
-        CoCalc's{" "}
-        <A href="/policies/accessibility">
-          Voluntary Product Accessibility Template (VPAT)
-        </A>{" "}
-        describes how we address accessibility issues.
+        The <A href="/policies/accessibility">Accessibility page</A> provides
+        CoCalc&apos;s VPAT and general accessibility information.
       </>
     ),
   },
@@ -137,9 +132,6 @@ export default function Policies({ customize }) {
   const dataSource = customize.onCoCalcCom
     ? dataSourceCoCalcCom
     : dataSourceOnPrem();
-  const description = customize.onCoCalcCom
-    ? "SageMath, Inc.'s terms of service, copyright, privacy and other policies."
-    : "";
   return (
     <Customize value={customize}>
       <Head title="Policies" />
@@ -147,7 +139,6 @@ export default function Policies({ customize }) {
         <Header page="policies" />
         <IndexList
           title={`${customize.siteName} Policies`}
-          description={description}
           dataSource={dataSource}
         />
         <Footer />{" "}
