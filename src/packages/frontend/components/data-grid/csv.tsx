@@ -67,7 +67,7 @@ export default function CSV({
   errHint = null,
 }: Props) {
   const [error, setError] = useState<string>("");
-  const [hoveredColumn, setHoveredColumn] = useState<number | undefined>();
+  const [hoveredRow, setHoveredRow] = useState<number | undefined>();
   const [selectedCell, setSelectedCell] = useState<SelectedCell | undefined>();
   const data = useMemo(() => {
     setError("");
@@ -89,11 +89,7 @@ export default function CSV({
     if (selectedRow === row && selectedColumn === column) {
       return COLORS.BLUE_LLL;
     }
-    if (
-      selectedRow === row ||
-      selectedColumn === column ||
-      hoveredColumn === column
-    ) {
+    if (selectedRow === row || hoveredRow === row) {
       return COLORS.BLUE_LLLL;
     }
     return rowBackground({ index: row });
@@ -145,24 +141,14 @@ export default function CSV({
               key={`${field}-${column}`}
               title={trim(field)}
               width={200}
-              onMouseEnter={() => {
-                setHoveredColumn(column);
-              }}
-              onMouseLeave={() => {
-                setHoveredColumn((current) =>
-                  current === column ? undefined : current,
-                );
-              }}
-              style={{
-                background:
-                  selectedColumn === column || hoveredColumn === column
-                    ? COLORS.BLUE_LLLL
-                    : COLORS.GRAY_LLL,
-                boxShadow:
-                  selectedColumn === column
-                    ? `inset 0 -2px 0 ${COLORS.BLUE_D}`
-                    : undefined,
-              }}
+              style={
+                selectedColumn === column
+                  ? {
+                      background: COLORS.BLUE_LLLL,
+                      boxShadow: `inset 0 -2px 0 ${COLORS.BLUE_D}`,
+                    }
+                  : undefined
+              }
             />
           ))}
         </tr>
@@ -175,15 +161,19 @@ export default function CSV({
                 style={cellStyle(index, k)}
                 key={k}
                 onMouseEnter={() => {
-                  setHoveredColumn(k);
+                  setHoveredRow(index);
                 }}
                 onMouseLeave={() => {
-                  setHoveredColumn((current) =>
-                    current === k ? undefined : current,
+                  setHoveredRow((current) =>
+                    current === index ? undefined : current,
                   );
                 }}
                 onClick={() => {
-                  setSelectedCell({ row: index, column: k });
+                  setSelectedCell((current) =>
+                    current?.row === index && current?.column === k
+                      ? undefined
+                      : { row: index, column: k },
+                  );
                 }}
               >
                 {val}

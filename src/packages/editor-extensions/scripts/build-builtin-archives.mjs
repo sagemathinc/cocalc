@@ -182,7 +182,7 @@ function compileExtensionEntry(extensionPath) {
       target: ts.ScriptTarget.ES2020,
       module: ts.ModuleKind.ESNext,
       moduleResolution: ts.ModuleResolutionKind.NodeJs,
-      jsx: ts.JsxEmit.React,
+      jsx: ts.JsxEmit.ReactJSX,
       esModuleInterop: true,
       isolatedModules: true,
       allowSyntheticDefaultImports: true,

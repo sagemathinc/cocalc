@@ -63,6 +63,7 @@ export type ExtensionImportValue = ExtensionImportProvider;
 
 const BUILTIN_EXTENSION_IMPORTS: Record<string, ExtensionImportValue> = {
   react: React,
+  "react/jsx-runtime": () => import("react/jsx-runtime"),
   "@cocalc/conat": () => import("./host-conat"),
   "@cocalc/editor-extensions": () => import("@cocalc/editor-extensions"),
   "@cocalc/frontend/app-framework": () =>
