@@ -25,6 +25,7 @@ import { CellToolbar } from "@cocalc/frontend/jupyter/cell-toolbar";
 import { CellInput } from "@cocalc/frontend/jupyter/cell-input";
 
 import { LLMCellTool } from "@cocalc/frontend/jupyter/llm/cell-tool";
+import { CellChatButton, CellChatUnreadBadge } from "@cocalc/frontend/jupyter/cell-chat-button";
 import { CodeBarDropdownMenu } from "@cocalc/frontend/jupyter/cell-buttonbar-menu";
 import { MinimalCodePreview } from "./minimal-code-preview";
 import { CODE_BAR_BTN_STYLE, RUN_ALL_CELLS_ABOVE_ICON, RUN_ALL_CELLS_BELOW_ICON } from "@cocalc/frontend/jupyter/consts";
@@ -536,6 +537,13 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                   cellType="code"
                 />
               )}
+              {actions && project_id && !actions.is_closed() && (
+                <CellChatButton
+                  cellId={id}
+                  project_id={project_id}
+                  path={(actions as any).path}
+                />
+              )}
               <CodeBarDropdownMenu
                 actions={actions}
                 frameActions={frameActions}
@@ -727,6 +735,13 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                   cellType={isCode ? "code" : "markdown"}
                 />
               )}
+              {actions && project_id && !actions.is_closed() && (
+                <CellChatButton
+                  cellId={id}
+                  project_id={project_id}
+                  path={(actions as any).path}
+                />
+              )}
               <CodeBarDropdownMenu
                 actions={actions}
                 frameActions={frameActions}
@@ -734,6 +749,16 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                 cell={cell}
                 onOpenChange={setMenuOpen}
               />
+              {/* Unread badge — always visible even when toolbar is hidden */}
+              {!(rowHovered || menuOpen) && actions && project_id && !actions.is_closed() && (
+                <div style={{ visibility: "visible" }}>
+                  <CellChatUnreadBadge
+                    cellId={id}
+                    project_id={project_id}
+                    path={(actions as any).path}
+                  />
+                </div>
+              )}
             </div>
           )}
           {isCode && !isActiveEditing && !sourceHidden && (
