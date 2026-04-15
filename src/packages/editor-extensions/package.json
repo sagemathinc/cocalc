@@ -20,6 +20,10 @@
     "package.json"
   ],
   "license": "SEE LICENSE.md",
+  "devDependencies": {
+    "@types/react": "^19.1.10",
+    "react": "^19.1.1"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"

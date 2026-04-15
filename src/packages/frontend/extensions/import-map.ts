@@ -69,13 +69,15 @@ const BUILTIN_EXTENSION_IMPORTS: Record<string, ExtensionImportValue> = {
     import("@cocalc/frontend/app-framework"),
   "@cocalc/frontend/app-framework/syncdb": () =>
     import("@cocalc/frontend/app-framework/syncdb"),
+  "@cocalc/frontend/components/data-grid/csv": () =>
+    import("@cocalc/frontend/components/data-grid/csv"),
   "@cocalc/frontend/extensions/hooks": () => import("./hooks"),
-  "@cocalc/frontend/frame-editors/csv-editor/grid": () =>
-    import("@cocalc/frontend/frame-editors/csv-editor/grid"),
   "@cocalc/frontend/frame-editors/code-editor/actions": () =>
     import("@cocalc/frontend/frame-editors/code-editor/actions"),
   "@cocalc/frontend/frame-editors/code-editor/codemirror-editor": () =>
     import("@cocalc/frontend/frame-editors/code-editor/codemirror-editor"),
+  "@cocalc/frontend/frame-editors/frame-tree/frame-context": () =>
+    import("@cocalc/frontend/frame-editors/frame-tree/frame-context"),
   "@cocalc/util": () => import("./host-util"),
 };
 

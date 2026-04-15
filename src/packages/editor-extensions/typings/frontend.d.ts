@@ -9,3 +9,12 @@ declare module "@cocalc/frontend/frame-editors/code-editor/codemirror-editor" {
   export { CodemirrorEditor };
   export default CodemirrorEditor;
 }
+
+declare module "@cocalc/frontend/components/data-grid/csv" {
+  const CSV: any;
+  export default CSV;
+}
+
+declare module "@cocalc/frontend/frame-editors/frame-tree/frame-context" {
+  export function useFrameContext(...args: any[]): any;
+}

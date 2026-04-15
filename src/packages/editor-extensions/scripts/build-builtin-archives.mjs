@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(__dirname, "..");
@@ -148,15 +149,70 @@ function archiveFilename(manifest) {
   return `${manifest.id.replace(/[\\/]/g, "-")}@${manifest.version}.zip`;
 }
 
+const EXTENSION_ENTRY_CANDIDATES = [
+  "extension.tsx",
+  "extension.ts",
+  "extension.mtsx",
+  "extension.mts",
+  "extension.jsx",
+  "extension.js",
+  "extension.mjs",
+];
+
+function resolveExtensionEntry(sourceDir) {
+  for (const candidate of EXTENSION_ENTRY_CANDIDATES) {
+    const filename = path.join(sourceDir, candidate);
+    if (existsSync(filename)) {
+      return filename;
+    }
+  }
+  throw new Error(
+    `Builtin extension in "${sourceDir}" must define one of ${EXTENSION_ENTRY_CANDIDATES.join(", ")}`,
+  );
+}
+
+function compileExtensionEntry(extensionPath) {
+  const source = readFileSync(extensionPath, "utf8");
+  const ext = path.extname(extensionPath).toLowerCase();
+  if (ext === ".mjs" || ext === ".js") {
+    return source;
+  }
+  const { outputText, diagnostics } = ts.transpileModule(source, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2020,
+      module: ts.ModuleKind.ESNext,
+      moduleResolution: ts.ModuleResolutionKind.NodeJs,
+      jsx: ts.JsxEmit.React,
+      esModuleInterop: true,
+      isolatedModules: true,
+      allowSyntheticDefaultImports: true,
+      resolveJsonModule: true,
+    },
+    fileName: extensionPath,
+    reportDiagnostics: true,
+  });
+  if ((diagnostics?.length ?? 0) > 0) {
+    const message = ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+      getCurrentDirectory: () => process.cwd(),
+      getCanonicalFileName: (name) => name,
+      getNewLine: () => "\n",
+    });
+    throw new Error(
+      `Failed to compile builtin extension entry "${extensionPath}":\n${message}`,
+    );
+  }
+  return outputText;
+}
+
 function buildBuiltin(builtinName) {
   const sourceDir = path.join(builtinRoot, builtinName);
   const manifestPath = path.join(sourceDir, "manifest.json");
-  const extensionPath = path.join(sourceDir, "extension.mjs");
-  if (!existsSync(manifestPath) || !existsSync(extensionPath)) {
+  if (!existsSync(manifestPath)) {
     throw new Error(
-      `Builtin extension "${builtinName}" must define manifest.json and extension.mjs`,
+      `Builtin extension "${builtinName}" must define manifest.json`,
     );
   }
+  const extensionPath = resolveExtensionEntry(sourceDir);
 
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   const outputDir = path.join(outputRoot, builtinName);
@@ -177,7 +233,7 @@ function buildBuiltin(builtinName) {
       2,
     ) + "\n",
   );
-  writeFileSync(extensionOut, readFileSync(extensionPath, "utf8"));
+  writeFileSync(extensionOut, compileExtensionEntry(extensionPath));
 
   const archiveFiles = [
     {
