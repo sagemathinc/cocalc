@@ -3,12 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Tooltip } from "antd";
+import { Button, Dropdown, Tooltip } from "antd";
 import type { Map } from "immutable";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 
 import { redux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, isIconName } from "@cocalc/frontend/components";
+import { jupyter } from "@cocalc/frontend/i18n";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { openAssistantWithPrefill } from "@cocalc/frontend/frame-editors/llm/assistant-seed";
 import { clear_selection } from "@cocalc/frontend/misc/clear-selection";
@@ -23,9 +25,10 @@ import { CellToolbar } from "@cocalc/frontend/jupyter/cell-toolbar";
 import { CellInput } from "@cocalc/frontend/jupyter/cell-input";
 
 import { LLMCellTool } from "@cocalc/frontend/jupyter/llm/cell-tool";
+import { CellChatButton, CellChatUnreadBadge } from "@cocalc/frontend/jupyter/cell-chat-button";
 import { CodeBarDropdownMenu } from "@cocalc/frontend/jupyter/cell-buttonbar-menu";
 import { MinimalCodePreview } from "./minimal-code-preview";
-import { CODE_BAR_BTN_STYLE } from "@cocalc/frontend/jupyter/consts";
+import { CODE_BAR_BTN_STYLE, RUN_ALL_CELLS_ABOVE_ICON, RUN_ALL_CELLS_BELOW_ICON } from "@cocalc/frontend/jupyter/consts";
 import { MinimalGutter, type CellRunState, formatDuration, formatTimeAgo } from "./minimal-gutter";
 import {
   CELL_ROW_STYLE,
@@ -100,7 +103,6 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
       cell_toolbar,
       positionInBlock,
       blockSize,
-      headingLevel,
       blockCellIds,
       isFirst,
       isLast,
@@ -113,11 +115,14 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
       frameHeight,
     } = props;
 
+    const intl = useIntl();
     const frameActions = useNotebookFrameActions();
     const fileContext = useFileContext();
     const [mdHovered, setMdHovered] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const [rowHovered, setRowHovered] = useState(false);
+    const outputRef = useRef<HTMLDivElement>(null);
+    const [outputHeight, setOutputHeight] = useState<number>(0);
 
     // FileContext that suppresses CellButtonBar and other extras in minimal mode
     const minimalFileContext = { ...fileContext, disableExtraButtons: true };
@@ -126,6 +131,9 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
     const isCode = cellType === "code";
     const isMarkdown = cellType === "markdown";
     const input = cell.get("input") || "";
+    const sourceHidden = !!cell.getIn(["metadata", "jupyter", "source_hidden"]);
+    const isNotEditable = !cell.getIn(["metadata", "editable"], true);
+    const isNotDeletable = !cell.getIn(["metadata", "deletable"], true);
 
     // Track whether cell input changed since last execution
     const lastExecHashRef = useRef<{ execCount: number | undefined; hash: number } | null>(null);
@@ -165,6 +173,99 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
     }, [actions]);
 
     const isBusy = cellRunState === "running" || cellRunState === "queued";
+
+    const handleRunSectionAbove = useCallback(() => {
+      if (!actions || !blockCellIds) return;
+      const idx = blockCellIds.indexOf(id);
+      if (idx <= 0) return;
+      const cells_map = actions.store.get("cells");
+      for (let i = 0; i < idx; i++) {
+        const c = cells_map?.get(blockCellIds[i]);
+        if (c && (c.get("cell_type") || "code") === "code") {
+          frameActions.current?.run_cell(blockCellIds[i]);
+        }
+      }
+    }, [actions, blockCellIds, id]);
+
+    const handleRunSectionBelow = useCallback(() => {
+      if (!actions || !blockCellIds) return;
+      const idx = blockCellIds.indexOf(id);
+      if (idx === -1) return;
+      const cells_map = actions.store.get("cells");
+      for (let i = idx; i < blockCellIds.length; i++) {
+        const c = cells_map?.get(blockCellIds[i]);
+        if (c && (c.get("cell_type") || "code") === "code") {
+          frameActions.current?.run_cell(blockCellIds[i]);
+        }
+      }
+    }, [actions, blockCellIds, id]);
+
+    function renderRunDropdownButton(extraStyle?: React.CSSProperties) {
+      const icon = isBusy ? "stop" : "step-forward";
+      const label = isBusy ? "Stop" : "Run";
+      const tooltip = isBusy ? "Interrupt execution" : runTooltip;
+      const onClick = isBusy ? handleStop : handleRun;
+      const btnStyle = isBusy
+        ? { ...CODE_BAR_BTN_STYLE, color: COLORS.ANTD_RED, ...extraStyle }
+        : { ...CODE_BAR_BTN_STYLE, ...extraStyle };
+
+      const sectionIdx = blockCellIds?.indexOf(id) ?? -1;
+      const hasSection = blockCellIds != null && blockCellIds.length > 1;
+
+      const items: any[] = [];
+      if (hasSection) {
+        items.push(
+          {
+            key: "section-above",
+            icon: <Icon name={RUN_ALL_CELLS_ABOVE_ICON} />,
+            label: "Run above in section",
+            disabled: sectionIdx <= 0,
+            onClick: handleRunSectionAbove,
+          },
+          {
+            key: "section-below",
+            icon: <Icon name={RUN_ALL_CELLS_BELOW_ICON} rotate={"90"} />,
+            label: "Run cell and below in section",
+            onClick: handleRunSectionBelow,
+          },
+          { type: "divider" },
+        );
+      }
+      items.push(
+        {
+          key: "all-above",
+          icon: <Icon name={RUN_ALL_CELLS_ABOVE_ICON} />,
+          label: intl.formatMessage(jupyter.commands.run_all_cells_above_menu),
+          onClick: () => actions?.run_all_above_cell(id),
+        },
+        {
+          key: "all-below",
+          icon: <Icon name={RUN_ALL_CELLS_BELOW_ICON} rotate={"90"} />,
+          label: intl.formatMessage(jupyter.commands.run_all_cells_below_menu),
+          onClick: () => actions?.run_all_below_cell(id),
+        },
+      );
+
+      return (
+        <div>
+          <Dropdown.Button
+            size="small"
+            type="text"
+            trigger={["click"]}
+            mouseLeaveDelay={1.5}
+            icon={<Icon name="angle-down" />}
+            onClick={onClick}
+            menu={{ items }}
+          >
+            <Tooltip placement="top" title={tooltip}>
+              <span style={btnStyle}>
+                {isIconName(icon) && <Icon name={icon} />} {label}
+              </span>
+            </Tooltip>
+          </Dropdown.Button>
+        </div>
+      );
+    }
 
     const handleActivateCode = useCallback(() => {
       if (read_only) return;
@@ -232,6 +333,24 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
       }
       return "Run this cell";
     }, [cellStart, cellEnd]);
+
+    // Measure output *content* height (not the flex-stretched container)
+    const outputContentRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      const el = outputContentRef.current;
+      if (!el) return;
+      const ro = new ResizeObserver(([entry]) => {
+        setOutputHeight(entry.contentRect.height);
+      });
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
+
+    const viewportHalf = frameHeight ? Math.round(frameHeight * 0.5) : 400;
+    // View mode: match output height (the code fades out if taller)
+    const codePreviewMaxHeight = outputHeight || undefined;
+    // Edit mode: max of output height and 50% viewport
+    const codeEditMaxHeight = Math.max(outputHeight, viewportHalf);
 
     // Show section divider for the first cell in every block
     const isBlockStart = positionInBlock === 0;
@@ -347,6 +466,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
 
           cellRunState={cellRunState}
           onRun={isCode ? handleRun : undefined}
+          onStop={isCode ? handleStop : undefined}
           onInsertCell={
             actions
               ? () => actions.insert_cell_adjacent(id, 1)
@@ -361,6 +481,8 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           start={cell.get("start")}
           end={cell.get("end")}
           isDirty={isDirty}
+          isNotEditable={isNotEditable}
+          isNotDeletable={isNotDeletable}
         />
 
         {/* Content area — toolbar + output/code columns */}
@@ -377,6 +499,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           <div style={{ display: "flex", flexDirection: "row", alignItems: "stretch", flex: 1 }}>
         {/* Output column */}
         <div
+          ref={outputRef}
           style={{
             flex: `${outputFlex} 1 0`,
             minWidth: 0,
@@ -386,6 +509,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
             position: "relative",
           }}
         >
+          <div ref={outputContentRef}>
           {/* Zen mode: floating toolbar inside output area */}
           {zenMode && (
             <div
@@ -404,25 +528,20 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {isCode && !read_only && (
-                <Tooltip title={isBusy ? "Interrupt execution" : runTooltip} placement="left">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<Icon name={isBusy ? "stop" : "play"} />}
-                    onClick={isBusy ? handleStop : handleRun}
-                    style={isBusy ? { ...CODE_BAR_BTN_STYLE, color: COLORS.ANTD_RED } : CODE_BAR_BTN_STYLE}
-                  >
-                    {isBusy ? "Stop" : "Run"}
-                  </Button>
-                </Tooltip>
-              )}
+              {isCode && !read_only && renderRunDropdownButton()}
               {isCode && !read_only && llmTools && actions && (
                 <LLMCellTool
                   id={id}
                   actions={actions}
                   llmTools={llmTools}
                   cellType="code"
+                />
+              )}
+              {actions && project_id && !actions.is_closed() && (
+                <CellChatButton
+                  cellId={id}
+                  project_id={project_id}
+                  path={(actions as any).path}
                 />
               )}
               <CodeBarDropdownMenu
@@ -452,10 +571,24 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           )}
           {isCode && cell.get("output") == null && !input.trim() && !read_only && !zenMode && (
             <div style={{ color: COLORS.GRAY_L, padding: "8px 4px", fontSize: "13px" }}>
+              {"Write "}
               <a onClick={handleActivateCode} style={{ color: COLORS.GRAY_L }}>
-                Write code
+                code
               </a>
-              {" or "}
+              {", "}
+              <a
+                style={{ color: COLORS.GRAY_L }}
+                onClick={() => {
+                  frameActions.current?.set_selected_cell_type("markdown");
+                  // Small delay so cell type change propagates before opening editor
+                  setTimeout(() => {
+                    frameActions.current?.switch_md_cell_to_edit(id);
+                  }, 0);
+                }}
+              >
+                text
+              </a>
+              {", or "}
               <a
                 style={{ color: COLORS.GRAY_L }}
                 onClick={() => {
@@ -562,6 +695,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               </Tooltip>
             </div>
           )}
+          </div>{/* end outputContentRef */}
         </div>
 
         {/* Code column — hidden entirely in zen + wide mode */}
@@ -569,12 +703,11 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           style={{
             flex: `${codeFlex} 1 0`,
             minWidth: 0,
-            overflow: "hidden",
+            overflow: "visible",
             transition: COLUMN_TRANSITION,
             position: "relative",
-            borderLeft: zenMode || (positionInBlock === 0 && headingLevel > 0)
-              ? "none"
-              : "1px solid #eee",
+            zIndex: 1,
+            borderLeft: zenMode ? "none" : "1px solid #eee",
           }}
         >{showCode && (<>
           {/* Cell action toolbar — hover only, above code */}
@@ -588,30 +721,25 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                 gap: "2px",
                 alignItems: "center",
                 visibility: rowHovered || menuOpen ? "visible" : "hidden",
+                position: "relative",
+                zIndex: 2,
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {!read_only && (
-                <Tooltip title={isBusy ? "Interrupt execution" : runTooltip} placement="left">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<Icon name={isBusy ? "stop" : "play"} />}
-                    onClick={isBusy ? handleStop : handleRun}
-                    style={isBusy
-                      ? { ...CODE_BAR_BTN_STYLE, marginRight: "auto", color: COLORS.ANTD_RED }
-                      : { ...CODE_BAR_BTN_STYLE, marginRight: "auto" }}
-                  >
-                    {isBusy ? "Stop" : "Run"}
-                  </Button>
-                </Tooltip>
-              )}
+              {!read_only && renderRunDropdownButton({ marginRight: "auto" })}
               {!read_only && llmTools && actions && (
                 <LLMCellTool
                   id={id}
                   actions={actions}
                   llmTools={llmTools}
                   cellType={isCode ? "code" : "markdown"}
+                />
+              )}
+              {actions && project_id && !actions.is_closed() && (
+                <CellChatButton
+                  cellId={id}
+                  project_id={project_id}
+                  path={(actions as any).path}
                 />
               )}
               <CodeBarDropdownMenu
@@ -621,20 +749,52 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                 cell={cell}
                 onOpenChange={setMenuOpen}
               />
+              {/* Unread badge — always visible even when toolbar is hidden */}
+              {!(rowHovered || menuOpen) && actions && project_id && !actions.is_closed() && (
+                <div style={{ visibility: "visible" }}>
+                  <CellChatUnreadBadge
+                    cellId={id}
+                    project_id={project_id}
+                    path={(actions as any).path}
+                  />
+                </div>
+              )}
             </div>
           )}
-          {isCode && !isActiveEditing && (
+          {isCode && !isActiveEditing && !sourceHidden && (
             <MinimalCodePreview
               value={input}
               cmOptions={cmOpts}
               fontSize={font_size}
               onActivate={handleActivateCode}
               highlighted={rowHovered}
+              maxHeight={codePreviewMaxHeight}
             />
+          )}
+          {isCode && !isActiveEditing && sourceHidden && (
+            <div
+              style={{
+                color: COLORS.GRAY_L,
+                fontSize: "14px",
+                padding: "4px 8px",
+                cursor: "pointer",
+              }}
+              title="Input is hidden — click to show"
+              onClick={() => {
+                actions?.toggle_jupyter_metadata_boolean(id, "source_hidden");
+              }}
+            >
+              <Icon name="ellipsis" />
+            </div>
           )}
           {isCode && isActiveEditing && (
             <div
-              style={{ position: "relative" }}
+              style={{
+                position: "relative",
+                maxHeight: `${codeEditMaxHeight}px`,
+                overflowY: "auto",
+                overflowX: "hidden",
+              }}
               onBlur={(e) => {
                 // Close editor when focus leaves the entire editing area
                 // (but not when clicking buttons inside it)
@@ -696,7 +856,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               </div>
             </div>
           )}
-          {/* Markdown cell toolbar in code column — 3-dot menu for cell actions */}
+          {/* Markdown cell toolbar in code column — chat + 3-dot menu */}
           {isMarkdown && (
             <div
               style={{
@@ -704,11 +864,19 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                 justifyContent: "flex-end",
                 padding: "0 4px",
                 minHeight: "22px",
+                gap: "2px",
                 alignItems: "center",
                 visibility: rowHovered || menuOpen ? "visible" : "hidden",
               }}
               onClick={(e) => e.stopPropagation()}
             >
+              {actions && project_id && !actions.is_closed() && (
+                <CellChatButton
+                  cellId={id}
+                  project_id={project_id}
+                  path={(actions as any).path}
+                />
+              )}
               <CodeBarDropdownMenu
                 actions={actions}
                 frameActions={frameActions}
@@ -716,6 +884,16 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                 cell={cell}
                 onOpenChange={setMenuOpen}
               />
+              {/* Unread badge — always visible even when toolbar is hidden */}
+              {!(rowHovered || menuOpen) && actions && project_id && !actions.is_closed() && (
+                <div style={{ visibility: "visible" }}>
+                  <CellChatUnreadBadge
+                    cellId={id}
+                    project_id={project_id}
+                    path={(actions as any).path}
+                  />
+                </div>
+              )}
             </div>
           )}
         </>)}

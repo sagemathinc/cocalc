@@ -103,10 +103,11 @@ const jupyter_minimal: EditorDescription = {
   commands: jupyterCommands,
   buttons: set([
     "jupyter-run current cell and select next",
-    "jupyter-restart",
     "jupyter-interrupt kernel",
-    "halt_jupyter",
-    "guide",
+    "jupyter-restart",
+    "jupyter-confirm shutdown kernel",
+    "increase_font_size",
+    "decrease_font_size",
     "show_search",
   ]),
 } as const;

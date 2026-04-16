@@ -469,6 +469,7 @@ export function compactAssistantMessageForHistory(text: string): string {
   const toolCalls = parseToolBlocks(text);
   const prose = text
     .replace(/^```tool\n[\s\S]*?\n```\s*$/gm, "")
+    .replace(/^```tool\n[\s\S]*/m, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   const toolSummary =

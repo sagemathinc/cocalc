@@ -920,6 +920,12 @@ Admin settings include:
   - Map file extensions to editors
   - Shows verification status (signed by which supplier, or "dev mode" for localhost)
 - [ ] Add account settings UI: per-user editor preference overrides (when multiple editors claim an extension)
+- [ ] Add "Open with..." context menu for files (OS-style one-off editor override)
+  - File explorer right-click menu and flyout file list: add "Open with..." submenu
+  - Submenu lists all registered editors for the file's type (queried from the registry)
+  - Only shown when 2+ editors are registered for that file type (skip if only one)
+  - Selecting an editor opens the file with that `editorId` (one-off, does not change the default)
+  - Option to "Always use this editor" saves the choice as the new default (per-user or per-project)
 - [ ] End-to-end test: package CSV editor as a signed archive, load via project settings, open a .csv file
 - [ ] End-to-end dev test: run dev server, configure localhost URL, edit code, see auto-reload
 
