@@ -95,3 +95,49 @@
 .cc-toolbar-dragging,
 .cc-toolbar-dragging *
   cursor: grabbing !important
+
+// Nested frame tabs (e.g. multi-file editors inside a frame)
+// should read like flat dividers, not bright rounded pills.
+.cc-frame-tree-tabs.ant-tabs-card
+  > .ant-tabs-nav
+    margin: 0 !important
+    padding: 0 8px
+    background: var(--cocalc-bg-elevated, colors.$COL_GRAY_LLLL)
+    border-bottom: 1px solid var(--cocalc-border-light, colors.$COL_GRAY_LL)
+
+    &::before
+      border-bottom: none !important
+
+    .ant-tabs-tab
+      margin: 0 !important
+      padding: 6px 10px !important
+      border-radius: 0 !important
+      border: 1px solid var(--cocalc-border-light, colors.$COL_GRAY_LL) !important
+      border-bottom-color: var(--cocalc-border-light, colors.$COL_GRAY_LL) !important
+      background-color: var(--cocalc-editor-titlebar-bg, colors.$COL_GRAY_LL) !important
+      box-shadow: none !important
+
+      .ant-tabs-tab-btn
+        color: var(--cocalc-top-bar-text, colors.$COL_TOP_BAR_TEXT)
+
+    .ant-tabs-tab-active
+      background-color: color-mix(in srgb, var(--cocalc-primary, colors.$COL_BS_BLUE_TEXT) 18%, var(--cocalc-editor-titlebar-bg, colors.$COL_GRAY_LL)) !important
+      border-color: var(--cocalc-border-light, colors.$COL_GRAY_LL) !important
+      border-bottom-color: var(--cocalc-border-light, colors.$COL_GRAY_LL) !important
+
+      .ant-tabs-tab-btn
+        color: var(--cocalc-text-primary-strong, colors.$COL_GRAY_DD) !important
+
+.cc-frame-tree-path
+  border-bottom: 1px solid var(--cocalc-border-light, colors.$COL_GRAY_L)
+  border-right: 1px solid var(--cocalc-border-light, colors.$COL_GRAY_L)
+  padding: 0 5px
+  border-top-left-radius: 0
+  border-top-right-radius: 0
+  color: var(--cocalc-link, colors.$COL_BS_BLUE_TEXT)
+  width: 100%
+  font-size: 10pt
+
+.cc-frame-tree-path-current
+  background: color-mix(in srgb, var(--cocalc-primary, colors.$COL_BS_BLUE_TEXT) 18%, var(--cocalc-editor-titlebar-bg-active, colors.$COL_GRAY_DD))
+  color: var(--cocalc-text-primary-strong, colors.$COL_GRAY_DD)

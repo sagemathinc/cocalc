@@ -8,6 +8,7 @@ This module will handle setting the codemirror options for various kernels.
 */
 
 import { IS_TOUCH } from "@cocalc/frontend/feature";
+import { resolveEditorColorScheme } from "@cocalc/frontend/frame-editors/codemirror/resolve-editor-scheme";
 
 // TODO: should merge functionality with this
 import { valid_indent } from "@cocalc/frontend/frame-editors/codemirror/util";
@@ -91,7 +92,7 @@ export function cm_options(
   }
 
   if (editor_settings.theme != null && editor_settings.theme !== "standard") {
-    options.theme = editor_settings.theme;
+    options.theme = resolveEditorColorScheme(editor_settings.theme);
   }
 
   if (options.mode.name === "ipython") {

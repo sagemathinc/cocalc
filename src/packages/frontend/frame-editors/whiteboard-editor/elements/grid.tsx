@@ -2,9 +2,10 @@
 The background grid.
 */
 
-
-const BIG_COLOR = "var(--cocalc-border-light, #f0f0f0)";
-const SMALL_COLOR = "#f9f9f9";
+const BIG_COLOR =
+  "color-mix(in srgb, var(--cocalc-bg-hover, #f5f5f5) 85%, var(--cocalc-bg-base, #ffffff) 15%)";
+const SMALL_COLOR =
+  "color-mix(in srgb, var(--cocalc-bg-hover, #f5f5f5) 45%, var(--cocalc-bg-base, #ffffff) 55%)";
 
 // Grid spacing in data coordinates — shared with snap.ts for grid snapping
 export const GRID_MAJOR = 100;
@@ -23,10 +24,14 @@ export default function Grid({ transforms, divRef }: Props) {
   // stable positions that match snap targets regardless of canvas extent.
   // The grid div starts at window position (0,0) which is data (xMin, yMin).
   // We offset the CSS background so lines land at data-space multiples.
-  const majX = ((-transforms.xMin % GRID_MAJOR) + GRID_MAJOR) % GRID_MAJOR - 1.5;
-  const majY = ((-transforms.yMin % GRID_MAJOR) + GRID_MAJOR) % GRID_MAJOR - 1.5;
-  const minX = ((-transforms.xMin % GRID_MINOR) + GRID_MINOR) % GRID_MINOR - 1;
-  const minY = ((-transforms.yMin % GRID_MINOR) + GRID_MINOR) % GRID_MINOR - 1;
+  const majX =
+    (((-transforms.xMin % GRID_MAJOR) + GRID_MAJOR) % GRID_MAJOR) - 1.5;
+  const majY =
+    (((-transforms.yMin % GRID_MAJOR) + GRID_MAJOR) % GRID_MAJOR) - 1.5;
+  const minX =
+    (((-transforms.xMin % GRID_MINOR) + GRID_MINOR) % GRID_MINOR) - 1;
+  const minY =
+    (((-transforms.yMin % GRID_MINOR) + GRID_MINOR) % GRID_MINOR) - 1;
 
   return (
     <div

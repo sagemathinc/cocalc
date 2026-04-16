@@ -1,9 +1,9 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { CSS, React, redux } from "../../app-framework";
+import { React } from "../../app-framework";
 import { filename_extension } from "@cocalc/util/misc";
 import { file_associations } from "../../file-associations";
 import { Icon } from "../../components";
@@ -14,39 +14,20 @@ interface Props {
   path: string;
 }
 
-const STYLE = {
-  borderBottom: "1px solid var(--cocalc-border-light, lightgray)",
-  borderRight: "1px solid var(--cocalc-border-light, lightgray)",
-  padding: "0 5px",
-  borderTopLeftRadius: "5px",
-  borderTopRightRadius: "5px",
-  color: "var(--cocalc-link, #337ab7)",
-  cursor: "pointer",
-  width: "100%",
-  fontSize: "10pt",
-} as CSS;
-
-const CURRENT_STYLE = {
-  ...STYLE,
-  ...{ background: "var(--cocalc-link, #337ab7)", color: "white" },
-} as CSS;
-
 export const Path: React.FC<Props> = React.memo(
-  ({ is_current, path, project_id }) => {
+  ({ is_current, path, project_id: _project_id }) => {
     const ext = filename_extension(path);
     const x = file_associations[ext];
     return (
       <div
-        style={is_current ? CURRENT_STYLE : STYLE}
-        onClick={(evt) => {
-          // shift+clicking opens the given path as its own tab...
-          if (!evt.shiftKey) return;
-          const project_actions = redux.getProjectActions(project_id);
-          project_actions.open_file({ path, foreground: true });
-        }}
+        className={
+          is_current
+            ? "cc-frame-tree-path cc-frame-tree-path-current"
+            : "cc-frame-tree-path"
+        }
       >
         {x?.icon && <Icon name={x.icon} />} {path}
       </div>
     );
-  }
+  },
 );

@@ -664,8 +664,14 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       <DropdownMenu
         key={"switch-to-file"}
         style={{
-          margin: "0 -5px",
+          margin: "0 -2px",
           height: button_height(),
+          padding: "0 12px",
+          borderRadius: 0,
+          border: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
+          background:
+            "color-mix(in srgb, var(--cocalc-primary, #3a63a3) 14%, var(--cocalc-editor-titlebar-bg-active, #3a3d4a))",
+          color: `var(--cocalc-text-primary-strong, ${COLORS.GRAY_DD})`,
         }}
         title={<>File: {path_split(props.path).tail}</>}
         items={items}

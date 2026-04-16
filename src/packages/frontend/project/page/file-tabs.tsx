@@ -299,6 +299,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
         >
           <Tabs
             animated={false}
+            className="cc-project-file-tabs"
             renderTabBar={renderTabBar}
             tabBarStyle={{
               minHeight: "36px",

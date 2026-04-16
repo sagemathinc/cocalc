@@ -141,13 +141,6 @@ function App({ children }) {
 function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
   const rootStyle = document.documentElement.style;
   const bodyStyle = document.body.style;
-  const topBarActive =
-    a11y && !t.isDark
-      ? t.bgElevated
-      : a11y
-        ? mixColors(t.topBarBg, t.bgSelected, 0.7)
-        : mixColors(t.topBarBg, t.bgElevated, t.isDark ? 0.55 : 0.85);
-
   // Editor title bar backgrounds — three tiers of brightness:
   //   topBarBg (darkest) < editorTitlebarBg (inactive) < editorTitlebarActive (active)
   // In dark mode the dark surfaces are very close together, so we lighten
@@ -158,6 +151,14 @@ function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
   const editorTitlebarActive = t.isDark
     ? lighten(t.topBarBg, 0.16)
     : mixColors(t.topBarBg, "#ffffff", 0.7);
+  const topBarActive =
+    a11y && !t.isDark
+      ? t.bgElevated
+      : a11y
+        ? mixColors(t.topBarBg, t.bgSelected, 0.7)
+        : t.isDark
+          ? editorTitlebarActive
+          : mixColors(t.topBarBg, t.bgElevated, 0.85);
   const errorLight = mixColors(t.bgBase, t.colorError, t.isDark ? 0.2 : 0.08);
 
   const setRgb = (name: string, hex: string) => {

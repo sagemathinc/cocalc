@@ -120,7 +120,10 @@ export default function Code({
     const inner = divRef.current;
     if (inner == null) return;
     const { border, padding } = getOuterChrome();
-    return Math.max(MIN_HEIGHT, Math.ceil(inner.scrollHeight + padding + border));
+    return Math.max(
+      MIN_HEIGHT,
+      Math.ceil(inner.scrollHeight + padding + border),
+    );
   }
 
   // Single unified height-sync effect for both focused and unfocused modes.
@@ -192,7 +195,14 @@ export default function Code({
       cancelAnimationFrame(raf);
       if (timeout != null) clearTimeout(timeout);
     };
-  }, [focused, element.id, canvasScale, editFocus, readOnly, element.data?.runState]);
+  }, [
+    focused,
+    element.id,
+    canvasScale,
+    editFocus,
+    readOnly,
+    element.data?.runState,
+  ]);
 
   return (
     <div
@@ -208,9 +218,15 @@ export default function Code({
         {!hideInput && <InputPrompt element={element} />}
         {renderInput()}
         {!hideOutput && element.data?.output && (
-          <Output element={element} onClick={() => setEditFocus(true)} />
+          <Output
+            element={element}
+            hasInput={!hideInput}
+            onClick={() => setEditFocus(true)}
+          />
         )}
-        {focused && !readOnly && <ControlBar element={element} canvasScale={canvasScale} />}
+        {focused && !readOnly && (
+          <ControlBar element={element} canvasScale={canvasScale} />
+        )}
       </div>
     </div>
   );

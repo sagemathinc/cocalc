@@ -31,7 +31,7 @@ export default function CodeControlBar({ element, canvasScale = 1 }: Props) {
         padding: "2px 6px",
         border: "1px solid var(--cocalc-border, #ccc)",
         borderRadius: "3px",
-        background: "var(--cocalc-bg-base, white)",
+        background: "var(--cocalc-bg-hover, white)",
         boxShadow: "1px 3px 5px rgb(33 33 33 / 50%)",
         position: "absolute",
         bottom: `calc(100% + ${10 / canvasScale}px)`,
@@ -94,7 +94,12 @@ export default function CodeControlBar({ element, canvasScale = 1 }: Props) {
       {!element.locked && (
         <Tooltip title="Toggle display of input">
           <span
-            style={{ display: "inline-flex", alignItems: "center", gap: 3, marginLeft: 4 }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 3,
+              marginLeft: 4,
+            }}
           >
             <Switch
               size="small"
@@ -123,7 +128,12 @@ export default function CodeControlBar({ element, canvasScale = 1 }: Props) {
       {!element.locked && (
         <Tooltip title="Toggle display of output">
           <span
-            style={{ display: "inline-flex", alignItems: "center", gap: 3, marginLeft: 2 }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 3,
+              marginLeft: 2,
+            }}
           >
             <Switch
               size="small"

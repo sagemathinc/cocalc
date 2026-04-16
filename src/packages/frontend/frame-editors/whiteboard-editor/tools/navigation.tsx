@@ -186,10 +186,22 @@ export default function Navigation({
   v.push(
     <Slider
       key="slider"
-      style={{ flex: 1 }}
+      style={{ flex: 1, margin: "0 8px" }}
       value={zoomSlider}
       min={Math.floor(MIN_ZOOM * 100)}
       max={Math.ceil(MAX_ZOOM * 100)}
+      railStyle={{
+        backgroundColor: "var(--cocalc-border-light, #666)",
+      }}
+      trackStyle={{
+        backgroundColor: "var(--cocalc-primary-light, #80afff)",
+      }}
+      handleStyle={{
+        borderColor: "var(--cocalc-primary, #4474c0)",
+        backgroundColor: "var(--cocalc-bg-base, #fff)",
+        boxShadow:
+          "0 0 0 2px color-mix(in srgb, var(--cocalc-primary, #4474c0) 20%, transparent)",
+      }}
       onChange={(value) => {
         setZoomSlider(value);
         setFontSize(value);
@@ -224,7 +236,15 @@ export default function Navigation({
             maxScale={2}
           />
         )}
-        <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>{v}</div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            borderTop: "1px solid var(--cocalc-border-light, #ddd)",
+          }}
+        >
+          {v}
+        </div>
       </div>
       {resize.x || resize.y ? (
         <div
@@ -256,7 +276,9 @@ function Tool({ tool, zoomSlider, navMap }) {
         style={{
           width,
           fontSize: "16px",
-          color: tool == "map" && navMap != "hide" ? "blue" : undefined,
+          ...(tool == "map" && navMap != "hide"
+            ? { background: "var(--cocalc-bg-hover, #eee)" }
+            : undefined),
         }}
       >
         {typeof icon == "string" ? (

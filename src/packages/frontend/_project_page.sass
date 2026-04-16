@@ -28,6 +28,20 @@ dl.cc-project-settings-features
       font-size: 125%
       margin-right: 10px
 
+.cc-project-file-tabs
+  > .ant-tabs-nav
+    .ant-tabs-tab
+      background: var(--cocalc-top-bar-bg, #ddd)
+      border-color: var(--cocalc-border-light, #c0c0c0)
+      color: var(--cocalc-top-bar-text, #ccc)
+
+      &.ant-tabs-tab-active
+        background: var(--cocalc-editor-titlebar-bg-active, #3a3d4a)
+        border-color: var(--cocalc-border-light, #c0c0c0)
+
+        .ant-tabs-tab-btn
+          color: var(--cocalc-top-bar-text-active, #fff)
+
 // Top-right actions area next to file tabs (save, chat, share, close)
 $toprightborder: 1px solid var(--cocalc-border-light, #c0c0c0)
 

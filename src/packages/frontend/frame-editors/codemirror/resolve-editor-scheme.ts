@@ -4,7 +4,7 @@
  */
 
 /**
- * Resolve the "cocalc" editor color scheme to the concrete light or dark
+ * Resolve CoCalc's virtual editor color schemes to the concrete light or dark
  * variant, based on the current dark mode state from the account store.
  */
 
@@ -42,7 +42,7 @@ function isCurrentlyDark(): boolean {
 }
 
 export function resolveEditorColorScheme(scheme: string): string {
-  if (scheme === "cocalc") {
+  if (scheme === "cocalc" || scheme === "cocalc-auto") {
     return isCurrentlyDark() ? "cocalc-dark" : "cocalc-light";
   }
   return scheme;

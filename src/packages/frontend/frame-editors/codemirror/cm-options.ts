@@ -47,8 +47,8 @@ export function cm_options(
   frame_id: string = "",
 ) {
   let theme = editor_settings?.get("theme");
-  // Resolve "cocalc" (auto) to the concrete light/dark variant
-  if (theme === "cocalc") {
+  // Resolve CoCalc's virtual auto themes to the concrete light/dark variant.
+  if (theme === "cocalc" || theme === "cocalc-auto") {
     theme = resolveEditorColorScheme(theme);
   }
   // if we do not know the theme, fallback to default
