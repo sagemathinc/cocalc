@@ -60,6 +60,7 @@ interface MinimalGutterProps {
 
   cellRunState: CellRunState;
   onRun?: () => void;
+  onStop?: () => void;
   onInsertCell?: () => void;
   onToggleSection?: () => void;
   blockHighlighted?: boolean;
@@ -73,6 +74,10 @@ interface MinimalGutterProps {
   end?: number;
   /** Cell input changed since last execution */
   isDirty?: boolean;
+  /** Cell metadata: editable=false */
+  isNotEditable?: boolean;
+  /** Cell metadata: deletable=false */
+  isNotDeletable?: boolean;
 }
 
 const CURRENT_COLOR = "#42a5f5"; // blue, same as default notebook
@@ -85,6 +90,7 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
     showBlockLine,
     cellRunState,
     onRun,
+    onStop,
     onInsertCell,
     onToggleSection,
     blockHighlighted,
@@ -96,6 +102,8 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
     start,
     end,
     isDirty,
+    isNotEditable,
+    isNotDeletable,
   }) => {
     const [hovered, setHovered] = useState(false);
     const { project_id, path } = useFrameContext();
@@ -217,26 +225,66 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
             </div>
           </Tooltip>
 
-          {/* Play button */}
-          {isCode && !read_only && onRun && (
-            <Tooltip title={runTooltip} placement="left">
-              <Button
-                type="text"
-                size="small"
-                icon={<Icon name="play" />}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRun();
-                }}
-                style={{
-                  color: hovered ? COLORS.GRAY_D : isDirty ? COLORS.GRAY_M : COLORS.GRAY_L,
-                  transition: "color 150ms ease",
-                  zIndex: 2,
-                }}
-              />
+          {/* Lock / protected indicators */}
+          {isNotEditable && (
+            <Tooltip title="Protected from modifications" placement="left">
+              <span style={{ color: COLORS.GRAY_M, fontSize: "12px", zIndex: 2, marginTop: "2px" }}>
+                <Icon name="lock" />
+              </span>
             </Tooltip>
           )}
+          {isNotDeletable && (
+            <Tooltip title="Protected from deletion" placement="left">
+              <span style={{ color: COLORS.GRAY_M, fontSize: "12px", zIndex: 2, marginTop: "2px" }}>
+                <Icon name="ban" />
+              </span>
+            </Tooltip>
+          )}
+
+          {/* Play / Stop button */}
+          {isCode && !read_only && onRun && (() => {
+            const isBusy = cellRunState === "running" || cellRunState === "queued";
+            if (isBusy && onStop) {
+              return (
+                <Tooltip title="Interrupt execution" placement="left">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<Icon name="stop" />}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onStop();
+                    }}
+                    style={{
+                      color: COLORS.ANTD_RED,
+                      transition: "color 150ms ease",
+                      zIndex: 2,
+                    }}
+                  />
+                </Tooltip>
+              );
+            }
+            return (
+              <Tooltip title={runTooltip} placement="left">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Icon name="play" />}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRun();
+                  }}
+                  style={{
+                    color: hovered ? COLORS.GRAY_D : isDirty ? COLORS.GRAY_M : COLORS.GRAY_L,
+                    transition: "color 150ms ease",
+                    zIndex: 2,
+                  }}
+                />
+              </Tooltip>
+            );
+          })()}
 
           {/* [+] insert cell below — visible on hover for every cell */}
           {!read_only && onInsertCell && (

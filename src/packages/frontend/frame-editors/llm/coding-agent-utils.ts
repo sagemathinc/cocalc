@@ -643,6 +643,13 @@ export function buildSystemPrompt(
     lines.push(
       `Selected text:\n${selFence}\n${truncatedSelection}\n${selFence}`,
     );
+    lines.push(
+      `When the user says "this", "this paragraph", "this section", "this code", "it", or similar references, they mean the selected text shown above.`,
+    );
+  } else if (ctx.cursorLine != null) {
+    lines.push(
+      `When the user says "this line", "this paragraph", "this section", "this code", "here", or similar references, they are referring to the content at or near the cursor position (line ${ctx.cursorLine + 1}).`,
+    );
   }
 
   const contextWindow = getDocumentContextWindow(ctx.content, {

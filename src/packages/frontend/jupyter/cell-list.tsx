@@ -37,9 +37,7 @@ import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
 import { computeSectionBlocks, buildBlockLookup } from "./minimal/section-blocks";
 import { MinimalMinimap } from "./minimal/minimal-minimap";
-import { COLORS } from "@cocalc/util/theme";
-import { Icon } from "@cocalc/frontend/components";
-import { Button, Tooltip } from "antd";
+import { MiniTOC } from "./minimal/mini-toc";
 import type { SectionBlock } from "./minimal/types";
 
 /** Extract the section title from a section block's heading cell. */
@@ -203,9 +201,16 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const handleCellListRef = useCallback((node: any) => {
     cellListDivRef.current = node;
     frameActions.current?.set_cell_list_div(node);
-    // Hide native scrollbar when minimap is active
-    if (node && cellViewMode === "minimal") {
+  }, []);
+
+  // Toggle native scrollbar visibility reactively when cellViewMode changes
+  useEffect(() => {
+    const node = cellListDivRef.current;
+    if (!node) return;
+    if (cellViewMode === "minimal") {
       node.classList.add("minimap-hide-scrollbar");
+    } else {
+      node.classList.remove("minimap-hide-scrollbar");
     }
   }, [cellViewMode]);
 
@@ -610,8 +615,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   // Track which sections are collapsed by their heading cell ID (stable across edits)
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [hoveredBlockIndex, setHoveredBlockIndex] = useState<number | null>(null);
-  // Sticky section header: which block index is sticky at top (null = hidden)
-  const [stickyBlockIndex, setStickyBlockIndex] = useState<number | null>(null);
+  // Current block index for mini TOC — always set when sections exist
+  const [currentBlockIndex, setCurrentBlockIndex] = useState<number>(0);
   const toggleSection = useCallback((startCellId: string) => {
     setCollapsedSections((prev) => {
       const next = new Set(prev);
@@ -624,7 +629,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     });
   }, []);
 
-  // Update sticky section header on scroll
+  // Update current block index on scroll (for mini TOC)
   useEffect(() => {
     if (cellViewMode !== "minimal" || !sectionBlocks || !blockLookup || !cell_list) return;
     const el = cellListDivRef.current;
@@ -642,17 +647,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         }
       }
       const id = cell_list.get(topIndex);
-      if (!id) { setStickyBlockIndex(null); return; }
+      if (!id) return;
       const info = blockLookup.get(id);
-      if (!info) { setStickyBlockIndex(null); return; }
-      // Show when the heading cell has scrolled past (positionInBlock > 0)
-      // Hide when the heading cell itself is visible at top, or for
-      // the implicit first block (headingLevel 0 = no heading to show)
-      if (info.positionInBlock > 0 && sectionBlocks[info.blockIndex]?.headingLevel > 0) {
-        setStickyBlockIndex(info.blockIndex);
-      } else {
-        setStickyBlockIndex(null);
-      }
+      if (!info) return;
+      setCurrentBlockIndex(info.blockIndex);
     };
     update();
     el.addEventListener("scroll", update, { passive: true });
@@ -836,23 +834,14 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       <div style={{ display: "flex", flexDirection: "row", flex: 1, minHeight: 0 }}>
         <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, position: "relative" }}>
           {body}
-          {cellViewMode === "minimal" && stickyBlockIndex != null && sectionBlocks != null && (
-            <StickySectionHeader
-              block={sectionBlocks[stickyBlockIndex]}
-              onToggle={() => toggleSection(sectionBlocks[stickyBlockIndex].startCellId)}
-              onRunSection={!read_only && actions ? () => {
-                const cellIds = sectionBlocks[stickyBlockIndex].cellIds;
-                for (const cid of cellIds) {
-                  const cell = cells.get(cid);
-                  if (cell?.get("cell_type") !== "markdown") {
-                    actions.run_cell(cid, false);
-                  }
-                }
-                actions.save_asap();
-              } : undefined}
+          {cellViewMode === "minimal" && !zenMode && minimalLayout !== "wide" && sectionBlocks != null && (
+            <StickyMiniTOC
+              sectionBlocks={sectionBlocks}
+              currentBlockIndex={currentBlockIndex}
               cells={cells}
               minimalLayout={minimalLayout}
-              zenMode={zenMode}
+              fontSize={font_size}
+              actions={!read_only ? actions : undefined}
             />
           )}
         </div>
@@ -921,121 +910,25 @@ import {
   COLUMN_TRANSITION,
 } from "./minimal/styles";
 
-/** Sticky section header shown at top of cell list when scrolled into a section */
-function StickySectionHeader({
-  block,
-  onToggle,
-  onRunSection,
+/** Floating mini TOC anchored to the left spacer column */
+function StickyMiniTOC({
+  sectionBlocks,
+  currentBlockIndex,
   cells,
   minimalLayout,
-  zenMode,
+  fontSize,
+  actions,
 }: {
-  block: { startCellId: string; headingLevel: number; cellIds: string[] };
-  onToggle: () => void;
-  onRunSection?: () => void;
+  sectionBlocks: SectionBlock[];
+  currentBlockIndex: number;
   cells: immutable.Map<string, any>;
   minimalLayout?: "wide" | "comfortable" | "narrow";
-  zenMode?: boolean;
+  fontSize?: number;
+  actions?: JupyterActions;
 }) {
-  const [hovered, setHovered] = useState(false);
-  const title = getSectionTitle(block, cells);
-
   const margin = minimalLayout === "narrow" ? 2 : 0;
-  const leftSpacerFlex = minimalLayout === "wide" ? 0 : (margin + CODE_FLEX_DEFAULT);
-  const rightSpacerFlex = minimalLayout === "wide" ? 0 : margin;
   const contentFlex = OUTPUT_FLEX_DEFAULT + CODE_FLEX_DEFAULT;
-  const hasSpacer = leftSpacerFlex > 0;
-  const showCode = !zenMode;
-
-  const bg = hovered ? COLORS.GRAY_LL : COLORS.GRAY_LLL;
-
-  const bar = (
-    <div
-      style={{
-        display: "flex",
-        flex: `${OUTPUT_FLEX_DEFAULT} 1 0`,
-        alignItems: "center",
-        backgroundColor: bg,
-        borderBottom: `1px solid ${COLORS.GRAY_LL}`,
-        transition: "background-color 150ms ease",
-        cursor: "pointer",
-        minHeight: "24px",
-      }}
-      onClick={onToggle}
-    >
-      {/* Invisible spacer matching gutter toggle icon width */}
-      <div style={{ width: "44px", minWidth: "44px", paddingLeft: "2px" }}>
-        <Icon name="minus-square" style={{ visibility: "hidden", fontSize: "14px" }} />
-      </div>
-      <span style={{
-        color: COLORS.GRAY_D,
-        fontSize: "13px",
-        fontWeight: 600,
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-        flex: 1,
-        padding: "0 8px",
-      }}>
-        {title}
-      </span>
-      {/* Run button in zen mode (no code column) */}
-      {onRunSection && !showCode && (
-        <Tooltip title="Run all code cells in this section">
-          <Button
-            type="text"
-            size="small"
-            icon={<Icon name="play" />}
-            onClick={(e) => { e.stopPropagation(); onRunSection(); }}
-            style={{ color: COLORS.GRAY_M, visibility: hovered ? "visible" : "hidden", marginRight: "4px" }}
-          >
-            Run
-          </Button>
-        </Tooltip>
-      )}
-    </div>
-  );
-
-  const codeCol = showCode ? (
-    <div
-      style={{
-        flex: `${CODE_FLEX_DEFAULT} 1 0`,
-        display: "flex",
-        alignItems: "center",
-        padding: "0 4px",
-        backgroundColor: bg,
-        borderBottom: `1px solid ${COLORS.GRAY_LL}`,
-        transition: "background-color 150ms ease",
-        cursor: "pointer",
-      }}
-      onClick={onToggle}
-    >
-      {onRunSection && (
-        <Tooltip title="Run all code cells in this section">
-          <Button
-            type="text"
-            size="small"
-            icon={<Icon name="play" />}
-            onClick={(e) => { e.stopPropagation(); onRunSection(); }}
-            style={{ color: COLORS.GRAY_M, visibility: hovered ? "visible" : "hidden", marginLeft: "auto" }}
-          >
-            Run
-          </Button>
-        </Tooltip>
-      )}
-    </div>
-  ) : null;
-
-  const content = (
-    <div style={{ display: "flex" }}>
-      {bar}
-      {codeCol}
-      {/* In zen + non-wide, transparent spacer so bar only covers output column */}
-      {zenMode && minimalLayout !== "wide" && (
-        <div style={{ flex: `${CODE_FLEX_DEFAULT} 1 0` }} />
-      )}
-    </div>
-  );
+  const rightSpacerFlex = minimalLayout === "wide" ? 0 : margin;
 
   return (
     <div
@@ -1044,21 +937,30 @@ function StickySectionHeader({
         top: 0,
         left: 0,
         right: 0,
-        zIndex: 10,
-        opacity: 0.95,
+        zIndex: 9,
+        pointerEvents: "none",
       }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
-      {hasSpacer ? (
-        <div style={{ display: "flex" }}>
-          <div style={{ flex: `${leftSpacerFlex} 1 0`, transition: COLUMN_TRANSITION }} />
-          <div style={{ flex: `${contentFlex} 1 0`, minWidth: 0, transition: COLUMN_TRANSITION }}>
-            {content}
-          </div>
-          {rightSpacerFlex > 0 && <div style={{ flex: `${rightSpacerFlex} 1 0`, transition: COLUMN_TRANSITION }} />}
+      <div style={{ display: "flex" }}>
+        {rightSpacerFlex > 0 && <div style={{ flex: `${rightSpacerFlex} 1 0`, transition: COLUMN_TRANSITION }} />}
+        <div style={{
+          flex: `${CODE_FLEX_DEFAULT} 1 0`,
+          transition: COLUMN_TRANSITION,
+          pointerEvents: "auto",
+          overflow: "hidden",
+        }}>
+          <MiniTOC
+            sectionBlocks={sectionBlocks}
+            currentBlockIndex={currentBlockIndex}
+            cells={cells}
+            minimalLayout={minimalLayout}
+            fontSize={fontSize}
+            actions={actions}
+          />
         </div>
-      ) : content}
+        <div style={{ flex: `${contentFlex} 1 0`, minWidth: 0 }} />
+        {rightSpacerFlex > 0 && <div style={{ flex: `${rightSpacerFlex} 1 0`, transition: COLUMN_TRANSITION }} />}
+      </div>
     </div>
   );
 }

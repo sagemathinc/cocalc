@@ -11,6 +11,7 @@ import { useIntl } from "react-intl";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Icon } from "@cocalc/frontend/components";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { jupyter, labels } from "@cocalc/frontend/i18n";
 import { commands, CLEAR_CELL_OUTPUT_LABEL } from "./commands";
 import {
@@ -19,6 +20,48 @@ import {
   DELETE_CELL_ICON,
   SPLIT_CELL_ICON,
 } from "./consts";
+import { shortcut_to_string } from "./keyboard-shortcuts";
+
+// Map menu item keys to Jupyter command names for keyboard shortcut lookup
+const KEY_TO_COMMAND: Record<string, string> = {
+  "undo": "global undo",
+  "redo": "global redo",
+  "copy": "copy cell",
+  "cut": "cut cell",
+  "paste-cell-above": "paste cell above",
+  "paste-cell-below": "paste cell and replace",
+  "delete-cell": "delete cell",
+  "split-cell": "split cell at cursor",
+  "merge-above": "merge cell with previous cell",
+  "merge-below": "merge cell with next cell",
+  "move-cell-up": "move cell up",
+  "move-cell-down": "move cell down",
+  "cell-type-code": "change cell to code",
+  "cell-type-markdown": "change cell to markdown",
+  "cell-type-raw": "change cell to raw",
+  "clear-output": "clear cell output",
+};
+
+function withShortcut(
+  label: React.ReactNode,
+  key: string,
+  allCommands: Record<string, any>,
+): React.ReactNode {
+  if (IS_MOBILE) return label;
+  const cmdName = KEY_TO_COMMAND[key];
+  if (!cmdName) return label;
+  const cmd = allCommands[cmdName];
+  if (!cmd?.k?.length) return label;
+  const shortcutStr = cmd.k.map(shortcut_to_string).join(", ");
+  return (
+    <div style={{ display: "flex", width: "100%" }}>
+      {label}
+      <div style={{ flex: 1, color: "#999", textAlign: "right", marginLeft: "50px" }}>
+        {shortcutStr}
+      </div>
+    </div>
+  );
+}
 
 export function CodeBarDropdownMenu({ actions, frameActions, id, cell, onOpenChange }: {
   actions: any;
@@ -346,10 +389,13 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell, onOpenCha
     ].map(({ key, label, icon, onClick, children }) => {
       return {
         key,
-        label,
+        label: withShortcut(label, key as string, allCommands),
         onClick,
         icon: <span style={{ width: "24px" }}>{icon}</span>,
-        children,
+        children: children?.map((child: any) => ({
+          ...child,
+          label: withShortcut(child.label, child.key as string, allCommands),
+        })),
       };
     });
   }, [actions, cell, frameActions, id, intl, open]);

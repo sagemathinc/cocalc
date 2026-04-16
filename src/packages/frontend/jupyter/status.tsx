@@ -29,6 +29,8 @@ import ProgressEstimate from "../components/progress-estimate";
 import { jupyter as jupyterI18n, labels } from "../i18n";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
+import { SwitchToMinimalButton, SwitchToRegularButton } from "./minimal/frame-type-toggle";
+import MinimalNotebookHelp from "./minimal/minimal-help";
 import { ALERT_COLS } from "./usage";
 
 const KERNEL_NAME_STYLE: CSS = {
@@ -243,7 +245,6 @@ export function Kernel({
   }
 
   function render_trust() {
-    if (compact) return;
     if (IS_MOBILE) return;
     if (trust) {
       return (
@@ -251,8 +252,8 @@ export function Kernel({
           style={{
             display: "flex",
             color: COLORS.GRAY_M,
-            paddingLeft: "5px",
-            borderLeft: "1px solid gray",
+            paddingLeft: compact ? 0 : "5px",
+            borderLeft: compact ? "none" : "1px solid gray",
           }}
         >
           Trusted
@@ -262,8 +263,8 @@ export function Kernel({
       return (
         <div
           style={{
-            paddingRight: "5px",
-            borderRight: "1px solid gray",
+            paddingRight: compact ? 0 : "5px",
+            borderRight: compact ? "none" : "1px solid gray",
           }}
         >
           <Tooltip
@@ -573,7 +574,7 @@ export function Kernel({
       flex: compact ? undefined : 1,
       borderLeft: `1px solid ${COLORS.GRAY}`,
       cursor: "pointer",
-      alignItems: compact ? "end" : undefined,
+      alignItems: compact ? "center" : undefined,
     };
     const pstyle: CSS = {
       margin: compact ? "0 2px" : "2px",
@@ -600,7 +601,7 @@ export function Kernel({
           >
             <div style={usage_style}>
               {showLabel ? (
-                <span style={{ marginRight: "5px", fontSize: compact ? "11px" : undefined, color: COLORS.GRAY_M }}>Code</span>
+                <span style={{ marginRight: "5px", color: COLORS.GRAY_M }}>Code</span>
               ) : (
                 ""
               )}
@@ -615,7 +616,7 @@ export function Kernel({
           </Tooltip>
         )}
         <div style={usage_style}>
-          {showLabel ? <span style={{ marginRight: "5px", fontSize: compact ? "11px" : undefined, color: COLORS.GRAY_M }}>CPU</span> : ""}
+          {showLabel ? <span style={{ marginRight: "5px", color: COLORS.GRAY_M }}>CPU</span> : ""}
           <Progress
             style={pstyle}
             showInfo={false}
@@ -626,7 +627,7 @@ export function Kernel({
           />
         </div>
         <div style={usage_style}>
-          {showLabel ? <span style={{ marginRight: "5px", fontSize: compact ? "11px" : undefined, color: COLORS.GRAY_M }}>RAM</span> : ""}
+          {showLabel ? <span style={{ marginRight: "5px", color: COLORS.GRAY_M }}>RAM</span> : ""}
           <Progress
             style={pstyle}
             showInfo={false}
@@ -756,53 +757,21 @@ export function Kernel({
           ...style,
         }}
       >
-        <div>{renderLogo()}</div>
-        <div
-          style={{
-            flex: "0 0 auto",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
+        {/* Left: logo + kernel + state + trusted */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", flex: "0 0 auto" }}>
+          <div>{renderLogo()}</div>
           {body}
           {renderKernelState()}
         </div>
-        {renderTip(get_kernel_name(), renderUsage())}
         <div style={{ flex: 1 }} />
-        {!read_only &&
-          backend_state === "running" &&
-          kernel_state === "busy" && (
-            <Tooltip
-              title={intl.formatMessage({
-                id: "jupyter.status.interrupt_tooltip",
-                defaultMessage: "Interrupt the running computation",
-              })}
-            >
-              <Button
-                type="text"
-                size="small"
-                onClick={() => actions.signal("SIGINT")}
-              >
-                <Icon name="stop" /> Stop
-              </Button>
-            </Tooltip>
-          )}
-        {!read_only && kernel != null && !no_kernel && (
-          <Button
-            type="text"
-            size="small"
-            onClick={() => void actions.confirm_restart()}
-          >
-            <Icon name="redo" /> Restart
-          </Button>
-        )}
-        {/* Layout and zen controls for minimal notebook */}
+        {/* Right: bars + controls */}
         {onLayoutChange && (
-          <>
-            <div style={{ borderLeft: `1px solid ${COLORS.GRAY_LL}`, height: "18px", margin: "0 2px" }} />
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+            {renderTip(get_kernel_name(), renderUsage())}
+            <div style={{ borderLeft: `1px solid ${COLORS.GRAY_L}`, height: "18px" }} />
             <Segmented
               size="small"
+              className="minimal-status-segmented"
               value={minimalLayout ?? "comfortable"}
               onChange={(v) => onLayoutChange(v as "wide" | "comfortable" | "narrow")}
               options={[
@@ -834,18 +803,21 @@ export function Kernel({
                 },
               ].filter(o => availableLayouts?.includes(o.value as any) ?? true)}
             />
-          </>
-        )}
-        {onZenModeChange && (
-          <Tooltip title={zenMode ? "Show code cells" : "Hide code cells"}>
-            <span
-              style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
-              onClick={() => onZenModeChange(!zenMode)}
-            >
-              <Switch size="small" checked={zenMode} />
-              <span style={{ fontSize: "12px", userSelect: "none" }}>Zen</span>
-            </span>
-          </Tooltip>
+            {onZenModeChange && (
+              <Tooltip title={zenMode ? "Show code cells" : "Hide code cells"}>
+                <span
+                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
+                  onClick={() => onZenModeChange(!zenMode)}
+                >
+                  <Switch size="small" checked={zenMode} />
+                  <span style={{ userSelect: "none" }}>Zen</span>
+                </span>
+              </Tooltip>
+            )}
+            <div style={{ borderLeft: `1px solid ${COLORS.GRAY_L}`, height: "18px" }} />
+            <MinimalNotebookHelp />
+            <SwitchToRegularButton />
+          </div>
         )}
       </div>
     );
@@ -881,6 +853,7 @@ export function Kernel({
             {renderTip(get_kernel_name(), renderUsage())}
           </div>
         )}
+        {!IS_MOBILE && <SwitchToMinimalButton />}
       </div>
     </div>
   );

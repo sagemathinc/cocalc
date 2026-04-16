@@ -1407,7 +1407,28 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function getButtonBarContextMenuItems(name?: string): MenuProps["items"] {
-    const items: MenuProps["items"] = [
+    const items: MenuProps["items"] = [];
+
+    if (name != null) {
+      items.push({
+        key: `remove-${name}`,
+        label: (
+          <span>
+            <Icon name="times" />{" "}
+            {intl.formatMessage({
+              id: "frame-editors.frame-tree.title-bar.context.remove-toolbar-icon",
+              defaultMessage: "Remove from toolbar",
+            })}
+          </span>
+        ),
+        onClick: () => {
+          manageCommands.removeToolbarButton(name);
+        },
+      });
+      items.push({ type: "divider" });
+    }
+
+    items.push(
       {
         key: "toggle-labels",
         label: (
@@ -1432,25 +1453,22 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             .set_other_settings("show_symbol_bar_labels", !showSymbolBarLabels);
         },
       },
-    ];
-
-    if (name != null) {
-      items.push({
-        key: `remove-${name}`,
+      {
+        key: "reset-toolbar",
         label: (
           <span>
-            <Icon name="times" />{" "}
+            <Icon name="undo" />{" "}
             {intl.formatMessage({
-              id: "frame-editors.frame-tree.title-bar.context.remove-toolbar-icon",
-              defaultMessage: "Remove from toolbar",
+              id: "frame-editors.frame-tree.title-bar.context.reset-toolbar",
+              defaultMessage: "Reset toolbar to default",
             })}
           </span>
         ),
         onClick: () => {
-          manageCommands.removeToolbarButton(name);
+          manageCommands.resetToolbar();
         },
-      });
-    }
+      },
+    );
 
     items.push(
       { type: "divider" },
