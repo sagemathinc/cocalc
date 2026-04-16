@@ -8,6 +8,7 @@ Code related to permanently deleting projects.
 */
 
 import { promises as fs } from "node:fs";
+import { resolve as resolvePath } from "node:path";
 
 import { pathToFiles } from "@cocalc/backend/files/path-to-files";
 import getLogger, { WinstonLogger } from "@cocalc/backend/logger";
@@ -17,8 +18,8 @@ import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings";
 import { callback2 } from "@cocalc/util/async-utils";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
-import { minutes_ago } from "@cocalc/util/misc";
-import { bulkDelete } from "./bulk-delete";
+import { is_valid_uuid_string, minutes_ago } from "@cocalc/util/misc";
+import { bulkDelete, throttledRunner } from "./bulk-delete";
 import { PostgreSQL } from "./types";
 
 const { F_OK, R_OK, W_OK } = fs.constants;
@@ -79,34 +80,103 @@ async function get_account_id(
 This removes all users from all projects older than the given number of days and marked as deleted.
 In particular, users are no longer able to access that project.
 The "cleanup_old_projects_data" function has to run to actually get rid of the data, etc.
+
+Chunked: on installations with a backlog of tens/hundreds of thousands of
+deleted projects, a single UPDATE would be one huge transaction with big WAL
+burst and row locks across `projects`. Instead we update in small batches via
+throttledRunner, which keeps DB utilization around COCALC_DB_BULK_DELETE_MAX_UTIL_PCT.
 */
 export async function unlink_old_deleted_projects(
   db: PostgreSQL,
   age_d = 30,
 ): Promise<void> {
   const L = log.extend("unlink_old_deleted_projects").debug;
-  const { rowCount } = await callback2(db._query, {
-    query: "UPDATE projects",
-    set: { users: null },
-    where: [
-      "deleted = true",
-      "users IS NOT NULL",
-      `last_edited <= NOW() - '${age_d} days'::INTERVAL`,
-    ],
+  const pool = getPool();
+  // Chunk by primary key so each UPDATE touches at most LIMIT rows.
+  const q = `
+UPDATE projects SET users = NULL
+WHERE project_id IN (
+  SELECT project_id FROM projects
+  WHERE deleted = true
+    AND users IS NOT NULL
+    AND last_edited <= NOW() - '${age_d} days'::INTERVAL
+  LIMIT $1
+)`;
+  const stats = await throttledRunner(
+    async (limit) => {
+      const ret = await pool.query(q, [limit]);
+      return ret.rowCount ?? 0;
+    },
+    { label: "unlink_old_deleted_projects" },
+  );
+  L(`unlinked projects: ${stats.rowsDeleted} in ${stats.durationS.toFixed(1)}s`);
+  // we reuse the existing counter so ops can track these events
+  db.log({
+    event: "cleanup_deleted_projects",
+    value: { op: "unlink", ...stats },
   });
-  L("unlinked projects:", rowCount);
 }
 
-const Q_CLEANUP_SYNCSTRINGS = `
-SELECT s.string_id, p.project_id
-FROM projects as p INNER JOIN syncstrings as s
-  ON p.project_id = s.project_id
-WHERE p.deleted = true
-  AND p.users IS NULL
-ORDER BY
-  p.project_id, s.string_id
-LIMIT 1000
-`;
+/*
+Scrub personally identifying information (PII) from accounts flagged
+`deleted = true`. At deletion time (see server/accounts/delete.ts) we
+already clear `email_address` and `passports`; this job additionally clears
+`first_name`, `last_name`, `email_address_before_delete`, and the three
+email-verification/challenge/problem blobs.
+
+The `accounts` row itself is kept so references to account_id elsewhere
+(projects, central_log, etc.) still resolve.
+
+Note on age gating: the `accounts` schema has no `deleted_at` timestamp — the
+only time we have is `created`, which is meaningless here (a five-year-old
+account deleted yesterday would otherwise be scrubbed immediately). Rather
+than silently do the wrong thing, we scrub as soon as `deleted = true`.
+Introduce a `deleted_at` column if a grace period is wanted.
+*/
+export async function cleanup_deleted_account_pii(
+  db: PostgreSQL,
+): Promise<void> {
+  const L = log.extend("cleanup_deleted_account_pii").debug;
+  const pool = getPool();
+  const q = `
+UPDATE accounts
+SET
+  first_name = '',
+  last_name = '',
+  email_address = NULL,
+  email_address_before_delete = NULL,
+  email_address_verified = NULL,
+  email_address_challenge = NULL,
+  email_address_problem = NULL,
+  passports = NULL
+WHERE account_id IN (
+  SELECT account_id FROM accounts
+  WHERE deleted = true
+    AND (
+      first_name <> ''
+      OR last_name <> ''
+      OR email_address IS NOT NULL
+      OR email_address_before_delete IS NOT NULL
+      OR email_address_verified IS NOT NULL
+      OR email_address_challenge IS NOT NULL
+      OR email_address_problem IS NOT NULL
+      OR passports IS NOT NULL
+    )
+  LIMIT $1
+)`;
+  const stats = await throttledRunner(
+    async (limit) => {
+      const ret = await pool.query(q, [limit]);
+      return ret.rowCount ?? 0;
+    },
+    { label: "cleanup_deleted_account_pii" },
+  );
+  L(`scrubbed PII from ${stats.rowsDeleted} deleted accounts in ${stats.durationS.toFixed(1)}s`);
+  db.log({
+    event: "cleanup_deleted_projects",
+    value: { op: "scrub_account_pii", ...stats },
+  });
+}
 
 const Q_CLEANUP_PROJECTS = `
 SELECT project_id
@@ -119,14 +189,24 @@ LIMIT 1000
 `;
 
 /*
- This more thorough delete procedure comes after the above.
+ This more thorough delete procedure comes after `unlink_old_deleted_projects`.
  It issues actual delete operations on data of projects marked as deleted.
  When done, it sets the state.state to "deleted".
 
- The operations involves deleting all syncstrings of that project (and associated with that, patches),
- and only for on-prem setups, it also deletes all the data stored in the project on disk and various tables.
+ Per project we:
+   1. Chunked-delete all `patches` for each syncstring of the project, then
+      drop the syncstring rows. (Post-Conat, patches is typically empty, so
+      the chunked pass is very fast; the code handles the pre-Conat case
+      correctly too.)
+   2. Clear site_license/status/last_active/run_quota on the project row.
+   3. On-prem only: delete the project's files on disk (with a sanity check
+      that the resolved path ends with the project_id UUID) and any shared
+      files.
+   4. Chunked-delete rows referencing the project_id in ~10 associated tables.
+   5. Set state.state = "deleted" so the project is skipped on subsequent runs.
 
- This function is called every couple of hours. Hence it checks to not run longer than the given max_run_m time (minutes).
+ This function is called every couple of hours. Hence it checks to not run
+ longer than the given max_run_m time (minutes).
 */
 export async function cleanup_old_projects_data(
   db: PostgreSQL,
@@ -148,40 +228,31 @@ export async function cleanup_old_projects_data(
   const start_ts = new Date();
   const pool = getPool();
 
-  let numSyncStr = 0;
   let numProj = 0;
 
   while (true) {
     if (start_ts < minutes_ago(max_run_m)) {
-      L(`too much time elapsed, breaking after ${numSyncStr} syncstrings`);
+      L(`time budget exceeded; processed ${numProj} projects so far`);
       return;
-    }
-
-    const { rows: syncstrings } = await pool.query(Q_CLEANUP_SYNCSTRINGS);
-    L(`deleting ${syncstrings.length} syncstrings`);
-    for (const { project_id, string_id } of syncstrings) {
-      L(`deleting syncstring ${project_id}/${string_id}`);
-      numSyncStr += 1;
-      const t0 = Date.now();
-      await callback2(db.delete_syncstring, { string_id });
-      const elapsed_ms = Date.now() - t0;
-      delete_projects_prom.labels("syncstring").inc();
-      // wait a bit after deleting syncstrings, e.g. to let the standby db catch up
-      // this ensures a max of "10%" utilization of the database – or wait 1 second
-      await new Promise((done) =>
-        setTimeout(done, Math.min(1000, elapsed_ms * 9)),
-      );
     }
 
     const { rows: projects } = await pool.query(Q_CLEANUP_PROJECTS);
     L(`deleting the data of ${projects.length} projects`);
+    if (projects.length === 0) {
+      L(`all deleted projects have been processed (${numProj} total)`);
+      return;
+    }
+
     for (const { project_id } of projects) {
       const L2 = L0.extend(project_id).debug;
       delete_projects_prom.labels("project").inc();
       numProj += 1;
       let delRows = 0;
 
-      // Clean up data *on* a given project. For now, remove all site licenses, status and last_active.
+      // 1. Delete syncstrings + their patches for this project.
+      delRows += await delete_project_syncstrings(L2, project_id);
+
+      // 2. Clean up fields *on* the project row itself.
       await pool.query(
         `UPDATE projects
          SET site_license = NULL, status = NULL, last_active = NULL, run_quota = NULL
@@ -189,9 +260,8 @@ export async function cleanup_old_projects_data(
         [project_id],
       );
 
+      // 3. On-prem only: delete files from disk.
       if (on_prem) {
-        // we don't delete the central_log, it has its own expiration
-        // such an entry is good to have for reconstructing what really happened
         db.log({
           event: "delete_project",
           value: { deleting: "files", project_id },
@@ -203,6 +273,7 @@ export async function cleanup_old_projects_data(
         try {
           // this is something like /shared/projects/${project_id}
           const shared_path = pathToFiles(project_id, "");
+          assertPathContainsProjectId(shared_path, project_id);
           L2(`deleting all shared files in ${shared_path}`);
           await fs.rm(shared_path, { recursive: true, force: true });
         } catch (err) {
@@ -210,28 +281,81 @@ export async function cleanup_old_projects_data(
         }
       }
 
-      // This gets rid of all sorts of data in tables specific to the given project.
+      // 4. Delete rows in tables that reference this project_id.
       delRows += await delete_associated_project_data(L2, project_id);
       db.log({
         event: "delete_project",
         value: { deleting: "database", project_id },
       });
 
-      // now, that we're done with that project, mark it as state.state ->> 'deleted'
-      // in addition to the flag "deleted = true". This also updates the state.time timestamp.
+      // 5. Mark project state=deleted so it's not reprocessed.
       await callback2(db.set_project_state, { project_id, state: "deleted" });
       L2(
         `finished deleting project data | deleted ${delRows} entries | state.state="deleted"`,
       );
     }
+  }
+}
 
-    if (projects.length === 0 && syncstrings.length === 0) {
-      L(`all data of deleted projects and associated syncstrings are deleted.`);
-      L(
-        `In total ${numSyncStr} syncstrings and ${numProj} projects were processed.`,
-      );
-      return;
-    }
+/*
+ Delete all patches + syncstring rows belonging to one project.
+ Patches are chunked by ctid so the DELETE stays throttled even for a
+ syncstring with millions of patches. `syncstrings` lookups by string_id use
+ the primary-key index; the DELETE by string_id is a single PK-keyed
+ statement and is fast regardless of row count.
+*/
+async function delete_project_syncstrings(
+  L2: WinstonLogger["debug"],
+  project_id: string,
+): Promise<number> {
+  const pool = getPool();
+  // `syncstrings.project_id` is not indexed (PK is string_id). This scan
+  // returns the handful of strings per project; Postgres can seq-scan
+  // syncstrings once and pick out the matches.
+  const { rows: syncstrings } = await pool.query(
+    "SELECT string_id FROM syncstrings WHERE project_id = $1",
+    [project_id],
+  );
+  if (syncstrings.length === 0) return 0;
+
+  let total = 0;
+  for (const { string_id } of syncstrings) {
+    // Patches primary key is compound (string_id, time, is_snapshot), so we
+    // chunk by ctid (the physical row id) which is unique for every table.
+    const { rowsDeleted } = await bulkDelete({
+      table: "patches",
+      field: "string_id",
+      value: string_id,
+      id: "ctid",
+    });
+    total += rowsDeleted;
+    delete_projects_prom.labels("syncstring").inc();
+    L2(`deleted ${rowsDeleted} patches for syncstring ${string_id}`);
+  }
+
+  // Drop the syncstring rows themselves. A single PK-keyed DELETE per string
+  // is fast; batching gets us one round trip for the set.
+  const stringIds = syncstrings.map((r) => r.string_id);
+  const ret = await pool.query(
+    "DELETE FROM syncstrings WHERE string_id = ANY($1::CHAR(40)[])",
+    [stringIds],
+  );
+  total += ret.rowCount ?? 0;
+  L2(`deleted ${ret.rowCount} syncstring rows`);
+  return total;
+}
+
+// Guard against fs.rm walking into an unrelated tree if MOUNTED_PROJECTS_ROOT
+// is misconfigured or the path template doesn't actually include [project_id].
+function assertPathContainsProjectId(path: string, project_id: string): void {
+  if (!is_valid_uuid_string(project_id)) {
+    throw new Error(`refusing to delete path: invalid project_id`);
+  }
+  const resolved = resolvePath(path);
+  if (!resolved.includes(project_id)) {
+    throw new Error(
+      `refusing to delete '${resolved}': path does not contain project_id ${project_id}`,
+    );
   }
 }
 
@@ -311,6 +435,7 @@ async function deleteProjectFiles(
 ) {
   const project_dir = homePath(project_id);
   try {
+    assertPathContainsProjectId(project_dir, project_id);
     await fs.access(project_dir, F_OK | R_OK | W_OK);
     const stats = await fs.lstat(project_dir);
     if (stats.isDirectory()) {
@@ -321,7 +446,7 @@ async function deleteProjectFiles(
     }
   } catch (err) {
     L2(
-      `not deleting project files: either '${project_dir}' does not exist or is not accessible`,
+      `not deleting project files: either '${project_dir}' does not exist, is not accessible, or failed a safety check: ${err}`,
     );
   }
 }

@@ -8,12 +8,6 @@ import { SCHEMA } from "@cocalc/util/schema";
 const log = getLogger("db:bulk-delete");
 const D = log.debug;
 
-type Field =
-  | "project_id"
-  | "account_id"
-  | "target_project_id"
-  | "source_project_id";
-
 const MAX_UTIL_PCT = envToInt("COCALC_DB_BULK_DELETE_MAX_UTIL_PCT", 10);
 // adjust the time limits: by default, we aim to keep the operation between 0.1 and 0.2 secs
 const MAX_TIME_TARGET_MS = envToInt(
@@ -24,22 +18,83 @@ const MAX_TARGET_S = MAX_TIME_TARGET_MS / 1000;
 const MIN_TARGET_S = MAX_TARGET_S / 2;
 const DEFAULT_LIMIT = envToInt("COCALC_DB_BULK_DELETE_DEFAULT_LIMIT", 16);
 const MAX_LIMIT = envToInt("COCALC_DB_BULK_DELETE_MAX_LIMIT", 32768);
+// wait cap between chunks, in seconds. With MAX_TIME_TARGET_MS=100ms and 10% util
+// the expected wait is ~0.9s, so this cap only bites when chunks overrun.
+const MAX_WAIT_S = envToInt("COCALC_DB_BULK_DELETE_MAX_WAIT_S", 30);
 
-interface Opts {
+interface BulkDeleteOpts {
   table: string; // e.g. project_log, etc.
-  field: Field; // for now, we only support a few
-  id?: string; // default "id", the ID field in the table, which identifies each row uniquely
-  value: string; // a UUID
-  limit?: number; // default 1024
-  maxUtilPct?: number; // 0-100, percent
+  field: string; // column used in WHERE {field} = value (e.g. project_id, string_id)
+  id?: string; // default "id"; the column used in the "WHERE {id} IN (...)" subselect.
+  // For tables with a compound primary key, pass "ctid" to chunk by physical row id.
+  value: string; // a UUID (or any scalar)
+  limit?: number;
+  maxUtilPct?: number;
 }
 
-type Ret = Promise<{
+export interface ChunkStats {
   rowsDeleted: number;
   durationS: number;
   totalWaitS: number;
   totalPgTimeS: number;
-}>;
+}
+
+interface ThrottledRunnerOpts {
+  limit?: number;
+  maxUtilPct?: number;
+  label?: string;
+}
+
+/**
+ * Run `fn(limit)` repeatedly in chunks, adapting the limit so each call lands
+ * in [MIN_TARGET_S, MAX_TARGET_S] and waiting between calls to keep total DB
+ * utilization at `maxUtilPct`%. Stops when `fn` reports 0 rows affected.
+ * Shared throttling primitive for bulk DELETE / UPDATE loops.
+ */
+export async function throttledRunner(
+  fn: (limit: number) => Promise<number>,
+  opts: ThrottledRunnerOpts = {},
+): Promise<ChunkStats> {
+  const maxUtilPct = opts.maxUtilPct ?? MAX_UTIL_PCT;
+  if (maxUtilPct < 1 || maxUtilPct > 99) {
+    throw new Error(`maxUtilPct must be between 1 and 99`);
+  }
+  let limit = opts.limit ?? DEFAULT_LIMIT;
+  const label = opts.label ?? "throttled";
+
+  const start_ts = Date.now();
+  let rowsDeleted = 0;
+  let totalWaitS = 0;
+  let totalPgTimeS = 0;
+  while (true) {
+    const t0 = Date.now();
+    const rowCount = await fn(limit);
+    const dt = (Date.now() - t0) / 1000;
+    rowsDeleted += rowCount;
+    totalPgTimeS += dt;
+
+    const next =
+      dt > MAX_TARGET_S ? limit / 2 : dt < MIN_TARGET_S ? limit * 2 : limit;
+    limit = Math.max(1, Math.min(MAX_LIMIT, Math.round(next)));
+
+    // Target `maxUtilPct`% DB utilization. Adaptive limit above keeps dt near
+    // MAX_TARGET_S, so the wait is typically ~0.9s at 10%. The cap only bites
+    // when a chunk overruns its target (e.g. lock wait) — then we want to back
+    // off, not keep hammering, so MAX_WAIT_S is generous (30s by default).
+    const waitS = Math.min(MAX_WAIT_S, dt * ((100 - maxUtilPct) / maxUtilPct));
+    if (waitS > 0) {
+      await new Promise((done) => setTimeout(done, 1000 * waitS));
+    }
+    totalWaitS += waitS;
+
+    D(`${label}: affected=${rowCount} | dt=${dt} | wait=${waitS} | limit=${limit}`);
+
+    if (rowCount === 0) break;
+  }
+
+  const durationS = (Date.now() - start_ts) / 1000;
+  return { durationS, rowsDeleted, totalWaitS, totalPgTimeS };
+}
 
 function deleteQuery(table: string, field: string, id: string) {
   const T = escapeIdentifier(table);
@@ -53,46 +108,24 @@ WHERE ${ID} IN (
 )`;
 }
 
-export async function bulkDelete(opts: Opts): Ret {
-  const { table, field, value, id = "id", maxUtilPct = MAX_UTIL_PCT } = opts;
-  let { limit = DEFAULT_LIMIT } = opts;
-  // assert table name is a key in SCHEMA
+export async function bulkDelete(opts: BulkDeleteOpts): Promise<ChunkStats> {
+  const { table, field, value, id = "id" } = opts;
   if (!(table in SCHEMA)) {
     throw new Error(`table ${table} does not exist`);
   }
 
-  if (maxUtilPct < 1 || maxUtilPct > 99) {
-    throw new Error(`maxUtilPct must be between 1 and 99`);
-  }
-
   const q = deleteQuery(table, field, id);
   const pool = getPool();
-  const start_ts = Date.now();
 
-  let rowsDeleted = 0;
-  let totalWaitS = 0;
-  let totalPgTimeS = 0;
-  while (true) {
-    const t0 = Date.now();
-    const ret = await pool.query(q, [value, limit]);
-    const dt = (Date.now() - t0) / 1000;
-    rowsDeleted += ret.rowCount ?? 0;
-    totalPgTimeS += dt;
-
-    const next =
-      dt > MAX_TARGET_S ? limit / 2 : dt < MIN_TARGET_S ? limit * 2 : limit;
-    limit = Math.max(1, Math.min(MAX_LIMIT, Math.round(next)));
-
-    // wait for a bit, but not more than 1 second ~ this aims for a max utilization of 10%
-    const waitS = Math.min(1, dt * ((100 - maxUtilPct) / maxUtilPct));
-    await new Promise((done) => setTimeout(done, 1000 * waitS));
-    totalWaitS += waitS;
-
-    D(`deleted ${ret.rowCount} | dt=${dt} | wait=${waitS} | limit=${limit}`);
-
-    if (ret.rowCount === 0) break;
-  }
-
-  const durationS = (Date.now() - start_ts) / 1000;
-  return { durationS, rowsDeleted, totalWaitS, totalPgTimeS };
+  return throttledRunner(
+    async (limit) => {
+      const ret = await pool.query(q, [value, limit]);
+      return ret.rowCount ?? 0;
+    },
+    {
+      limit: opts.limit,
+      maxUtilPct: opts.maxUtilPct,
+      label: `bulkDelete ${table}.${field}`,
+    },
+  );
 }

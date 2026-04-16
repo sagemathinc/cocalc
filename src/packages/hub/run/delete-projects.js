@@ -24,6 +24,8 @@ async function update() {
     // limit the max runtime to half the interval time
     const max_run_m = (INTERVAL_MS / 2) / (1000 * 60)
     await db.cleanup_old_projects_data(max_run_m);
+    // scrub PII from accounts marked as deleted
+    await db.cleanup_deleted_account_pii();
   } catch (err) {
     if (err !== null) {
       throw Error(`failed to unlink projects -- ${err}`);

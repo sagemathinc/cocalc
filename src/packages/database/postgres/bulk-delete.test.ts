@@ -66,5 +66,7 @@ describe("bulk delete", () => {
       other,
     ]);
     expect(otherRes.rows[0].id).toEqual(other);
-  }, 10000);
+    // 60s budget: default 10% util with MAX_WAIT_S=30 honestly throttles large
+    // chunks, so total wall time is dominated by sleeps (~30-45s for 100k rows).
+  }, 60000);
 });
