@@ -20,7 +20,7 @@ import track from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
 import { CODE_BAR_BTN_STYLE } from "./consts";
 
-/** Shared hook: cell threads with adjusted counts (excludes empty anchor root). */
+/** Shared hook: threads anchored to a given cell. */
 function useCellThreads(
   project_id: string,
   path: string,
@@ -36,28 +36,7 @@ function useCellThreads(
   const allThreads = useThreadList(chatMessages, account_id);
   const cellThreads = React.useMemo(
     () =>
-      allThreads
-        .filter((t) => t.rootMessage?.get("cell_id") === cellId)
-        .map((t) => {
-          // Exclude the empty anchor root from counts — it's not a real message.
-          // Only subtract from unreadCount if the root itself is counted as unread
-          // (i.e., root timestamp > lastread, which happens when the viewer hasn't
-          // seen the thread yet).
-          // Only subtract from unreadCount when using timestamp-based tracking
-          // and the root is actually newer than lastread. For legacy threads
-          // (lastReadTimestamp == null), unreadCount is computed from the
-          // count-based read-* field where the root is already accounted for.
-          const rootDate = t.rootMessage?.get("date")?.valueOf() ?? 0;
-          const rootIsUnread =
-            t.lastReadTimestamp != null && rootDate > t.lastReadTimestamp;
-          return {
-            ...t,
-            messageCount: Math.max(t.messageCount - 1, 0),
-            unreadCount: rootIsUnread
-              ? Math.max(t.unreadCount - 1, 0)
-              : t.unreadCount,
-          };
-        }),
+      allThreads.filter((t) => t.rootMessage?.get("cell_id") === cellId),
     [allThreads, cellId],
   );
   const totalMessages = React.useMemo(

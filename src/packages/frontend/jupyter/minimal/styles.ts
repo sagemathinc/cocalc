@@ -17,6 +17,13 @@ export const CODE_FLEX_EDITING = 5;
 /** Transition duration for column width flip */
 export const COLUMN_TRANSITION = "flex-basis 200ms ease, flex-grow 200ms ease";
 
+/**
+ * Height reserved at the top of the code column for the cell's hover toolbar
+ * (Run, LLM, Chat, menu). The output column and gutter use the same offset
+ * so their content (cell output, `#N` label) lines up with the code preview.
+ */
+export const HOVER_BAR_HEIGHT = 22;
+
 /** Code preview font scale relative to base */
 export const CODE_FONT_SCALE = 0.8;
 

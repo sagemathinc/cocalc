@@ -198,14 +198,20 @@ export class ChatActions extends Actions<ChatState> {
       input = (input ?? "") + extraInput;
     }
     input = input?.trim();
-    if (!input && !cell_id) {
+    if (!input) {
       // do not send when there is nothing to send.
       return "";
     }
-    if (!input) {
-      input = "";
+    // When starting a new thread, pick up any pending cell anchor set by the
+    // Jupyter "Chat" button so the first real message becomes the root.
+    let effectiveCellId = cell_id;
+    let effectiveName = name;
+    const pending = !reply_to ? this.getPendingCellThread() : null;
+    if (pending) {
+      effectiveCellId ??= pending.cellId;
+      effectiveName ??= pending.cellLabel;
     }
-    const trimmedName = name?.trim();
+    const trimmedName = effectiveName?.trim();
     const message: ChatMessage = {
       sender_id,
       event: "chat",
@@ -223,8 +229,8 @@ export class ChatActions extends Actions<ChatState> {
     if (trimmedName && !reply_to) {
       (message as any).name = trimmedName;
     }
-    if (cell_id && !reply_to) {
-      message.cell_id = cell_id;
+    if (effectiveCellId && !reply_to) {
+      message.cell_id = effectiveCellId;
     }
     this.syncdb.set(message);
     const messagesState = this.store.get("messages");
@@ -238,6 +244,10 @@ export class ChatActions extends Actions<ChatState> {
       // For replies search find full threads not individual messages.
       this.clearAllFilters();
       selectedThreadKey = `${time_stamp.valueOf()}`;
+      if (pending) {
+        // The pending anchor has now become a real root message; clear it.
+        this.setPendingCellThread(null);
+      }
     } else {
       // when replying we make sure that the thread is expanded, since otherwise
       // our reply won't be visible
@@ -1416,16 +1426,60 @@ export class ChatActions extends Actions<ChatState> {
       id: this.frameId,
       selectedThreadKey: threadKey,
     });
+    if (threadKey != null) {
+      // Selecting an existing thread cancels any pending cell anchor — the
+      // next message will reply to this thread, not start a new cell thread.
+      this.setPendingCellThread(null);
+    }
   };
 
-  // Find the most recent thread anchored to the given cell, or create one.
+  // Pending cell-thread anchor: set by the Jupyter "Chat" button so the side
+  // chat knows the next root-message send should be anchored to this cell.
+  // No chat message is written until the user actually sends one.
+  //
+  // set_frame_data runs the value through fromJS, so what we read back is an
+  // Immutable Map; convert to a plain object here.
+  getPendingCellThread = (): { cellId: string; cellLabel?: string } | null => {
+    const raw = this.frameTreeActions?._get_frame_data(
+      this.frameId,
+      "pendingCellThread",
+    );
+    if (raw == null) return null;
+    const value = raw?.toJS?.() ?? raw;
+    if (!value || typeof value.cellId !== "string") return null;
+    return {
+      cellId: value.cellId,
+      cellLabel:
+        typeof value.cellLabel === "string" ? value.cellLabel : undefined,
+    };
+  };
+
+  setPendingCellThread = (
+    pending: { cellId: string; cellLabel?: string } | null,
+  ) => {
+    this.frameTreeActions?.set_frame_data({
+      id: this.frameId,
+      pendingCellThread: pending,
+    });
+  };
+
+  // Find the most recent thread anchored to the given cell. If one exists,
+  // select it. Otherwise set a pending anchor so the next message sent will
+  // become that cell's thread root.
   findOrCreateCellThread = (
     cellId: string,
     cellLabel?: string,
   ): string | null => {
     if (!this.store) return null;
     const messages = this.store.get("messages");
-    if (!messages) return null;
+    if (!messages) {
+      // Messages haven't finished syncing yet — we can't tell whether a
+      // thread for this cell already exists, so staging a pending anchor
+      // here could create a duplicate root on the first send. Bail out;
+      // the caller (e.g. `waitForChatActions`) now waits for messages
+      // before invoking us, so this path should rarely hit in practice.
+      return null;
+    }
 
     let bestKey: string | null = null;
     let bestTime = 0;
@@ -1444,19 +1498,19 @@ export class ChatActions extends Actions<ChatState> {
       return bestKey;
     }
 
-    return this.createCellThread(cellId, cellLabel);
+    // No existing thread — stage a pending anchor and clear selection so the
+    // chatroom renders a blank compose for this cell.
+    this.setPendingCellThread({ cellId, cellLabel });
+    this.setSelectedThread(null);
+    return null;
   };
 
-  // Always create a new thread anchored to the given cell.
+  // Always start a fresh thread anchored to the given cell (no search for
+  // existing thread). Same deferred-creation semantics as above.
   createCellThread = (cellId: string, cellLabel?: string): string | null => {
-    const name = cellLabel || "Cell discussion";
-    const timeStamp = this.sendChat({
-      input: "",
-      cell_id: cellId,
-      name,
-      noNotification: true,
-    });
-    return timeStamp || null;
+    this.setPendingCellThread({ cellId, cellLabel });
+    this.setSelectedThread(null);
+    return null;
   };
 }
 
