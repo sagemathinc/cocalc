@@ -198,12 +198,9 @@ export function VerticalFixedTabs({
     if (isAnonymous && v.noAnonymous) {
       continue;
     }
-    const color =
-      activeTab == name
-        ? {
-            color: `var(--cocalc-top-bar-text-active, ${COLORS.PROJECT.FIXED_LEFT_ACTIVE})`,
-          }
-        : undefined;
+    const color = {
+      color: `var(--cocalc-text-primary, ${COLORS.TAB})`,
+    };
 
     const isActive = (actBar === "flyout" ? active_flyout : activeTab) === name;
 

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -98,19 +98,19 @@ function parse_bsStyle(
     style = {
       backgroundColor: theme.colorWarning,
       borderColor: theme.colorWarning,
-      color: "#ffffff",
+      color: theme.textOnPrimary,
     };
   } else if (props.bsStyle === "success") {
     style = {
       backgroundColor: theme.colorSuccess,
       borderColor: theme.colorSuccess,
-      color: "#ffffff",
+      color: theme.textOnPrimary,
     };
   } else if (props.bsStyle == "info") {
     style = {
       backgroundColor: theme.colorInfo,
       borderColor: theme.colorInfo,
-      color: "#ffffff",
+      color: theme.textOnPrimary,
     };
   } else if (props.bsStyle === "primary") {
     // If it's primary, we just let antd handle it with colorPrimary,
