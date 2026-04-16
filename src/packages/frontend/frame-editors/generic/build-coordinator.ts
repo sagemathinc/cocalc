@@ -305,10 +305,12 @@ export class BuildCoordinator {
     // Detach change listener before closing the ref-counted DKV.
     // The DKV may stay alive if other editors in the same project
     // still hold references — without this, stale listeners accumulate.
-    if (this.changeHandler && this.dkv) {
-      this.dkv.off("change", this.changeHandler);
+    const dkv = this.dkv;
+    this.dkv = undefined;
+    if (this.changeHandler && dkv) {
+      dkv.off("change", this.changeHandler);
       this.changeHandler = undefined;
     }
-    this.dkv?.close();
+    dkv?.close();
   }
 }

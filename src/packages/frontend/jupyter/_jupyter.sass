@@ -137,11 +137,16 @@ cocalc-lumino-adapter
 .minimal-cell-toolbar > div
   margin-left: 0 !important
 
-// Hide native scrollbar when minimap is active
+// Hide native scrollbar when minimap is active (must also target child
+// Virtuoso scroller, which otherwise gets forced-visible by _editor.sass)
 .minimap-hide-scrollbar
   scrollbar-width: none
   &::-webkit-scrollbar
     display: none
+  [data-virtuoso-scroller="true"]
+    scrollbar-width: none !important
+    &::-webkit-scrollbar
+      display: none !important
 
 // Minimap: blink for the actively running cell
 @keyframes minimap-blink
@@ -154,3 +159,9 @@ cocalc-lumino-adapter
 
 .minimap-cell-running
   animation: minimap-blink 1s ease-in-out infinite
+
+.mini-toc-entry:hover
+  color: #999 !important
+
+.minimal-status-segmented .ant-segmented-item
+  margin-bottom: 0 !important

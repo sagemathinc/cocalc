@@ -170,6 +170,7 @@ export class ChatActions extends Actions<ChatState> {
     submitMentionsRef,
     extraInput,
     name,
+    cell_id,
   }: {
     input?: string;
     sender_id?: string;
@@ -180,6 +181,8 @@ export class ChatActions extends Actions<ChatState> {
     extraInput?: string;
     // if name is given, rename thread to have that name
     name?: string;
+    // when set on a root message, anchors this thread to a Jupyter cell
+    cell_id?: string;
   }): string => {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to sendChat before chat actions initialized");
@@ -195,9 +198,12 @@ export class ChatActions extends Actions<ChatState> {
       input = (input ?? "") + extraInput;
     }
     input = input?.trim();
-    if (!input) {
+    if (!input && !cell_id) {
       // do not send when there is nothing to send.
       return "";
+    }
+    if (!input) {
+      input = "";
     }
     const trimmedName = name?.trim();
     const message: ChatMessage = {
@@ -216,6 +222,9 @@ export class ChatActions extends Actions<ChatState> {
     };
     if (trimmedName && !reply_to) {
       (message as any).name = trimmedName;
+    }
+    if (cell_id && !reply_to) {
+      message.cell_id = cell_id;
     }
     this.syncdb.set(message);
     const messagesState = this.store.get("messages");
@@ -1407,6 +1416,47 @@ export class ChatActions extends Actions<ChatState> {
       id: this.frameId,
       selectedThreadKey: threadKey,
     });
+  };
+
+  // Find the most recent thread anchored to the given cell, or create one.
+  findOrCreateCellThread = (
+    cellId: string,
+    cellLabel?: string,
+  ): string | null => {
+    if (!this.store) return null;
+    const messages = this.store.get("messages");
+    if (!messages) return null;
+
+    let bestKey: string | null = null;
+    let bestTime = 0;
+    for (const [key, msg] of messages) {
+      if (msg?.get("cell_id") === cellId && !msg.get("reply_to")) {
+        const t = msg.get("date")?.valueOf() ?? 0;
+        if (t > bestTime) {
+          bestTime = t;
+          bestKey = typeof key === "string" ? key : `${key}`;
+        }
+      }
+    }
+
+    if (bestKey) {
+      this.setSelectedThread(bestKey);
+      return bestKey;
+    }
+
+    return this.createCellThread(cellId, cellLabel);
+  };
+
+  // Always create a new thread anchored to the given cell.
+  createCellThread = (cellId: string, cellLabel?: string): string | null => {
+    const name = cellLabel || "Cell discussion";
+    const timeStamp = this.sendChat({
+      input: "",
+      cell_id: cellId,
+      name,
+      noNotification: true,
+    });
+    return timeStamp || null;
   };
 }
 
