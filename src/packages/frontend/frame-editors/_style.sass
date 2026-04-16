@@ -91,6 +91,37 @@
       display: flex
       flex-direction: column
 
+.cc-dark-chrome-button-primary.ant-btn,
+.cc-dark-chrome-button-primary.ant-dropdown-button .ant-btn-primary
+  background: var(--cocalc-chrome-primary-bg, colors.$COL_BS_BLUE_TEXT) !important
+  border-color: var(--cocalc-chrome-primary-bg, colors.$COL_BS_BLUE_TEXT) !important
+  color: var(--cocalc-chrome-primary-text, colors.$COL_WHITE) !important
+  box-shadow: none !important
+
+  &:hover:not(:disabled),
+  &:focus:not(:disabled),
+  &:active:not(:disabled)
+    background: var(--cocalc-chrome-primary-bg-hover, colors.$COL_BS_BLUE_TEXT) !important
+    border-color: var(--cocalc-chrome-primary-bg-hover, colors.$COL_BS_BLUE_TEXT) !important
+    color: var(--cocalc-chrome-primary-text, colors.$COL_WHITE) !important
+
+.cc-dark-chrome-button-primary.ant-dropdown-button
+  .ant-btn-primary + .ant-btn-primary
+    border-inline-start-color: color-mix(in srgb, var(--cocalc-border-light, colors.$COL_GRAY_LL) 70%, transparent) !important
+
+.cc-dark-chrome-button-success.ant-btn
+  background: var(--cocalc-chrome-success-bg, colors.$COL_BS_GREEN) !important
+  border-color: var(--cocalc-chrome-success-bg, colors.$COL_BS_GREEN) !important
+  color: var(--cocalc-chrome-success-text, colors.$COL_WHITE) !important
+  box-shadow: none !important
+
+  &:hover:not(:disabled),
+  &:focus:not(:disabled),
+  &:active:not(:disabled)
+    background: var(--cocalc-chrome-success-bg-hover, colors.$COL_BS_GREEN_DD) !important
+    border-color: var(--cocalc-chrome-success-bg-hover, colors.$COL_BS_GREEN_DD) !important
+    color: var(--cocalc-chrome-success-text, colors.$COL_WHITE) !important
+
 // During toolbar button drag-and-drop, force grabbing cursor on all elements
 .cc-toolbar-dragging,
 .cc-toolbar-dragging *

@@ -187,6 +187,7 @@ export interface FrameTitleBarProps {
   id: string;
   is_full?: boolean;
   is_only?: boolean; // is the only frame
+  is_subframe?: boolean;
   is_public?: boolean; // public view of a file
   is_paused?: boolean;
   type: string; // type of editor
@@ -748,10 +749,15 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderAssistant(noLabel, _where: "main" | "popover"): Rendered {
-    if (
-      !manageCommands.isVisible("chatgpt") ||
-      !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
-    ) {
+    const aiEnabled = redux
+      .getStore("projects")
+      .hasLanguageModelEnabled(props.project_id);
+    if (!manageCommands.isVisible("chatgpt") || !aiEnabled) {
+      return;
+    }
+    const hasEmbeddedAgent = getAgentSpec(props.path).hasAgent;
+    const showTopRightAI = hasEmbeddedAgent && aiEnabled;
+    if (showTopRightAI) {
       return;
     }
 
@@ -761,7 +767,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     const oldAssistantMode = redux
       .getStore("account")
       .getIn(["other_settings", "old_assistant_mode"]);
-    if (!getAgentSpec(props.path).hasAgent || oldAssistantMode) {
+    if (!hasEmbeddedAgent || oldAssistantMode) {
       return (
         <LanguageModelTitleBarButton
           key="assistant"
@@ -821,7 +827,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderSaveButton(noLabel): Rendered {
-    if (!manageCommands.isVisible("save")) {
+    if (!props.is_subframe || !manageCommands.isVisible("save")) {
       return;
     }
     return (
@@ -843,7 +849,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           props.editor_actions.save(true);
           props.actions.focus(props.id);
         }}
-        type={darkMode ? "default" : undefined}
       />
     );
   }

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -145,6 +145,7 @@ export function BuildControls({
     <>
       <Dropdown.Button
         type="primary"
+        className={isDarkMode ? "cc-dark-chrome-button-primary" : undefined}
         size={size}
         disabled={is_building}
         icon={<Icon name="caret-down" />}

@@ -20,6 +20,7 @@ import {
   useIsMountedRef,
   useRedux,
 } from "@cocalc/frontend/app-framework";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import {
   HelpIcon,
   Icon,
@@ -83,6 +84,7 @@ export function PDFJS({
   onZoom,
 }: PDFJSProps) {
   const { desc } = useFrameContext();
+  const { isDark: isDarkMode } = useColorTheme();
 
   // Get the dark mode disabled state for this specific frame from Redux store
   // This allows toggle_pdf_dark_mode action to control dark mode per frame
@@ -279,6 +281,7 @@ export function PDFJS({
         <div>PDF file does not exist</div>
         {typeof (actions as any).build === "function" && (
           <Button
+            className={isDarkMode ? "cc-dark-chrome-button-primary" : undefined}
             type="primary"
             size="large"
             loading={building}

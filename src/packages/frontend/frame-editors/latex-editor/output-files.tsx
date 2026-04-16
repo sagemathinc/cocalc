@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2024-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -7,6 +7,7 @@ import { List as AntdList, Avatar, Button } from "antd";
 import { List } from "immutable";
 import { useIntl } from "react-intl";
 
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { Icon } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { filenameIcon } from "@cocalc/frontend/file-associations";
@@ -43,6 +44,7 @@ export function OutputFiles({
   uiFontSize,
 }: OutputFilesProps) {
   const intl = useIntl();
+  const { isDark: isDarkMode } = useColorTheme();
 
   // Filter out the main file from the list
   const subFiles = switch_to_files
@@ -78,6 +80,7 @@ export function OutputFiles({
       {/* Fixed header with buttons and file count */}
       <div style={OUTPUT_HEADER_STYLE}>
         <Button
+          className={isDarkMode ? "cc-dark-chrome-button-primary" : undefined}
           type="primary"
           size="small"
           icon={<Icon name="tex-file" />}
@@ -86,7 +89,12 @@ export function OutputFiles({
           Open Main File
         </Button>
 
-        <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)", fontSize: uiFontSize }}>
+        <span
+          style={{
+            color: "var(--cocalc-text-primary, #5f5f5f)",
+            fontSize: uiFontSize,
+          }}
+        >
           {subFileCount} {plural(subFileCount, "subfile")}
         </span>
 

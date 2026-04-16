@@ -160,6 +160,20 @@ function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
           ? editorTitlebarActive
           : mixColors(t.topBarBg, t.bgElevated, 0.85);
   const errorLight = mixColors(t.bgBase, t.colorError, t.isDark ? 0.2 : 0.08);
+  const chromePrimaryBg = t.isDark
+    ? mixColors(editorTitlebarActive, t.primary, 0.42)
+    : t.primary;
+  const chromePrimaryBgHover = t.isDark
+    ? mixColors(editorTitlebarActive, t.primary, 0.48)
+    : t.primaryDark;
+  const chromePrimaryText = t.isDark ? t.textPrimaryStrong : t.textOnPrimary;
+  const chromeSuccessBg = t.isDark
+    ? mixColors(t.topBarBg, t.colorSuccess, 0.6)
+    : t.colorSuccess;
+  const chromeSuccessBgHover = t.isDark
+    ? mixColors(t.topBarBg, t.colorSuccess, 0.66)
+    : mixColors(t.colorSuccess, "#000000", 0.08);
+  const chromeSuccessText = t.isDark ? t.textPrimaryStrong : t.textOnPrimary;
 
   const setRgb = (name: string, hex: string) => {
     try {
@@ -218,6 +232,18 @@ function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
   rootStyle.setProperty("--cocalc-error-light", errorLight);
   rootStyle.setProperty("--cocalc-info", t.colorInfo);
   rootStyle.setProperty("--cocalc-link", t.colorLink);
+  rootStyle.setProperty("--cocalc-chrome-primary-bg", chromePrimaryBg);
+  rootStyle.setProperty(
+    "--cocalc-chrome-primary-bg-hover",
+    chromePrimaryBgHover,
+  );
+  rootStyle.setProperty("--cocalc-chrome-primary-text", chromePrimaryText);
+  rootStyle.setProperty("--cocalc-chrome-success-bg", chromeSuccessBg);
+  rootStyle.setProperty(
+    "--cocalc-chrome-success-bg-hover",
+    chromeSuccessBgHover,
+  );
+  rootStyle.setProperty("--cocalc-chrome-success-text", chromeSuccessText);
   rootStyle.setProperty("--cocalc-run", t.run);
   setRgb("--cocalc-run", t.run);
   rootStyle.setProperty("--cocalc-star", t.star);
