@@ -171,6 +171,10 @@ function useResolvedColorThemeForAntd(): ColorTheme {
 
 export function useAntdStyleProvider() {
   const other_settings = useTypedRedux("account", "other_settings");
+  const themeIntensityPreview = useTypedRedux(
+    "account",
+    "theme_intensity_preview",
+  );
   const rounded = other_settings?.get("antd_rounded", true);
   const animate = other_settings?.get("antd_animate", true);
   const compact = other_settings?.get("antd_compact", false);
@@ -179,10 +183,13 @@ export function useAntdStyleProvider() {
 
   // Parse accessibility settings
   const accessibilityStr = other_settings?.get(A11Y);
-  const themeIntensity = normalizeThemeIntensity(
-    other_settings?.get(OTHER_SETTINGS_THEME_INTENSITY),
-    other_settings?.get(LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS),
-  );
+  const themeIntensity =
+    themeIntensityPreview != null
+      ? normalizeThemeIntensity(themeIntensityPreview)
+      : normalizeThemeIntensity(
+          other_settings?.get(OTHER_SETTINGS_THEME_INTENSITY),
+          other_settings?.get(LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS),
+        );
   let accessibilityEnabled = false;
   if (accessibilityStr) {
     try {

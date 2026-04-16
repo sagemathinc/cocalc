@@ -32,6 +32,11 @@ import {
   MOUSE_SENSOR_OPTIONS,
   TOUCH_SENSOR_OPTIONS,
 } from "@cocalc/frontend/components/dnd";
+import { labels } from "@cocalc/frontend/i18n";
+import { useProjectContext } from "../../context";
+import { useActions, useIsMountedRef } from "@cocalc/frontend/app-framework";
+import { getJupyterActions } from "@cocalc/frontend/frame-editors/whiteboard-editor/elements/code/actions";
+import { useIntl } from "react-intl";
 import type { TopBarActionsData } from "./types";
 
 const BUTTON_STYLE: CSSProperties = {
@@ -43,15 +48,10 @@ const BUTTON_ICON = (<Icon name="ellipsis" rotate="90" />) as ReactNode;
 
 interface ExtraButtonsProps {
   actionsData: TopBarActionsData | null;
+  path: string;
 }
 
-function SortableItem({
-  id,
-  children,
-}: {
-  id: string;
-  children: ReactNode;
-}) {
+function SortableItem({ id, children }: { id: string; children: ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, active } =
     useSortable({ id });
   const isActive = active?.id === id;
@@ -66,12 +66,8 @@ function SortableItem({
         transition,
         zIndex: isActive ? 10 : undefined,
         opacity: isActive ? 0.9 : undefined,
-        background: isActive
-          ? "var(--cocalc-bg-hover, #f0f0f0)"
-          : undefined,
-        boxShadow: isActive
-          ? "0 2px 8px rgba(0,0,0,0.15)"
-          : undefined,
+        background: isActive ? "var(--cocalc-bg-hover, #f0f0f0)" : undefined,
+        boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.15)" : undefined,
         borderRadius: isActive ? 4 : undefined,
         cursor: isActive ? "grabbing" : undefined,
       }}
@@ -102,7 +98,11 @@ function wrapItemsForDnD(
 }
 
 export function ExtraButtons(props: Readonly<ExtraButtonsProps>): ReactNode {
-  const { actionsData } = props;
+  const { actionsData, path } = props;
+  const intl = useIntl();
+  const isMounted = useIsMountedRef();
+  const { project_id } = useProjectContext();
+  const actions = useActions({ project_id });
   const [open, setOpen] = useState(false);
 
   const sensors = useSensors(
@@ -135,20 +135,32 @@ export function ExtraButtons(props: Readonly<ExtraButtonsProps>): ReactNode {
     }
   }, []);
 
-  if (actionsData == null || actionsData.menuItems.length === 0) {
-    return (
-      <Button
-        type="text"
-        disabled
-        style={{ visibility: "hidden", ...BUTTON_STYLE }}
-      >
-        {BUTTON_ICON}
-      </Button>
-    );
-  }
+  const handleClose = useCallback(async () => {
+    try {
+      if (path.endsWith(".ipynb")) {
+        const jupyterActions = await getJupyterActions({ project_id, path });
+        if (!isMounted.current) return;
+        jupyterActions?.halt();
+      }
+    } catch (err) {
+      console.error("Problem stopping jupyter kernel, ignoring", err);
+    }
+    actions?.close_tab(path);
+  }, [actions, isMounted, path, project_id]);
 
-  const { menuItems, buttonNames } = actionsData;
+  const menuItems = actionsData?.menuItems ?? [];
+  const buttonNames = actionsData?.buttonNames ?? [];
   const sortableItems = wrapItemsForDnD(menuItems, buttonNames);
+  const renderedItems: NonNullable<MenuProps["items"]> = [
+    ...sortableItems,
+    ...(menuItems.length > 0 ? [{ type: "divider" as const }] : []),
+    {
+      key: "close-editor",
+      icon: <Icon name="times" />,
+      label: intl.formatMessage(labels.close),
+      onClick: handleClose,
+    },
+  ];
 
   return (
     <Dropdown
@@ -157,7 +169,7 @@ export function ExtraButtons(props: Readonly<ExtraButtonsProps>): ReactNode {
       trigger={["click"]}
       placement="bottomRight"
       menu={{
-        items: sortableItems,
+        items: renderedItems,
         style: { maxHeight: "70vh", overflow: "auto" },
         onClick: handleMenuClick,
       }}

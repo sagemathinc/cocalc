@@ -38,6 +38,8 @@ export class ManageCommands {
   readonly frameEditorName: string;
   readonly toolbarButtons: string[] | null;
   readonly setToolbarButtons: (value: string[] | null) => void;
+  readonly toolbarHidden: boolean;
+  readonly setToolbarHidden: (value: boolean) => void;
   readonly intl: IntlShape;
   readonly formatMessageValues: Parameters<typeof this.intl.formatMessage>[1];
 
@@ -55,6 +57,8 @@ export class ManageCommands {
     frameEditorName,
     toolbarButtons,
     setToolbarButtons,
+    toolbarHidden,
+    setToolbarHidden,
     intl,
   }) {
     this.props = props;
@@ -68,6 +72,8 @@ export class ManageCommands {
     this.frameEditorName = frameEditorName;
     this.toolbarButtons = toolbarButtons;
     this.setToolbarButtons = setToolbarButtons;
+    this.toolbarHidden = toolbarHidden;
+    this.setToolbarHidden = setToolbarHidden;
     this.intl = intl;
     this.formatMessageValues = { br: <br /> };
     //window.x = { manage: this };
@@ -391,10 +397,9 @@ export class ManageCommands {
       );
     }
     let icon;
-    if (!name || !this.editorSettings.get("extra_button_bar")) {
+    if (!name) {
       // do not show toggleable icon if no command name (unnamed submenu
-      // children can't be pinned) or the button bar is completely
-      // disabled (i.e. user doesn't want it at all).
+      // children can't be pinned).
       icon = (
         <div style={{ width, marginRight: "10px", display: "inline-block" }}>
           {this.getCommandIcon(cmd)}
@@ -712,6 +717,7 @@ export class ManageCommands {
     if (current.includes(name)) {
       this.setToolbarButtons(current.filter((item) => item !== name));
     } else {
+      this.setToolbarHidden(false);
       this.setToolbarButtons(current.concat([name]));
     }
   };
@@ -725,11 +731,12 @@ export class ManageCommands {
   };
 
   removeAllToolbarButtons = () => {
-    this.setToolbarButtons([]);
+    this.setToolbarHidden(true);
   };
 
   resetToolbar = () => {
     this.setToolbarButtons(null);
+    this.setToolbarHidden(false);
   };
 
   // returns the names in order of the button toolbar buttons
@@ -748,6 +755,10 @@ export class ManageCommands {
 
   setToolbarOrder = (order: string[]) => {
     this.setToolbarButtons(order);
+  };
+
+  isToolbarHidden = (): boolean => {
+    return this.toolbarHidden;
   };
 
   // used for sorting

@@ -50,6 +50,7 @@ export interface AccountState {
     keyboard_variant?: string;
   }>;
   font_size: number;
+  theme_intensity_preview?: number;
   other_settings: TypedMap<{
     confirm_close: string;
     page_size?: number;

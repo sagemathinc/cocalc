@@ -273,7 +273,9 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
               style={{
                 paddingInline: "10px",
                 ...(recentFilesMenuOpen
-                  ? { backgroundColor: `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})` }
+                  ? {
+                      backgroundColor: `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})`,
+                    }
                   : {}),
               }}
             />
@@ -301,7 +303,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
             tabBarStyle={{
               minHeight: "36px",
               background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_L0})`,
-              borderTop: `2px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
+              borderTop: "2px solid transparent",
             }}
             onEdit={onEdit}
             style={{ width: "100%" }}

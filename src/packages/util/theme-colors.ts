@@ -274,10 +274,10 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
  */
 export function deriveAccessibilityTheme(theme: ColorTheme): ColorTheme {
   const isDark = !!theme.isDark;
-  const bgBase = isDark ? "#000000" : "#ffffff";
+  const bgBase = isDark ? "#000000" : "#f2f2f2";
   const bgElevated = isDark
     ? mixColors(bgBase, theme.primary, 0.22)
-    : mixColors(bgBase, theme.primary, 0.1);
+    : "#ffffff";
   const bgHover = isDark
     ? mixColors("#161616", theme.primary, 0.34)
     : mixColors("#efefef", theme.primary, 0.18);

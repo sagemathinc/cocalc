@@ -30,7 +30,10 @@ interface FrameEditorSettingsDKV {
   close?(): void;
 }
 
-export function getFrameEditorSettingsName(type: string, path?: string): string {
+export function getFrameEditorSettingsName(
+  type: string,
+  path?: string,
+): string {
   if (path) {
     const ext = filename_extension(path);
     if (ext) {
@@ -66,10 +69,16 @@ function sanitizeToolbarButtons(value: unknown): string[] | null {
   return buttons;
 }
 
+function sanitizeToolbarHidden(value: unknown): boolean {
+  return value === true;
+}
+
 interface UseFrameEditorToolbarButtons {
   initialized: boolean;
   toolbarButtons: string[] | null;
   setToolbarButtons: (value: string[] | null) => void;
+  toolbarHidden: boolean;
+  setToolbarHidden: (value: boolean) => void;
 }
 
 // Migrate legacy toolbar customizations from account.editor_settings.buttons
@@ -100,9 +109,7 @@ function migrateLegacyToolbarButtons(
     if (editorSettings == null) {
       return null;
     }
-    const legacyButtons = editorSettings
-      ?.get("buttons")
-      ?.get(legacyEditorType);
+    const legacyButtons = editorSettings?.get("buttons")?.get(legacyEditorType);
     if (legacyButtons == null) {
       return null;
     }
@@ -242,15 +249,22 @@ export function useFrameEditorToolbarButtons(
   legacyEditorType?: string,
 ): UseFrameEditorToolbarButtons {
   const storageKey = getFrameEditorSettingsKey("icons", editorName);
+  const hiddenStorageKey = getFrameEditorSettingsKey(
+    "icons-hidden",
+    editorName,
+  );
   const dkvRef = useRef<FrameEditorSettingsDKV | null>(null);
   const toolbarButtonsRef = useRef<string[] | null>(null);
+  const toolbarHiddenRef = useRef(false);
   const dirtyRef = useRef(false);
   const [toolbarButtons, setToolbarButtonsState] = useState<string[] | null>(
     null,
   );
+  const [toolbarHidden, setToolbarHiddenState] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   toolbarButtonsRef.current = toolbarButtons;
+  toolbarHiddenRef.current = toolbarHidden;
 
   const persist = useCallback(
     (value: string[] | null) => {
@@ -267,6 +281,21 @@ export function useFrameEditorToolbarButtons(
     [storageKey],
   );
 
+  const persistHidden = useCallback(
+    (value: boolean) => {
+      const dkv = dkvRef.current;
+      if (dkv == null) {
+        return;
+      }
+      if (!value) {
+        dkv.delete(hiddenStorageKey);
+      } else {
+        dkv.set(hiddenStorageKey, true);
+      }
+    },
+    [hiddenStorageKey],
+  );
+
   const setToolbarButtons = useCallback(
     (value: string[] | null) => {
       const next = sanitizeToolbarButtons(value);
@@ -280,6 +309,21 @@ export function useFrameEditorToolbarButtons(
       }
     },
     [persist],
+  );
+
+  const setToolbarHidden = useCallback(
+    (value: boolean) => {
+      const next = sanitizeToolbarHidden(value);
+      dirtyRef.current = true;
+      toolbarHiddenRef.current = next;
+      setToolbarHiddenState(next);
+      try {
+        persistHidden(next);
+      } catch {
+        // DKV unavailable.
+      }
+    },
+    [persistHidden],
   );
 
   useAsyncEffect(
@@ -303,16 +347,20 @@ export function useFrameEditorToolbarButtons(
 
         dkvRef.current = conatDkv;
         conatDkv.on("change", ({ key, value }) => {
-          if (key !== storageKey) {
-            return;
+          if (key === storageKey) {
+            const next = sanitizeToolbarButtons(value);
+            toolbarButtonsRef.current = next;
+            setToolbarButtonsState(next);
+          } else if (key === hiddenStorageKey) {
+            const next = sanitizeToolbarHidden(value);
+            toolbarHiddenRef.current = next;
+            setToolbarHiddenState(next);
           }
-          const next = sanitizeToolbarButtons(value);
-          toolbarButtonsRef.current = next;
-          setToolbarButtonsState(next);
         });
 
         if (dirtyRef.current) {
           persist(toolbarButtonsRef.current);
+          persistHidden(toolbarHiddenRef.current);
         } else {
           let saved = sanitizeToolbarButtons(conatDkv.get(storageKey));
           if (saved == null) {
@@ -325,6 +373,11 @@ export function useFrameEditorToolbarButtons(
           }
           toolbarButtonsRef.current = saved;
           setToolbarButtonsState(saved);
+          const savedHidden = sanitizeToolbarHidden(
+            conatDkv.get(hiddenStorageKey),
+          );
+          toolbarHiddenRef.current = savedHidden;
+          setToolbarHiddenState(savedHidden);
         }
       } catch {
         // DKV unavailable.
@@ -338,12 +391,20 @@ export function useFrameEditorToolbarButtons(
       dkvRef.current?.close?.();
       dkvRef.current = null;
       toolbarButtonsRef.current = null;
+      toolbarHiddenRef.current = false;
       dirtyRef.current = false;
       setToolbarButtonsState(null);
+      setToolbarHiddenState(false);
       setInitialized(false);
     },
-    [persist, storageKey],
+    [hiddenStorageKey, persist, persistHidden, storageKey],
   );
 
-  return { initialized, toolbarButtons, setToolbarButtons };
+  return {
+    initialized,
+    toolbarButtons,
+    setToolbarButtons,
+    toolbarHidden,
+    setToolbarHidden,
+  };
 }

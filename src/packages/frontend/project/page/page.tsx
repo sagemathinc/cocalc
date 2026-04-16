@@ -44,7 +44,6 @@ import { DeletedProjectWarning } from "../warnings/deleted";
 import { DiskSpaceWarning } from "../warnings/disk-space";
 import { OOMWarning } from "../warnings/oom";
 import { RamWarning } from "../warnings/ram";
-import { FIX_BORDERS } from "./common";
 import { Content } from "./content";
 import { isFixedTab } from "./file-tab";
 import { FlyoutBody } from "./flyouts/body";
@@ -57,10 +56,7 @@ import {
 } from "./flyouts/state";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import { TopTabBar } from "./top-tabbar";
-import {
-  FIXED_TABS_BG_COLOR,
-  VerticalFixedTabs,
-} from "./activity-bar-tabs";
+import { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./activity-bar-tabs";
 import { throttle } from "lodash";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import { TOGGLE_ACTIVITY_BAR_TOGGLE_BUTTON_SPACE } from "./activity-bar-consts";
@@ -298,7 +294,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     );
   }
 
-
   function renderActivityBarButtons() {
     if (fullscreen && fullscreen !== "project") return;
 
@@ -343,8 +338,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             flexDirection: "column",
             background: FIXED_TABS_BG_COLOR,
             borderRadius: "0",
-            borderTop: FIX_BORDERS.borderTop,
-            borderRight: flyout == null ? FIX_BORDERS.borderRight : undefined,
+            borderTop: "5px solid transparent",
           }}
         >
           <VerticalFixedTabs setHomePageButtonWidth={setHomePageButtonWidth} />
@@ -450,7 +444,12 @@ function FlyoutDragbar({
         width: "5px",
         height: "100%",
         cursor: "col-resize",
-        ...(active ? { zIndex: 1000, backgroundColor: `var(--cocalc-drag-bar-hover, ${COLORS.GRAY})` } : {}),
+        ...(active
+          ? {
+              zIndex: 1000,
+              backgroundColor: `var(--cocalc-drag-bar-hover, ${COLORS.GRAY})`,
+            }
+          : {}),
       }}
       {...listeners}
       {...attributes}

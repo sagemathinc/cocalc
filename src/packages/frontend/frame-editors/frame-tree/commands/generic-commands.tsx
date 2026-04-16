@@ -313,9 +313,7 @@ addCommands({
     label: editor.toggle_pdf_dark_mode_label,
     icon: () => <Icon unicode={DARK_MODE_ICON} />,
     isVisible: () => {
-      const other_settings = redux
-        .getStore("account")
-        .get("other_settings");
+      const other_settings = redux.getStore("account").get("other_settings");
       const nativeDark = String(
         other_settings?.get("native_dark_mode") ?? "off",
       );
@@ -1610,9 +1608,10 @@ addCommands({
         ),
         description: (
           <div>
-            {intl.formatMessage({
-              id: "commands.generic.toggle_button_bar.confirm.description",
-              defaultMessage: `The menu toolbar is a customizable bar of shortcuts to menu items.
+            {intl.formatMessage(
+              {
+                id: "commands.generic.toggle_button_bar.confirm.description",
+                defaultMessage: `The menu toolbar is a customizable bar of shortcuts to menu items.
               <ul>
               <li>
                 Everything in the menu toolbar is always available in the menus
@@ -1628,8 +1627,21 @@ addCommands({
               <li>
                 Hide only this frame's toolbar: 'View → Menu Toolbar → Remove All Buttons'.
               </li>
+              <li>
+                Pinned menu items are always available in the {menuIcon} menu at the top right.
+              </li>
               </ul>`,
-            })}
+              },
+              {
+                menuIcon: (
+                  <Icon
+                    name="ellipsis"
+                    rotate="90"
+                    style={{ display: "inline-block", verticalAlign: "middle" }}
+                  />
+                ),
+              },
+            )}
           </div>
         ),
         cancelText: intl.formatMessage(labels.cancel),

@@ -270,10 +270,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     const ext = props.path ? filename_extension(props.path) : "";
     return ext ? `${ext}-${props.type}` : props.type;
   }, [props.type, props.path]);
-  const { toolbarButtons, setToolbarButtons } = useFrameEditorToolbarButtons(
-    frameEditorName,
-    legacyEditorType,
-  );
+  const { toolbarButtons, setToolbarButtons, toolbarHidden, setToolbarHidden } =
+    useFrameEditorToolbarButtons(frameEditorName, legacyEditorType);
   // REDUX:
   // state that is associated with the file being edited, not the
   // frame tree/tab in which this sits.  Note some more should
@@ -310,6 +308,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         frameEditorName,
         toolbarButtons,
         setToolbarButtons,
+        toolbarHidden,
+        setToolbarHidden,
         intl,
       }),
     [
@@ -323,6 +323,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       frameEditorName,
       toolbarButtons,
       setToolbarButtons,
+      toolbarHidden,
+      setToolbarHidden,
       intl,
       is_building,
     ],
@@ -1545,7 +1547,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     if (!is_active) {
       return null;
     }
-    if (!popup && !editorSettings?.get("extra_button_bar")) {
+    if (
+      !editorSettings?.get("extra_button_bar") ||
+      manageCommands.isToolbarHidden()
+    ) {
       return null;
     }
     const w = manageCommands.getToolbarButtons();

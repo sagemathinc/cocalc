@@ -40,6 +40,10 @@ function App({ children }) {
   const appState = useAppContextProvider();
   const { setLocale } = useLocalizationCtx();
   const other_settings = useTypedRedux("account", "other_settings");
+  const themeIntensityPreview = useTypedRedux(
+    "account",
+    "theme_intensity_preview",
+  );
 
   // setting via ?lang=[locale] takes precedence over account settings
   // additionally ?lang_temp=[locale] temporarily changes it, used by these impersonation admin links
@@ -96,10 +100,13 @@ function App({ children }) {
   };
 
   const colorTheme = useResolvedColorTheme();
-  const themeIntensity = normalizeThemeIntensity(
-    other_settings?.get(OTHER_SETTINGS_THEME_INTENSITY),
-    other_settings?.get(LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS),
-  );
+  const themeIntensity =
+    themeIntensityPreview != null
+      ? normalizeThemeIntensity(themeIntensityPreview)
+      : normalizeThemeIntensity(
+          other_settings?.get(OTHER_SETTINGS_THEME_INTENSITY),
+          other_settings?.get(LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS),
+        );
 
   // Check accessibility mode
   let accessibilityEnabled = false;
@@ -134,9 +141,12 @@ function App({ children }) {
 function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
   const rootStyle = document.documentElement.style;
   const bodyStyle = document.body.style;
-  const topBarActive = a11y
-    ? mixColors(t.topBarBg, t.bgSelected, t.isDark ? 0.7 : 0.85)
-    : mixColors(t.topBarBg, t.bgElevated, t.isDark ? 0.55 : 0.85);
+  const topBarActive =
+    a11y && !t.isDark
+      ? t.bgElevated
+      : a11y
+        ? mixColors(t.topBarBg, t.bgSelected, 0.7)
+        : mixColors(t.topBarBg, t.bgElevated, t.isDark ? 0.55 : 0.85);
 
   // Editor title bar backgrounds — three tiers of brightness:
   //   topBarBg (darkest) < editorTitlebarBg (inactive) < editorTitlebarActive (active)

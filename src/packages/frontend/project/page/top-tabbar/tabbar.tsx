@@ -154,7 +154,7 @@ export function TopTabBarActions(
         {actions != null ? (
           <>
             <TopBarSaveButton name={name} actions={actions} compact={compact} />
-            <ExtraButtons actionsData={actionsData} />
+            <ExtraButtons actionsData={actionsData} path={path} />
           </>
         ) : undefined}
         {/* Disabled for now. We keep the X on the file tabs for now, <CloseEditor activeTab={activeTab} project_id={project_id} /> */}

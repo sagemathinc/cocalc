@@ -41,7 +41,7 @@ const MESSAGES = defineMessages({
   appearance: {
     id: "account.settings.overview.appearance",
     defaultMessage:
-      "Customize the visual experience via color themes, {dark_mode}, language, and visual settings.",
+      "Customize the visual experience via {color_themes}, {dark_mode}, language, and visual settings.",
   },
   editor: {
     id: "account.settings.overview.editor",
@@ -139,6 +139,37 @@ const FLEX_PROPS = {
   style: { marginBottom: "40px" },
 } as const;
 
+const RAINBOW_COLORS = [
+  COLORS.BS_RED,
+  COLORS.COCALC_ORANGE,
+  COLORS.YELL_D,
+  COLORS.BS_GREEN_D,
+  COLORS.BLUE,
+  COLORS.BLUE_D,
+] as const;
+
+function RainbowText({ text }: { text: string }) {
+  return (
+    <span>
+      {[...text].map((char, i) => (
+        <span
+          key={`${char}-${i}`}
+          style={
+            char === " "
+              ? undefined
+              : {
+                  color: RAINBOW_COLORS[i % RAINBOW_COLORS.length],
+                  fontWeight: 600,
+                }
+          }
+        >
+          {char}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export function SettingsOverview() {
   const intl = useIntl();
   const is_commercial = useTypedRedux("customize", "is_commercial");
@@ -194,11 +225,12 @@ export function SettingsOverview() {
             avatar={<Icon name={APPEARANCE_ICON_NAME} />}
             title={intl.formatMessage(labels.appearance)}
             description={intl.formatMessage(MESSAGES.appearance, {
+              color_themes: <RainbowText text="color themes" />,
               dark_mode: (
                 <span
                   style={{
                     backgroundColor: COLORS.GRAY_DD,
-                    color: "var(--cocalc-text-tertiary, #f5f5f5)",
+                    color: COLORS.WHITE,
                     paddingLeft: "3px",
                     paddingRight: "3px",
                   }}

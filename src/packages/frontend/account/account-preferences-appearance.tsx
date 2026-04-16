@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Segmented } from "antd";
 import { ReactElement } from "react";
 import { FormattedMessage, defineMessages, useIntl } from "react-intl";
 
@@ -23,10 +22,6 @@ import {
   DARK_MODE_ICON,
 } from "@cocalc/util/consts/ui";
 import { DEFAULT_EDITOR_THEME } from "@cocalc/util/db-schema/accounts";
-import {
-  type NativeDarkMode,
-  OTHER_SETTINGS_NATIVE_DARK_MODE,
-} from "@cocalc/util/theme";
 import { ColorThemeSelector } from "./color-theme-selector";
 import { EditorSettingsColorScheme } from "./editor-settings/color-schemes";
 import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
@@ -56,19 +51,7 @@ const DARK_MODE_MESSAGES = defineMessages({
   description: {
     id: "account.appearance.dark_mode.description",
     defaultMessage:
-      "Automatically derives a dark variant from the selected color theme. 'System' follows your OS light/dark preference. Editor and terminal themes switch automatically.",
-  },
-  off: {
-    id: "account.appearance.dark_mode.off",
-    defaultMessage: "Off",
-  },
-  system: {
-    id: "account.appearance.dark_mode.system",
-    defaultMessage: "System",
-  },
-  always: {
-    id: "account.appearance.dark_mode.always",
-    defaultMessage: "Always",
+      "Dark mode is now part of UI Theme above. Use the controls there to choose Off, System, or Always.",
   },
 });
 
@@ -117,15 +100,7 @@ export function AccountPreferencesAppearance() {
     );
   }
 
-  // This standalone Dark Mode panel duplicates the toggle inside ColorThemeSelector
-  // on purpose: users who previously relied on a dedicated dark-mode section should
-  // still find it here so they are not disoriented. Both controls write the same
-  // setting (OTHER_SETTINGS_NATIVE_DARK_MODE), so they always stay in sync.
   function renderDarkModePanel(): ReactElement {
-    const nativeDarkMode = String(
-      other_settings?.get(OTHER_SETTINGS_NATIVE_DARK_MODE) ?? "off",
-    ) as NativeDarkMode;
-
     return (
       <Panel
         size="small"
@@ -138,33 +113,10 @@ export function AccountPreferencesAppearance() {
       >
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 6,
+            fontSize: 12,
+            color: "var(--cocalc-text-secondary, #808080)",
           }}
         >
-          <Segmented
-            size="small"
-            value={nativeDarkMode}
-            onChange={(val) => on_change(OTHER_SETTINGS_NATIVE_DARK_MODE, val)}
-            options={[
-              {
-                label: intl.formatMessage(DARK_MODE_MESSAGES.off),
-                value: "off",
-              },
-              {
-                label: intl.formatMessage(DARK_MODE_MESSAGES.system),
-                value: "system",
-              },
-              {
-                label: intl.formatMessage(DARK_MODE_MESSAGES.always),
-                value: "on",
-              },
-            ]}
-          />
-        </div>
-        <div style={{ fontSize: 12, color: "var(--cocalc-text-secondary, #808080)" }}>
           {intl.formatMessage(DARK_MODE_MESSAGES.description)}
         </div>
       </Panel>

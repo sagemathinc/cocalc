@@ -21,14 +21,22 @@ import {
   Slider,
   Tag,
 } from "antd";
-import { CSSProperties, useCallback, useMemo, useState } from "react";
+import { debounce } from "lodash";
+import {
+  CSSProperties,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { FormattedMessage, defineMessages, useIntl } from "react-intl";
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
-import { A11Y } from "@cocalc/util/consts/ui";
+import { A11Y, DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 import {
   adjustThemeIntensity,
   type BaseColors,
@@ -123,6 +131,11 @@ const MESSAGES = defineMessages({
     id: "account.appearance.color_theme.intensity",
     defaultMessage: "Intensity",
   },
+  intensityDescription: {
+    id: "account.appearance.color_theme.intensity.description",
+    defaultMessage:
+      "Adjust the overall strength of the theme. Lower feels softer and dimmer; higher feels brighter and stronger.",
+  },
   themes: {
     id: "account.appearance.color_theme.themes",
     defaultMessage: "Themes",
@@ -171,6 +184,27 @@ function ThemeSwatch({
         />
       ))}
     </div>
+  );
+}
+
+function SegmentedIconLabel({
+  icon,
+  label,
+}: {
+  icon: ReactNode;
+  label: string;
+}) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+      }}
+    >
+      {icon}
+      <span>{label}</span>
+    </span>
   );
 }
 
@@ -497,6 +531,10 @@ function RandomizedThemeCard({
 export function ColorThemeSelector() {
   const intl = useIntl();
   const other_settings = useTypedRedux("account", "other_settings");
+  const themeIntensityPreview = useTypedRedux(
+    "account",
+    "theme_intensity_preview",
+  );
 
   const currentThemeId = String(
     other_settings?.get(OTHER_SETTINGS_COLOR_THEME) ?? "default",
@@ -512,10 +550,16 @@ export function ColorThemeSelector() {
   const randomSeed = Number(
     other_settings?.get(OTHER_SETTINGS_RANDOM_THEME_SEED) ?? 0,
   );
-  const themeIntensity = normalizeThemeIntensity(
+  const persistedThemeIntensity = normalizeThemeIntensity(
     other_settings?.get(OTHER_SETTINGS_THEME_INTENSITY),
     other_settings?.get(LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS),
   );
+  const themeIntensity =
+    themeIntensityPreview != null
+      ? normalizeThemeIntensity(themeIntensityPreview)
+      : persistedThemeIntensity;
+  const [sliderThemeIntensity, setSliderThemeIntensity] =
+    useState<number>(themeIntensity);
 
   const isCustom = currentThemeId === THEME_CUSTOM_ID;
 
@@ -529,6 +573,35 @@ export function ColorThemeSelector() {
     }
     return DEFAULT_CUSTOM;
   }, [customColorsJson]);
+
+  useEffect(() => {
+    setSliderThemeIntensity(themeIntensity);
+  }, [themeIntensity]);
+
+  const setThemeIntensityPreview = useMemo(
+    () =>
+      debounce((value: number | undefined) => {
+        redux
+          .getActions("account")
+          .setState({ theme_intensity_preview: value });
+      }, 30),
+    [],
+  );
+
+  useEffect(() => {
+    return () => setThemeIntensityPreview.cancel();
+  }, [setThemeIntensityPreview]);
+
+  useEffect(() => {
+    if (
+      themeIntensityPreview != null &&
+      persistedThemeIntensity === themeIntensityPreview
+    ) {
+      redux
+        .getActions("account")
+        .setState({ theme_intensity_preview: undefined });
+    }
+  }, [persistedThemeIntensity, themeIntensityPreview]);
 
   let accessibilityEnabled = false;
   try {
@@ -565,7 +638,7 @@ export function ColorThemeSelector() {
       accessibilityEnabled
         ? deriveAccessibilityTheme(resolvedTheme)
         : resolvedTheme,
-      themeIntensity,
+      sliderThemeIntensity,
     );
   }, [
     accessibilityEnabled,
@@ -574,7 +647,7 @@ export function ColorThemeSelector() {
     customColorsJson,
     nativeDarkMode,
     randomSeed,
-    themeIntensity,
+    sliderThemeIntensity,
   ]);
 
   const handleSelectPreset = useCallback((id: string) => {
@@ -613,7 +686,7 @@ export function ColorThemeSelector() {
     currentThemeId === "default" &&
     !customColorsJson &&
     nativeDarkMode === "off" &&
-    themeIntensity === THEME_INTENSITY_DEFAULT;
+    persistedThemeIntensity === THEME_INTENSITY_DEFAULT;
 
   const themes = Object.entries(COLOR_THEMES);
 
@@ -642,92 +715,141 @@ export function ColorThemeSelector() {
         </div>
       }
     >
-      {/* Dark mode — 3-state toggle */}
-      <div style={{ marginBottom: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          flexWrap: "wrap",
+          marginBottom: 12,
+        }}
+      >
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 6,
+            flex: "1 1 280px",
           }}
         >
-          <strong>{intl.formatMessage(MESSAGES.nativeDarkLabel)}</strong>
-          <Segmented
-            size="small"
-            value={nativeDarkMode}
-            onChange={(val) =>
-              onChangeSetting(OTHER_SETTINGS_NATIVE_DARK_MODE, val)
-            }
-            options={[
-              {
-                label: intl.formatMessage(MESSAGES.nativeDarkOff),
-                value: "off",
-              },
-              {
-                label: intl.formatMessage(MESSAGES.nativeDarkSystem),
-                value: "system",
-              },
-              {
-                label: intl.formatMessage(MESSAGES.nativeDarkOn),
-                value: "on",
-              },
-            ]}
-          />
-        </div>
-        <div
-          style={{
-            fontSize: 12,
-            color: "var(--cocalc-text-secondary, #808080)",
-          }}
-        >
-          {intl.formatMessage(MESSAGES.nativeDarkDescription)}
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 12 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 6,
-          }}
-        >
-          <strong>
-            <FormattedMessage {...MESSAGES.intensityLabel} />
-          </strong>
-          <span
+          <div
+            style={{
+              marginBottom: 6,
+            }}
+          >
+            <strong>{intl.formatMessage(MESSAGES.nativeDarkLabel)}</strong>
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <Segmented
+              style={{ width: "auto" }}
+              value={nativeDarkMode}
+              onChange={(val) =>
+                onChangeSetting(OTHER_SETTINGS_NATIVE_DARK_MODE, val)
+              }
+              options={[
+                {
+                  label: (
+                    <SegmentedIconLabel
+                      icon={<Icon name="sun" />}
+                      label={intl.formatMessage(MESSAGES.nativeDarkOff)}
+                    />
+                  ),
+                  value: "off",
+                },
+                {
+                  label: (
+                    <SegmentedIconLabel
+                      icon={<Icon unicode={0x2699} />}
+                      label={intl.formatMessage(MESSAGES.nativeDarkSystem)}
+                    />
+                  ),
+                  value: "system",
+                },
+                {
+                  label: (
+                    <SegmentedIconLabel
+                      icon={<Icon unicode={DARK_MODE_ICON} />}
+                      label={intl.formatMessage(MESSAGES.nativeDarkOn)}
+                    />
+                  ),
+                  value: "on",
+                },
+              ]}
+            />
+          </div>
+          <div
             style={{
               fontSize: 12,
               color: "var(--cocalc-text-secondary, #808080)",
-              minWidth: 40,
-              textAlign: "right",
             }}
           >
-            {themeIntensity}%
-          </span>
+            {intl.formatMessage(MESSAGES.nativeDarkDescription)}
+          </div>
         </div>
-        <Slider
-          min={THEME_INTENSITY_MIN}
-          max={THEME_INTENSITY_MAX}
-          step={1}
-          value={themeIntensity}
-          onChange={(value) => {
-            if (!Array.isArray(value)) {
-              onChangeSetting(OTHER_SETTINGS_THEME_INTENSITY, value);
-            }
+
+        <div
+          style={{
+            flex: "1 1 280px",
           }}
-          marks={{
-            [THEME_INTENSITY_MIN]: `${THEME_INTENSITY_MIN}`,
-            [THEME_INTENSITY_DEFAULT]: `${THEME_INTENSITY_DEFAULT}`,
-            [THEME_INTENSITY_MAX]: `${THEME_INTENSITY_MAX}`,
-          }}
-          tooltip={{
-            formatter: (value) => `${value ?? THEME_INTENSITY_DEFAULT}%`,
-          }}
-        />
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+              marginBottom: 6,
+            }}
+          >
+            <strong>
+              <FormattedMessage {...MESSAGES.intensityLabel} />
+            </strong>
+            <span
+              style={{
+                fontSize: 12,
+                color: "var(--cocalc-text-secondary, #808080)",
+                minWidth: 40,
+                textAlign: "right",
+              }}
+            >
+              {sliderThemeIntensity}%
+            </span>
+          </div>
+          <Slider
+            min={THEME_INTENSITY_MIN}
+            max={THEME_INTENSITY_MAX}
+            step={1}
+            value={sliderThemeIntensity}
+            onChange={(value) => {
+              if (!Array.isArray(value)) {
+                setSliderThemeIntensity(value);
+                setThemeIntensityPreview(value);
+              }
+            }}
+            onChangeComplete={(value) => {
+              if (!Array.isArray(value)) {
+                setThemeIntensityPreview.cancel();
+                redux
+                  .getActions("account")
+                  .setState({ theme_intensity_preview: value });
+                onChangeSetting(OTHER_SETTINGS_THEME_INTENSITY, value);
+              }
+            }}
+            marks={{
+              [THEME_INTENSITY_MIN]: `${THEME_INTENSITY_MIN}`,
+              [THEME_INTENSITY_DEFAULT]: `${THEME_INTENSITY_DEFAULT}`,
+              [THEME_INTENSITY_MAX]: `${THEME_INTENSITY_MAX}`,
+            }}
+            tooltip={{
+              formatter: (value) => `${value ?? THEME_INTENSITY_DEFAULT}%`,
+            }}
+          />
+          <div
+            style={{
+              fontSize: 12,
+              color: "var(--cocalc-text-secondary, #808080)",
+              marginTop: 6,
+            }}
+          >
+            {intl.formatMessage(MESSAGES.intensityDescription)}
+          </div>
+        </div>
       </div>
 
       <Divider style={{ margin: "8px 0" }} />
