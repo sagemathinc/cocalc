@@ -132,6 +132,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
     const cellType = cell.get("cell_type") || "code";
     const isCode = cellType === "code";
     const isMarkdown = cellType === "markdown";
+    const isRaw = cellType === "raw";
     const input = cell.get("input") || "";
     const sourceHidden = !!cell.getIn(["metadata", "jupyter", "source_hidden"]);
     const isNotEditable = !cell.getIn(["metadata", "editable"], true);
@@ -545,9 +546,9 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
       );
     }
 
-    // Hover-only toolbar for markdown cells in the code column.
-    function renderMarkdownHoverToolbar() {
-      if (!isMarkdown) return null;
+    // Hover-only toolbar for non-code cells (markdown, raw) in the code column.
+    function renderNonCodeHoverToolbar() {
+      if (isCode) return null;
       const toolbarVisible = rowHovered || menuOpen;
       return (
         <div
@@ -646,6 +647,44 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
       );
     }
 
+    // Raw cells render verbatim as a plain <pre> block. No execution, no
+    // syntax highlighting. Edit mode is reached via the 3-dot menu (switch
+    // cell type to code or markdown).
+    function renderRawView() {
+      if (!isRaw) return null;
+      const hasContent = input.trim().length > 0;
+      if (!hasContent) {
+        return (
+          <div
+            style={{
+              color: COLORS.GRAY_L,
+              padding: "4px 8px",
+              fontStyle: "italic",
+            }}
+          >
+            empty raw cell
+          </div>
+        );
+      }
+      return (
+        <pre
+          style={{
+            margin: 0,
+            padding: "4px 8px",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            fontFamily: "monospace",
+            fontSize: `${font_size}px`,
+            color: COLORS.GRAY_D,
+            background: "transparent",
+            border: "none",
+          }}
+        >
+          {input}
+        </pre>
+      );
+    }
+
     // Markdown editor (CodeMirror) with a "Done editing" button overlay.
     function renderMarkdownEditor() {
       if (!isMarkdown || !is_markdown_edit) return null;
@@ -709,6 +748,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               />
             )}
             {renderMarkdownEditor()}
+            {renderRawView()}
           </div>
         </div>
       );
@@ -848,7 +888,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               {renderCodePreview()}
               {renderCodeSourceHidden()}
               {renderCodeActiveEditor()}
-              {renderMarkdownHoverToolbar()}
+              {renderNonCodeHoverToolbar()}
             </>
           )}
         </div>
