@@ -20,7 +20,6 @@ import { jupyter } from "@cocalc/frontend/i18n";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { openAssistantWithPrefill } from "@cocalc/frontend/frame-editors/llm/assistant-seed";
 import { clear_selection } from "@cocalc/frontend/misc/clear-selection";
-import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import type { LLMTools } from "@cocalc/jupyter/types";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
@@ -47,11 +46,15 @@ import {
   formatDuration,
   formatTimeAgo,
 } from "./minimal-gutter";
+import { MarkdownView } from "./markdown-view";
+import { ScrollToBottomOutput } from "./scroll-to-bottom-output";
+import { SectionDividerRow } from "./section-divider-row";
 import {
   CELL_ROW_STYLE,
   CODE_FLEX_DEFAULT,
   CODE_FLEX_EDITING,
   COLUMN_TRANSITION,
+  HOVER_BAR_HEIGHT,
   OUTPUT_FLEX_DEFAULT,
   OUTPUT_FLEX_EDITING,
 } from "./styles";
@@ -119,7 +122,6 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo((props) => {
     cell_toolbar,
     positionInBlock,
     blockSize,
-    headingLevel,
     blockCellIds,
     isFirst,
     isLast,
@@ -135,7 +137,6 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo((props) => {
   const intl = useIntl();
   const frameActions = useNotebookFrameActions();
   const fileContext = useFileContext();
-  const [mdHovered, setMdHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [rowHovered, setRowHovered] = useState(false);
   const outputRef = useRef<HTMLDivElement>(null);
@@ -346,6 +347,13 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo((props) => {
     }
   }, [id, is_markdown_edit, read_only]);
 
+  // Stable onChange ref for MarkdownView so its React.memo can skip updates
+  // when MinimalCell re-renders for unrelated reasons.
+  const handleMarkdownChange = useCallback(
+    (value: string) => actions?.set_cell_input(id, value, true),
+    [actions, id],
+  );
+
   const handleRunSection = useCallback(() => {
     if (!actions || !blockCellIds) return;
     const cells_map = actions.store.get("cells");
@@ -450,6 +458,470 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo((props) => {
   };
 
   const cmOpts = cm_options.get("options")?.toJS() ?? {};
+
+  // ---- Small render helpers (to keep the JSX below readable) ----
+
+  const chatEnabled =
+    actions != null && project_id != null && !actions.is_closed();
+  const chatPath = chatEnabled ? (actions as any).path : undefined;
+
+  function renderChatButton() {
+    if (!chatEnabled) return null;
+    return (
+      <CellChatButton cellId={id} project_id={project_id!} path={chatPath} />
+    );
+  }
+
+  function renderUnreadBadge(wrapperStyle?: React.CSSProperties) {
+    if (!chatEnabled) return null;
+    return (
+      <div style={wrapperStyle} onClick={(e) => e.stopPropagation()}>
+        <CellChatUnreadBadge
+          cellId={id}
+          project_id={project_id!}
+          path={chatPath}
+        />
+      </div>
+    );
+  }
+
+  function renderLLMTool(cellType: "code" | "markdown") {
+    if (read_only || !llmTools || !actions) return null;
+    return (
+      <LLMCellTool
+        id={id}
+        actions={actions}
+        llmTools={llmTools}
+        cellType={cellType}
+      />
+    );
+  }
+
+  function renderCellDropdownMenu() {
+    return (
+      <CodeBarDropdownMenu
+        actions={actions}
+        frameActions={frameActions}
+        id={id}
+        cell={cell}
+        onOpenChange={setMenuOpen}
+      />
+    );
+  }
+
+  // Floating top-right toolbar rendered inside the output column in zen mode.
+  // Hidden unless the row is hovered or the menu is open.
+  function renderZenFloatingToolbar() {
+    if (!zenMode) return null;
+    return (
+      <div
+        style={{
+          position: "absolute",
+          top: "2px",
+          right: "4px",
+          zIndex: 5,
+          display: "flex",
+          gap: "2px",
+          alignItems: "center",
+          background: "var(--cocalc-bg-elevated, rgba(255,255,255,0.85))",
+          borderRadius: "4px",
+          padding: "1px",
+          visibility: rowHovered || menuOpen ? "visible" : "hidden",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {isCode && !read_only && renderRunDropdownButton()}
+        {isCode && renderLLMTool("code")}
+        {renderChatButton()}
+        {renderCellDropdownMenu()}
+      </div>
+    );
+  }
+
+  // Unread badge shown in zen mode (output column) — sits in the same slot
+  // as the floating toolbar but only when the toolbar isn't visible.
+  function renderZenUnreadBadge() {
+    if (!zenMode || rowHovered || menuOpen) return null;
+    return renderUnreadBadge({
+      position: "absolute",
+      top: "2px",
+      right: "4px",
+      zIndex: 4,
+      padding: "1px",
+    });
+  }
+
+  // Translucent background so the toolbar reads as an overlay when it
+  // crosses the output column on narrow code columns — the underlying
+  // content stays faintly visible beneath it.
+  const HOVER_BAR_BG = "var(--cocalc-bg-elevated, rgba(255,255,255,0.85))";
+
+  // Hover-only toolbar rendered above the code preview in the code column.
+  // The outer slot reserves HOVER_BAR_HEIGHT so layout is stable. The inner
+  // bar is absolute/right-aligned with auto width so the background covers
+  // exactly the buttons (and extends leftward into the output column when
+  // the buttons overflow a narrow code column). Children mount/unmount
+  // with hover so no antd component animations can linger after hide.
+  function renderCodeHoverToolbar() {
+    if (!isCode || isActiveEditing) return null;
+    const toolbarVisible = rowHovered || menuOpen;
+    return (
+      <div
+        style={{
+          minHeight: HOVER_BAR_HEIGHT,
+          position: "relative",
+          zIndex: 2,
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 4,
+            display: "flex",
+            gap: "2px",
+            alignItems: "center",
+            padding: "0 4px",
+            background: toolbarVisible ? HOVER_BAR_BG : undefined,
+            borderRadius: "4px",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {toolbarVisible ? (
+            <>
+              {!read_only && renderRunDropdownButton({ marginRight: "auto" })}
+              {renderLLMTool("code")}
+              {renderChatButton()}
+              {renderCellDropdownMenu()}
+            </>
+          ) : (
+            renderUnreadBadge()
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Hover-only toolbar for markdown cells in the code column.
+  function renderMarkdownHoverToolbar() {
+    if (!isMarkdown) return null;
+    const toolbarVisible = rowHovered || menuOpen;
+    return (
+      <div
+        style={{
+          minHeight: HOVER_BAR_HEIGHT,
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 4,
+            display: "flex",
+            gap: "2px",
+            alignItems: "center",
+            padding: "0 4px",
+            background: toolbarVisible ? HOVER_BAR_BG : undefined,
+            borderRadius: "4px",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {toolbarVisible ? (
+            <>
+              {renderChatButton()}
+              {renderCellDropdownMenu()}
+            </>
+          ) : (
+            renderUnreadBadge()
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Output-column pieces ----
+
+  function renderCellOutput() {
+    if (!isCode || cell.get("output") == null) return null;
+    return (
+      <ScrollToBottomOutput frameHeight={frameHeight}>
+        <CellOutput
+          cell={cell}
+          actions={actions}
+          name={name}
+          id={id}
+          project_id={project_id}
+          directory={directory}
+          more_output={more_output}
+          trust={trust}
+          hidePrompt
+          llmTools={llmTools}
+        />
+      </ScrollToBottomOutput>
+    );
+  }
+
+  // Placeholder shown in an empty code cell: quick-start links for code,
+  // markdown, or LLM-generated content.
+  function renderEmptyCodeCellPlaceholder() {
+    if (!isCode || cell.get("output") != null) return null;
+    if (input.trim() || read_only || zenMode) return null;
+    const handleSwitchToMarkdown = () => {
+      frameActions.current?.set_selected_cell_type("markdown");
+      // Small delay so cell type change propagates before opening editor
+      setTimeout(() => {
+        frameActions.current?.switch_md_cell_to_edit(id);
+      }, 0);
+    };
+    const handleGenerate = () => {
+      if (!actions || !project_id) return;
+      const cellList = (actions as any).store?.get("cell_list");
+      const cellIds = cellList?.toJS() as string[] | undefined;
+      const cellIndex = cellIds ? cellIds.indexOf(id) : -1;
+      const cellLabel = cellIndex >= 0 ? `cell #${cellIndex + 1}` : "this cell";
+      openAssistantWithPrefill({
+        redux,
+        project_id,
+        path: (actions as any).path,
+        prompt: `Generate code in ${cellLabel} that does: `,
+      }).catch((err) => console.warn("openAssistantWithPrefill failed:", err));
+    };
+    const linkStyle = { color: "var(--cocalc-text-primary, #888)" };
+    return (
+      <div
+        style={{
+          color: "var(--cocalc-text-primary, #888)",
+          padding: "8px 4px",
+          fontSize: "13px",
+        }}
+      >
+        {"Write "}
+        <a onClick={handleActivateCode} style={linkStyle}>
+          code
+        </a>
+        {", "}
+        <a style={linkStyle} onClick={handleSwitchToMarkdown}>
+          text
+        </a>
+        {", or "}
+        <a style={linkStyle} onClick={handleGenerate}>
+          generate using AI...
+        </a>
+      </div>
+    );
+  }
+
+  // Markdown editor (CodeMirror) with a "Done editing" button overlay.
+  function renderMarkdownEditor() {
+    if (!isMarkdown || !is_markdown_edit) return null;
+    return (
+      <div style={{ position: "relative" }} className="minimal-code-editor">
+        <FileContext.Provider value={minimalFileContext}>
+          <CellInput
+            cell={cell}
+            actions={actions}
+            cm_options={cm_options}
+            is_markdown_edit={true}
+            is_focused={!!is_focused}
+            is_current={!!is_current}
+            id={id}
+            index={index}
+            font_size={font_size}
+            project_id={project_id}
+            directory={directory}
+            trust={trust}
+            is_readonly={!!read_only}
+            input_is_readonly={!cell.getIn(["metadata", "editable"], true)}
+          />
+        </FileContext.Provider>
+        <Tooltip title="Done editing" placement="top">
+          <Button
+            type="text"
+            size="small"
+            icon={<Icon name="check" />}
+            onClick={handleToggleMdEdit}
+            style={{ position: "absolute", top: "2px", right: "2px" }}
+          />
+        </Tooltip>
+      </div>
+    );
+  }
+
+  function renderOutputColumn() {
+    return (
+      <div
+        ref={outputRef}
+        style={{
+          flex: `${outputFlex} 1 0`,
+          minWidth: 0,
+          overflow: "hidden",
+          transition: COLUMN_TRANSITION,
+          padding: "4px 8px",
+          position: "relative",
+        }}
+      >
+        <div ref={outputContentRef}>
+          {renderZenFloatingToolbar()}
+          {renderZenUnreadBadge()}
+          {renderCellOutput()}
+          {renderEmptyCodeCellPlaceholder()}
+          {isMarkdown && !is_markdown_edit && (
+            <MarkdownView
+              input={input}
+              readOnly={!!read_only}
+              onEdit={handleToggleMdEdit}
+              onChange={read_only ? undefined : handleMarkdownChange}
+            />
+          )}
+          {renderMarkdownEditor()}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Code-column pieces ----
+
+  function renderCodePreview() {
+    if (!isCode || isActiveEditing || sourceHidden) return null;
+    return (
+      <MinimalCodePreview
+        value={input}
+        cmOptions={cmOpts}
+        fontSize={font_size}
+        onActivate={handleActivateCode}
+        highlighted={rowHovered}
+        maxHeight={codePreviewMaxHeight}
+      />
+    );
+  }
+
+  // Placeholder shown when the code cell's input is marked hidden.
+  function renderCodeSourceHidden() {
+    if (!isCode || isActiveEditing || !sourceHidden) return null;
+    return (
+      <div
+        style={{
+          color: "var(--cocalc-text-primary, #888)",
+          fontSize: "14px",
+          padding: "4px 8px",
+          cursor: "pointer",
+        }}
+        title="Input is hidden — click to show"
+        onClick={() => {
+          actions?.toggle_jupyter_metadata_boolean(id, "source_hidden");
+        }}
+      >
+        <Icon name="ellipsis" />
+      </div>
+    );
+  }
+
+  // Active code editor (CodeMirror) with Run/Close floating buttons.
+  function renderCodeActiveEditor() {
+    if (!isCode || !isActiveEditing) return null;
+    return (
+      <div
+        style={{
+          position: "relative",
+          maxHeight: `${codeEditMaxHeight}px`,
+          overflowY: "auto",
+          overflowX: "hidden",
+        }}
+        onBlur={(e) => {
+          // Close editor when focus leaves the entire editing area
+          // (but not when clicking buttons inside it)
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            handleCloseEditor();
+          }
+        }}
+      >
+        <FileContext.Provider value={minimalFileContext}>
+          <div className="minimal-code-editor" style={{ position: "relative" }}>
+            <CellInput
+              cell={cell}
+              actions={actions}
+              cm_options={cm_options}
+              is_markdown_edit={false}
+              is_focused={!!is_focused}
+              is_current={!!is_current}
+              id={id}
+              index={index}
+              font_size={font_size}
+              project_id={project_id}
+              directory={directory}
+              complete={complete}
+              trust={trust}
+              is_readonly={!!read_only}
+              input_is_readonly={!cell.getIn(["metadata", "editable"], true)}
+              computeServerId={computeServerId}
+              llmTools={llmTools}
+            />
+          </div>
+        </FileContext.Provider>
+        <div
+          style={{
+            position: "absolute",
+            top: "4px",
+            right: "4px",
+            zIndex: 10,
+            display: "flex",
+            gap: "2px",
+            background: "var(--cocalc-bg-elevated, rgba(255,255,255,0.85))",
+            borderRadius: "4px",
+            padding: "1px",
+          }}
+        >
+          <Tooltip title="Run cell and close editor" placement="top">
+            <Button
+              type="text"
+              size="small"
+              icon={<Icon name="play" />}
+              onClick={handleRunAndClose}
+            />
+          </Tooltip>
+          <Tooltip title="Close editor" placement="top">
+            <Button
+              type="text"
+              size="small"
+              icon={<Icon name="times" />}
+              onClick={handleCloseEditor}
+            />
+          </Tooltip>
+        </div>
+      </div>
+    );
+  }
+
+  function renderCodeColumn() {
+    // Hidden entirely in zen + wide mode — output goes full width.
+    if (!showCodeColumn) return null;
+    return (
+      <div
+        style={{
+          flex: `${codeFlex} 1 0`,
+          minWidth: 0,
+          overflow: "visible",
+          transition: COLUMN_TRANSITION,
+          position: "relative",
+          zIndex: 1,
+          borderLeft: zenMode
+            ? "none"
+            : "1px solid var(--cocalc-border-light, #eee)",
+        }}
+      >
+        {showCode && (
+          <>
+            {renderCodeHoverToolbar()}
+            {renderCodePreview()}
+            {renderCodeSourceHidden()}
+            {renderCodeActiveEditor()}
+            {renderMarkdownHoverToolbar()}
+          </>
+        )}
+      </div>
+    );
+  }
 
   // Section divider bar — appears at the start of every section
   // In zen mode, add an empty spacer matching the code column so the bar
@@ -567,473 +1039,8 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo((props) => {
               flex: 1,
             }}
           >
-            {/* Output column */}
-            <div
-              ref={outputRef}
-              style={{
-                flex: `${outputFlex} 1 0`,
-                minWidth: 0,
-                overflow: "hidden",
-                transition: COLUMN_TRANSITION,
-                padding: "4px 8px",
-                position: "relative",
-              }}
-            >
-              <div ref={outputContentRef}>
-                {/* Zen mode: floating toolbar inside output area */}
-                {zenMode && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "2px",
-                      right: "4px",
-                      zIndex: 5,
-                      display: "flex",
-                      gap: "2px",
-                      alignItems: "center",
-                      background:
-                        "var(--cocalc-bg-elevated, rgba(255,255,255,0.85))",
-                      borderRadius: "4px",
-                      padding: "1px",
-                      visibility: rowHovered || menuOpen ? "visible" : "hidden",
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {isCode && !read_only && renderRunDropdownButton()}
-                    {isCode && !read_only && llmTools && actions && (
-                      <LLMCellTool
-                        id={id}
-                        actions={actions}
-                        llmTools={llmTools}
-                        cellType="code"
-                      />
-                    )}
-                    {actions && project_id && !actions.is_closed() && (
-                      <CellChatButton
-                        cellId={id}
-                        project_id={project_id}
-                        path={(actions as any).path}
-                      />
-                    )}
-                    <CodeBarDropdownMenu
-                      actions={actions}
-                      frameActions={frameActions}
-                      id={id}
-                      cell={cell}
-                      onOpenChange={setMenuOpen}
-                    />
-                  </div>
-                )}
-                {isCode && cell.get("output") != null && (
-                  <ScrollToBottomOutput frameHeight={frameHeight}>
-                    <CellOutput
-                      cell={cell}
-                      actions={actions}
-                      name={name}
-                      id={id}
-                      project_id={project_id}
-                      directory={directory}
-                      more_output={more_output}
-                      trust={trust}
-                      hidePrompt
-                      llmTools={llmTools}
-                    />
-                  </ScrollToBottomOutput>
-                )}
-                {isCode &&
-                  cell.get("output") == null &&
-                  !input.trim() &&
-                  !read_only &&
-                  !zenMode && (
-                    <div
-                      style={{
-                        color: "var(--cocalc-text-primary, #888)",
-                        padding: "8px 4px",
-                        fontSize: "13px",
-                      }}
-                    >
-                      {"Write "}
-                      <a
-                        onClick={handleActivateCode}
-                        style={{ color: "var(--cocalc-text-primary, #888)" }}
-                      >
-                        code
-                      </a>
-                      {", "}
-                      <a
-                        style={{ color: "var(--cocalc-text-primary, #888)" }}
-                        onClick={() => {
-                          frameActions.current?.set_selected_cell_type(
-                            "markdown",
-                          );
-                          // Small delay so cell type change propagates before opening editor
-                          setTimeout(() => {
-                            frameActions.current?.switch_md_cell_to_edit(id);
-                          }, 0);
-                        }}
-                      >
-                        text
-                      </a>
-                      {", or "}
-                      <a
-                        style={{ color: "var(--cocalc-text-primary, #888)" }}
-                        onClick={() => {
-                          if (!actions || !project_id) return;
-                          const cellList = (actions as any).store?.get(
-                            "cell_list",
-                          );
-                          const cellIds = cellList?.toJS() as
-                            | string[]
-                            | undefined;
-                          const cellIndex = cellIds ? cellIds.indexOf(id) : -1;
-                          const cellLabel =
-                            cellIndex >= 0
-                              ? `cell #${cellIndex + 1}`
-                              : "this cell";
-                          openAssistantWithPrefill({
-                            redux,
-                            project_id,
-                            path: (actions as any).path,
-                            prompt: `Generate code in ${cellLabel} that does: `,
-                          }).catch((err) =>
-                            console.warn(
-                              "openAssistantWithPrefill failed:",
-                              err,
-                            ),
-                          );
-                        }}
-                      >
-                        generate using AI...
-                      </a>
-                    </div>
-                  )}
-                {isMarkdown && !is_markdown_edit && (
-                  <div
-                    style={{ position: "relative", minHeight: "24px" }}
-                    onMouseEnter={() => setMdHovered(true)}
-                    onMouseLeave={() => setMdHovered(false)}
-                    onDoubleClick={handleToggleMdEdit}
-                  >
-                    {input.trim() ? (
-                      <div className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md minimal-md-render">
-                        <MostlyStaticMarkdown
-                          value={input.trim()}
-                          onChange={
-                            read_only
-                              ? undefined
-                              : (value) =>
-                                  actions?.set_cell_input(id, value, true)
-                          }
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          color: "var(--cocalc-border, #ccc)",
-                          padding: "4px",
-                          fontStyle: "italic",
-                          cursor: "pointer",
-                        }}
-                        onClick={handleToggleMdEdit}
-                      >
-                        empty markdown
-                      </div>
-                    )}
-                    {(mdHovered || !input.trim()) && !read_only && (
-                      <Tooltip title="Edit this markdown cell" placement="top">
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<Icon name="pencil" />}
-                          onClick={handleToggleMdEdit}
-                          style={{
-                            position: "absolute",
-                            top: "2px",
-                            right: "2px",
-                            opacity: 0.7,
-                          }}
-                        />
-                      </Tooltip>
-                    )}
-                  </div>
-                )}
-                {isMarkdown && is_markdown_edit && (
-                  <div
-                    style={{ position: "relative" }}
-                    className="minimal-code-editor"
-                  >
-                    <FileContext.Provider value={minimalFileContext}>
-                      <CellInput
-                        cell={cell}
-                        actions={actions}
-                        cm_options={cm_options}
-                        is_markdown_edit={true}
-                        is_focused={!!is_focused}
-                        is_current={!!is_current}
-                        id={id}
-                        index={index}
-                        font_size={font_size}
-                        project_id={project_id}
-                        directory={directory}
-                        trust={trust}
-                        is_readonly={!!read_only}
-                        input_is_readonly={
-                          !cell.getIn(["metadata", "editable"], true)
-                        }
-                      />
-                    </FileContext.Provider>
-                    <Tooltip title="Done editing" placement="top">
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<Icon name="check" />}
-                        onClick={handleToggleMdEdit}
-                        style={{
-                          position: "absolute",
-                          top: "2px",
-                          right: "2px",
-                        }}
-                      />
-                    </Tooltip>
-                  </div>
-                )}
-              </div>
-              {/* end outputContentRef */}
-            </div>
-
-            {/* Code column — hidden entirely in zen + wide mode */}
-            {showCodeColumn && (
-              <div
-                style={{
-                  flex: `${codeFlex} 1 0`,
-                  minWidth: 0,
-                  overflow: "hidden",
-                  transition: COLUMN_TRANSITION,
-                  position: "relative",
-                  zIndex: 1,
-                  borderLeft:
-                    zenMode || (positionInBlock === 0 && headingLevel > 0)
-                      ? "none"
-                      : "1px solid var(--cocalc-border-light, #eee)",
-                }}
-              >
-                {showCode && (
-                  <>
-                    {/* Cell action toolbar — hover only, above code */}
-                    {isCode && !isActiveEditing && (
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "flex-end",
-                          padding: "0 4px",
-                          minHeight: "22px",
-                          gap: "2px",
-                          alignItems: "center",
-                          visibility:
-                            rowHovered || menuOpen ? "visible" : "hidden",
-                          position: "relative",
-                          zIndex: 2,
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {!read_only &&
-                          renderRunDropdownButton({ marginRight: "auto" })}
-                        {!read_only && llmTools && actions && (
-                          <LLMCellTool
-                            id={id}
-                            actions={actions}
-                            llmTools={llmTools}
-                            cellType={isCode ? "code" : "markdown"}
-                          />
-                        )}
-                        {actions && project_id && !actions.is_closed() && (
-                          <CellChatButton
-                            cellId={id}
-                            project_id={project_id}
-                            path={(actions as any).path}
-                          />
-                        )}
-                        <CodeBarDropdownMenu
-                          actions={actions}
-                          frameActions={frameActions}
-                          id={id}
-                          cell={cell}
-                          onOpenChange={setMenuOpen}
-                        />
-                        {/* Unread badge — always visible even when toolbar is hidden */}
-                        {!(rowHovered || menuOpen) &&
-                          actions &&
-                          project_id &&
-                          !actions.is_closed() && (
-                            <div style={{ visibility: "visible" }}>
-                              <CellChatUnreadBadge
-                                cellId={id}
-                                project_id={project_id}
-                                path={(actions as any).path}
-                              />
-                            </div>
-                          )}
-                      </div>
-                    )}
-                    {isCode && !isActiveEditing && !sourceHidden && (
-                      <MinimalCodePreview
-                        value={input}
-                        cmOptions={cmOpts}
-                        fontSize={font_size}
-                        onActivate={handleActivateCode}
-                        highlighted={rowHovered}
-                        maxHeight={codePreviewMaxHeight}
-                      />
-                    )}
-                    {isCode && !isActiveEditing && sourceHidden && (
-                      <div
-                        style={{
-                          color: "var(--cocalc-text-primary, #888)",
-                          fontSize: "14px",
-                          padding: "4px 8px",
-                          cursor: "pointer",
-                        }}
-                        title="Input is hidden — click to show"
-                        onClick={() => {
-                          actions?.toggle_jupyter_metadata_boolean(
-                            id,
-                            "source_hidden",
-                          );
-                        }}
-                      >
-                        <Icon name="ellipsis" />
-                      </div>
-                    )}
-                    {isCode && isActiveEditing && (
-                      <div
-                        style={{
-                          position: "relative",
-                          maxHeight: `${codeEditMaxHeight}px`,
-                          overflowY: "auto",
-                          overflowX: "hidden",
-                        }}
-                        onBlur={(e) => {
-                          // Close editor when focus leaves the entire editing area
-                          // (but not when clicking buttons inside it)
-                          if (
-                            !e.currentTarget.contains(e.relatedTarget as Node)
-                          ) {
-                            handleCloseEditor();
-                          }
-                        }}
-                      >
-                        <FileContext.Provider value={minimalFileContext}>
-                          <div
-                            className="minimal-code-editor"
-                            style={{ position: "relative" }}
-                          >
-                            <CellInput
-                              cell={cell}
-                              actions={actions}
-                              cm_options={cm_options}
-                              is_markdown_edit={false}
-                              is_focused={!!is_focused}
-                              is_current={!!is_current}
-                              id={id}
-                              index={index}
-                              font_size={font_size}
-                              project_id={project_id}
-                              directory={directory}
-                              complete={complete}
-                              trust={trust}
-                              is_readonly={!!read_only}
-                              input_is_readonly={
-                                !cell.getIn(["metadata", "editable"], true)
-                              }
-                              computeServerId={computeServerId}
-                              llmTools={llmTools}
-                            />
-                          </div>
-                        </FileContext.Provider>
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "4px",
-                            right: "4px",
-                            zIndex: 10,
-                            display: "flex",
-                            gap: "2px",
-                            background:
-                              "var(--cocalc-bg-elevated, rgba(255,255,255,0.85))",
-                            borderRadius: "4px",
-                            padding: "1px",
-                          }}
-                        >
-                          <Tooltip
-                            title="Run cell and close editor"
-                            placement="top"
-                          >
-                            <Button
-                              type="text"
-                              size="small"
-                              icon={<Icon name="play" />}
-                              onClick={handleRunAndClose}
-                            />
-                          </Tooltip>
-                          <Tooltip title="Close editor" placement="top">
-                            <Button
-                              type="text"
-                              size="small"
-                              icon={<Icon name="times" />}
-                              onClick={handleCloseEditor}
-                            />
-                          </Tooltip>
-                        </div>
-                      </div>
-                    )}
-                    {/* Markdown cell toolbar in code column — chat + 3-dot menu */}
-                    {isMarkdown && (
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "flex-end",
-                          padding: "0 4px",
-                          minHeight: "22px",
-                          gap: "2px",
-                          alignItems: "center",
-                          visibility:
-                            rowHovered || menuOpen ? "visible" : "hidden",
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {actions && project_id && !actions.is_closed() && (
-                          <CellChatButton
-                            cellId={id}
-                            project_id={project_id}
-                            path={(actions as any).path}
-                          />
-                        )}
-                        <CodeBarDropdownMenu
-                          actions={actions}
-                          frameActions={frameActions}
-                          id={id}
-                          cell={cell}
-                          onOpenChange={setMenuOpen}
-                        />
-                        {/* Unread badge — always visible even when toolbar is hidden */}
-                        {!(rowHovered || menuOpen) &&
-                          actions &&
-                          project_id &&
-                          !actions.is_closed() && (
-                            <div style={{ visibility: "visible" }}>
-                              <CellChatUnreadBadge
-                                cellId={id}
-                                project_id={project_id}
-                                path={(actions as any).path}
-                              />
-                            </div>
-                          )}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
+            {renderOutputColumn()}
+            {renderCodeColumn()}
           </div>
           {/* end output+code row */}
         </div>
@@ -1061,203 +1068,3 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo((props) => {
     </>,
   );
 });
-
-/** Wrapper that caps output height and auto-scrolls to bottom on changes */
-function ScrollToBottomOutput({
-  children,
-  frameHeight,
-}: {
-  children: React.ReactNode;
-  frameHeight?: number;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const scrollToBottom = () => {
-      el.scrollTop = el.scrollHeight;
-    };
-    // Defer initial scroll until after browser layout is complete
-    const raf = requestAnimationFrame(scrollToBottom);
-    // Re-scroll on any child DOM mutation (new output lines)
-    const observer = new MutationObserver(() => {
-      requestAnimationFrame(scrollToBottom);
-    });
-    observer.observe(el, { childList: true, subtree: true });
-    return () => {
-      cancelAnimationFrame(raf);
-      observer.disconnect();
-    };
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      style={{
-        maxHeight: frameHeight ? `${Math.round(frameHeight * 0.7)}px` : "70vh",
-        overflowY: "auto",
-        overflowX: "hidden",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-/** Section divider row — single hover state across output and code columns */
-function SectionDividerRow({
-  isFirst,
-  sectionCollapsed,
-  sectionTitle,
-  onToggle,
-  onRunSection,
-  showCode,
-  codeFlex,
-  outputFlex,
-  zenMode,
-  minimalLayout,
-}: {
-  isFirst?: boolean;
-  sectionCollapsed?: boolean;
-  sectionTitle?: string;
-  onToggle?: () => void;
-  onRunSection?: () => void;
-  showCode?: boolean;
-  codeFlex: number;
-  outputFlex: number;
-  zenMode?: boolean;
-  minimalLayout?: string;
-}) {
-  const [hovered, setHovered] = useState(false);
-  const bg = hovered
-    ? "var(--cocalc-bg-hover, #e8e8e8)"
-    : "var(--cocalc-bg-elevated, #f5f5f5)";
-  const borderTop = isFirst
-    ? undefined
-    : `1px solid var(--cocalc-border-light, #e0e0e0)`;
-  const borderBottom = `1px solid var(--cocalc-border-light, #e0e0e0)`;
-  const segmentStyle: React.CSSProperties = {
-    backgroundColor: bg,
-    borderTop,
-    borderBottom,
-    transition: "background-color 150ms ease",
-  };
-
-  return (
-    <div
-      style={{ display: "flex", cursor: "pointer" }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={onToggle}
-    >
-      {/* Output column side */}
-      <div
-        style={{
-          flex: `${outputFlex} 1 0`,
-          display: "flex",
-          alignItems: "center",
-          minHeight: "24px",
-          ...segmentStyle,
-        }}
-      >
-        {/* Gutter-width area with toggle icon */}
-        <div
-          style={{
-            width: "44px",
-            minWidth: "44px",
-            display: "flex",
-            justifyContent: "flex-start",
-            alignItems: "center",
-            paddingLeft: "2px",
-          }}
-        >
-          <Icon
-            name={sectionCollapsed ? "plus-square" : "minus-square"}
-            style={{
-              color: "var(--cocalc-text-primary, #888)",
-              fontSize: "14px",
-            }}
-          />
-        </div>
-        {/* Title */}
-        {sectionCollapsed && sectionTitle ? (
-          <span
-            style={{
-              color: "var(--cocalc-text-primary-strong, #555)",
-              fontSize: "13px",
-              fontWeight: 600,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              flex: 1,
-              padding: "0 8px",
-            }}
-          >
-            {sectionTitle}
-          </span>
-        ) : (
-          <span style={{ flex: 1 }} />
-        )}
-        {/* Run button in zen mode (no code column) */}
-        {onRunSection && !showCode && (
-          <Tooltip title="Run all code cells in this section">
-            <Button
-              type="text"
-              size="small"
-              icon={<Icon name="play" />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onRunSection();
-              }}
-              style={{
-                color: "var(--cocalc-text-primary, #888)",
-                visibility: hovered ? "visible" : "hidden",
-                marginRight: "4px",
-              }}
-            >
-              Run
-            </Button>
-          </Tooltip>
-        )}
-      </div>
-      {/* Code column side */}
-      {showCode && (
-        <div
-          style={{
-            flex: `${codeFlex} 1 0`,
-            display: "flex",
-            alignItems: "center",
-            padding: "0 4px",
-            ...segmentStyle,
-          }}
-        >
-          {onRunSection && (
-            <Tooltip title="Run all code cells in this section">
-              <Button
-                type="text"
-                size="small"
-                icon={<Icon name="play" />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRunSection();
-                }}
-                style={{
-                  ...CODE_BAR_BTN_STYLE,
-                  marginLeft: "auto",
-                  visibility: hovered ? "visible" : "hidden",
-                }}
-              >
-                Run
-              </Button>
-            </Tooltip>
-          )}
-        </div>
-      )}
-      {/* Empty spacer for zen + non-wide — no background so bar ends at output column */}
-      {zenMode && minimalLayout !== "wide" && (
-        <div style={{ flex: `${codeFlex} 1 0` }} />
-      )}
-    </div>
-  );
-}

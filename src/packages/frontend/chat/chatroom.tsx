@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -200,6 +200,20 @@ export function ChatPanel({
   const disableFilters = disableFiltersProp ?? isCompact;
   const storedThreadFromDesc =
     getDescValue(desc, "data-selectedThreadKey") ?? null;
+  // set_frame_data stores values via fromJS, so we get an Immutable Map back.
+  const pendingCellThread = useMemo<{
+    cellId: string;
+    cellLabel?: string;
+  } | null>(() => {
+    const raw = getDescValue(desc, "data-pendingCellThread");
+    if (raw == null) return null;
+    const v = raw?.toJS?.() ?? raw;
+    if (!v || typeof v.cellId !== "string") return null;
+    return {
+      cellId: v.cellId,
+      cellLabel: typeof v.cellLabel === "string" ? v.cellLabel : undefined,
+    };
+  }, [desc]);
   const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
     storedThreadFromDesc,
   );
@@ -301,6 +315,15 @@ export function ChatPanel({
     }
   }, [storedThreadFromDesc]);
 
+  // When a pending cell-thread anchor is staged, clear any previously-selected
+  // thread so the compose placeholder is shown instead of the stale thread.
+  useEffect(() => {
+    if (pendingCellThread && selectedThreadKey !== null) {
+      setSelectedThreadKey(null);
+      setAllowAutoSelectThread(false);
+    }
+  }, [pendingCellThread]);
+
   useEffect(() => {
     if (threads.length === 0) {
       if (selectedThreadKey !== null) {
@@ -309,11 +332,14 @@ export function ChatPanel({
       setAllowAutoSelectThread(true);
       return;
     }
+    // When the Jupyter "Chat" button staged a pending cell anchor, keep the
+    // compose view open instead of auto-jumping into some other thread.
+    if (pendingCellThread) return;
     const exists = threads.some((thread) => thread.key === selectedThreadKey);
     if (!exists && allowAutoSelectThread) {
       setSelectedThreadKey(threads[0].key);
     }
-  }, [threads, selectedThreadKey, allowAutoSelectThread]);
+  }, [threads, selectedThreadKey, allowAutoSelectThread, pendingCellThread]);
 
   useEffect(() => {
     if (selectedThreadKey != null && selectedThreadKey !== ALL_THREADS_KEY) {
@@ -454,7 +480,11 @@ export function ChatPanel({
       },
       {
         key: "delete",
-        label: <span style={{ color: "var(--cocalc-error, #f5222d)" }}>Delete chat</span>,
+        label: (
+          <span style={{ color: "var(--cocalc-error, #f5222d)" }}>
+            Delete chat
+          </span>
+        ),
       },
     ],
     onClick: ({ key }) => {
@@ -504,7 +534,10 @@ export function ChatPanel({
           }
         >
           <Tooltip title={iconTooltip}>
-            <Icon name={isAI ? "robot" : "users"} style={{ color: "var(--cocalc-text-tertiary, #888)" }} />
+            <Icon
+              name={isAI ? "robot" : "users"}
+              style={{ color: "var(--cocalc-text-tertiary, #888)" }}
+            />
           </Tooltip>
           <div style={THREAD_ITEM_LABEL_STYLE}>{plainLabel}</div>
           {unreadCount > 0 && !isHovered && (
@@ -693,7 +726,13 @@ export function ChatPanel({
         )}
       </div>
       {threadSections.length === 0 ? (
-        <div style={{ color: "var(--cocalc-text-tertiary, #999)", fontSize: "12px", padding: "0 20px" }}>
+        <div
+          style={{
+            color: "var(--cocalc-text-tertiary, #999)",
+            fontSize: "12px",
+            padding: "0 20px",
+          }}
+        >
           No chats yet.
         </div>
       ) : (
@@ -910,6 +949,34 @@ export function ChatPanel({
             </Row>
           )}
         </div>
+      ) : pendingCellThread ? (
+        <div
+          className="smc-vfill"
+          style={{
+            ...CHAT_LOG_STYLE,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--cocalc-text-tertiary, #888)",
+            fontSize: "14px",
+          }}
+        >
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+              Start discussion for {pendingCellThread.cellLabel ?? "this cell"}
+            </div>
+            <div>Type your first message below to create the thread.</div>
+            <Button
+              size="small"
+              style={{ marginTop: "8px" }}
+              onClick={() => {
+                actions.setPendingCellThread?.(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
       ) : (
         <div
           className="smc-vfill"
@@ -1042,14 +1109,20 @@ export function ChatPanel({
   const renderDefaultLayout = () => (
     <Layout style={CHAT_LAYOUT_STYLE}>
       {renderThreadSidebar()}
-      <Layout.Content className="smc-vfill" style={{ background: `var(--cocalc-bg-base, ${COLORS.WHITE})` }}>
+      <Layout.Content
+        className="smc-vfill"
+        style={{ background: `var(--cocalc-bg-base, ${COLORS.WHITE})` }}
+      >
         {renderChatContent()}
       </Layout.Content>
     </Layout>
   );
 
   const renderCompactLayout = () => (
-    <div className="smc-vfill" style={{ background: `var(--cocalc-bg-base, ${COLORS.WHITE})` }}>
+    <div
+      className="smc-vfill"
+      style={{ background: `var(--cocalc-bg-base, ${COLORS.WHITE})` }}
+    >
       <Drawer
         open={sidebarVisible}
         onClose={() => setSidebarVisible(false)}
@@ -1069,10 +1142,7 @@ export function ChatPanel({
         }}
       >
         {selectedThreadCellId && (
-          <CellAnchorButton
-            cellId={selectedThreadCellId}
-            actions={actions}
-          />
+          <CellAnchorButton cellId={selectedThreadCellId} actions={actions} />
         )}
         <div style={{ flex: 1 }} />
         <Button

@@ -739,6 +739,25 @@ export function NotebookAgent({
       }, 100);
       return;
     }
+    if (seed.insert) {
+      // Insert mode: append to the existing input (e.g. a cell reference like
+      // "#5") without starting a new session or submitting. Remount the input
+      // so the cursor lands at the end of the appended text.
+      setInput((prev) => {
+        const sep = prev && !prev.endsWith(" ") ? " " : "";
+        const next = `${prev}${sep}${seed.prompt} `;
+        updateEstimate(next);
+        return next;
+      });
+      setInputKey((k) => k + 1);
+      setTimeout(() => {
+        const sel = window.getSelection();
+        if (sel && sel.focusNode) {
+          sel.collapseToEnd();
+        }
+      }, 100);
+      return;
+    }
     if (seed.forceNewTurn !== false) {
       session.handleNewSession();
     }

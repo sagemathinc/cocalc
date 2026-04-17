@@ -9,6 +9,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import { redux, useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { DragHandle } from "@cocalc/frontend/components/sortable-list";
+import { openAssistantAndInsert } from "@cocalc/frontend/frame-editors/llm/assistant-seed";
 import { SECTION_LINE_WIDTH } from "./styles";
 
 export function formatDuration(ms: number): string {
@@ -111,16 +112,18 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
       (e: React.MouseEvent) => {
         e.stopPropagation();
         e.preventDefault();
-        const projectActions = redux.getProjectActions(project_id);
-        projectActions.toggle_chat({
+        openAssistantAndInsert({
+          redux,
+          project_id,
           path,
-          chat_mode: "assistant",
-        });
+          text: `#${index + 1}`,
+        }).catch((err) => console.warn("openAssistantAndInsert failed:", err));
       },
-      [project_id, path],
+      [project_id, path, index],
     );
 
     const lineColor = RUN_STATE_COLORS[cellRunState];
+    const isBusy = cellRunState === "running" || cellRunState === "queued";
 
     const runTooltip = useMemo((): React.ReactNode => {
       if (start != null && end != null && end > start) {
@@ -135,6 +138,193 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
       return "Run this cell";
     }, [start, end]);
 
+    // Index/line color follows run state, then selection, then default.
+    const accentColor = isBusy
+      ? lineColor
+      : isCurrent || isSelected
+        ? CURRENT_COLOR
+        : null;
+
+    // ---- Local render helpers ----
+
+    // Clickable block line (spans full height) — collapses/expands the section.
+    function renderSectionLine() {
+      if (!showBlockLine) return null;
+      return (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 3,
+            width: SECTION_LINE_WIDTH + 8,
+            height: "100%",
+            zIndex: 1,
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "center",
+          }}
+          onPointerDown={(e) => {
+            // Prevent DragHandle from capturing this as a drag
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onToggleSection?.();
+          }}
+          onMouseEnter={() => onHoverBlock?.(true)}
+          onMouseLeave={() => onHoverBlock?.(false)}
+        >
+          <div
+            style={{
+              width: SECTION_LINE_WIDTH,
+              height: "100%",
+              backgroundColor:
+                accentColor ??
+                (blockHighlighted ? "var(--cocalc-border, #ccc)" : lineColor),
+              transition: "background-color 150ms ease",
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Cell index — click to reference this cell in AI chat.
+    function renderCellIndex() {
+      return (
+        <Tooltip
+          title={`Reference cell #${index + 1} in AI chat`}
+          placement="left"
+        >
+          <div
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={handleIndexClick}
+            style={{
+              fontWeight: 600,
+              cursor: "pointer",
+              zIndex: 2,
+              color: accentColor ?? "var(--cocalc-text-primary-strong, #555)",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "11px",
+                color: "var(--cocalc-text-primary, #888)",
+                fontWeight: 400,
+              }}
+            >
+              #
+            </span>
+            <span style={{ fontSize: "13px" }}>{index + 1}</span>
+          </div>
+        </Tooltip>
+      );
+    }
+
+    // Lock / protected indicators (editable=false, deletable=false metadata).
+    function renderLockIndicators() {
+      const style: React.CSSProperties = {
+        color: "var(--cocalc-text-primary, #888)",
+        fontSize: "12px",
+        zIndex: 2,
+        marginTop: "2px",
+      };
+      return (
+        <>
+          {isNotEditable && (
+            <Tooltip title="Protected from modifications" placement="left">
+              <span style={style}>
+                <Icon name="lock" />
+              </span>
+            </Tooltip>
+          )}
+          {isNotDeletable && (
+            <Tooltip title="Protected from deletion" placement="left">
+              <span style={style}>
+                <Icon name="ban" />
+              </span>
+            </Tooltip>
+          )}
+        </>
+      );
+    }
+
+    // Play (run) / Stop (interrupt) button — only for code cells with a handler.
+    function renderRunButton() {
+      if (!isCode || read_only || !onRun) return null;
+      if (isBusy && onStop) {
+        return (
+          <Tooltip title="Interrupt execution" placement="left">
+            <Button
+              type="text"
+              size="small"
+              icon={<Icon name="stop" />}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onStop();
+              }}
+              style={{
+                color: "var(--cocalc-error, #ff4d4f)",
+                transition: "color 150ms ease",
+                zIndex: 2,
+              }}
+            />
+          </Tooltip>
+        );
+      }
+      return (
+        <Tooltip title={runTooltip} placement="left">
+          <Button
+            type="text"
+            size="small"
+            icon={<Icon name="play" />}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRun();
+            }}
+            style={{
+              color: hovered
+                ? "var(--cocalc-text-primary-strong, #555)"
+                : isDirty
+                  ? "var(--cocalc-text-primary, #888)"
+                  : "var(--cocalc-border, #ccc)",
+              transition: "color 150ms ease",
+              zIndex: 2,
+            }}
+          />
+        </Tooltip>
+      );
+    }
+
+    // [+] insert cell below — hover-only, for any non-read-only cell.
+    function renderInsertCellButton() {
+      if (read_only || !onInsertCell) return null;
+      return (
+        <Tooltip title="Insert cell below" placement="right">
+          <Button
+            type="text"
+            size="small"
+            icon={<Icon name="plus" />}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onInsertCell();
+            }}
+            style={{
+              color: "var(--cocalc-text-primary-strong, #555)",
+              marginTop: "auto",
+              transition: "color 150ms ease, opacity 150ms ease",
+              zIndex: 2,
+              opacity: hovered ? 1 : 0,
+            }}
+          />
+        </Tooltip>
+      );
+    }
+
     return (
       <DragHandle id={id} style={{ display: "flex", alignSelf: "stretch" }}>
         <div
@@ -148,7 +338,7 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
             paddingTop: "9px",
             userSelect: "none",
             position: "relative",
-            backgroundColor: `var(--cocalc-bg-elevated, #f5f5f5)`,
+            backgroundColor: "var(--cocalc-bg-elevated, #f5f5f5)",
             borderRight: `1px solid var(--cocalc-border-light, #e0e0e0)`,
             cursor: "grab",
             flex: 1,
@@ -156,192 +346,11 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
         >
-          {/* Section block line — clickable to collapse section */}
-          {showBlockLine && (
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 3,
-                width: SECTION_LINE_WIDTH + 8,
-                height: "100%",
-                zIndex: 1,
-                cursor: "pointer",
-                display: "flex",
-                justifyContent: "center",
-              }}
-              onPointerDown={(e) => {
-                // Prevent DragHandle from capturing this as a drag
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onToggleSection?.();
-              }}
-              onMouseEnter={() => onHoverBlock?.(true)}
-              onMouseLeave={() => onHoverBlock?.(false)}
-            >
-              {/* The visible line — run state color, darker on section hover */}
-              <div
-                style={{
-                  width: SECTION_LINE_WIDTH,
-                  height: "100%",
-                  backgroundColor:
-                    cellRunState === "running" || cellRunState === "queued"
-                      ? lineColor
-                      : isCurrent || isSelected
-                        ? CURRENT_COLOR
-                        : blockHighlighted
-                          ? "var(--cocalc-border, #ccc)"
-                          : lineColor,
-                  transition: "background-color 150ms ease",
-                }}
-              />
-            </div>
-          )}
-
-          {/* Cell index */}
-          <Tooltip
-            title={`Reference cell #${index + 1} in AI chat`}
-            placement="left"
-          >
-            <div
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={handleIndexClick}
-              style={{
-                fontWeight: 600,
-                cursor: "pointer",
-                zIndex: 2,
-                color:
-                  cellRunState === "running" || cellRunState === "queued"
-                    ? lineColor
-                    : isCurrent || isSelected
-                      ? CURRENT_COLOR
-                      : "var(--cocalc-text-primary-strong, #555)",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "11px",
-                  color: "var(--cocalc-text-primary, #888)",
-                  fontWeight: 400,
-                }}
-              >
-                #
-              </span>
-              <span style={{ fontSize: "13px" }}>{index + 1}</span>
-            </div>
-          </Tooltip>
-
-          {/* Lock / protected indicators */}
-          {isNotEditable && (
-            <Tooltip title="Protected from modifications" placement="left">
-              <span
-                style={{
-                  color: "var(--cocalc-text-primary, #888)",
-                  fontSize: "12px",
-                  zIndex: 2,
-                  marginTop: "2px",
-                }}
-              >
-                <Icon name="lock" />
-              </span>
-            </Tooltip>
-          )}
-          {isNotDeletable && (
-            <Tooltip title="Protected from deletion" placement="left">
-              <span
-                style={{
-                  color: "var(--cocalc-text-primary, #888)",
-                  fontSize: "12px",
-                  zIndex: 2,
-                  marginTop: "2px",
-                }}
-              >
-                <Icon name="ban" />
-              </span>
-            </Tooltip>
-          )}
-
-          {/* Play / Stop button */}
-          {isCode &&
-            !read_only &&
-            onRun &&
-            (() => {
-              const isBusy =
-                cellRunState === "running" || cellRunState === "queued";
-              if (isBusy && onStop) {
-                return (
-                  <Tooltip title="Interrupt execution" placement="left">
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<Icon name="stop" />}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onStop();
-                      }}
-                      style={{
-                        color: "var(--cocalc-error, #ff4d4f)",
-                        transition: "color 150ms ease",
-                        zIndex: 2,
-                      }}
-                    />
-                  </Tooltip>
-                );
-              }
-              return (
-                <Tooltip title={runTooltip} placement="left">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<Icon name="play" />}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRun();
-                    }}
-                    style={{
-                      color: hovered
-                        ? "var(--cocalc-text-primary-strong, #555)"
-                        : isDirty
-                          ? "var(--cocalc-text-primary, #888)"
-                          : "var(--cocalc-border, #ccc)",
-                      transition: "color 150ms ease",
-                      zIndex: 2,
-                    }}
-                  />
-                </Tooltip>
-              );
-            })()}
-
-          {/* [+] insert cell below — visible on hover for every cell */}
-          {!read_only && onInsertCell && (
-            <Tooltip title="Insert cell below" placement="right">
-              <Button
-                type="text"
-                size="small"
-                icon={<Icon name="plus" />}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onInsertCell();
-                }}
-                style={{
-                  color: hovered
-                    ? "var(--cocalc-text-primary-strong, #555)"
-                    : "var(--cocalc-border-light, #e0e0e0)",
-                  marginTop: "auto",
-                  transition: "color 150ms ease, opacity 150ms ease",
-                  zIndex: 2,
-                  opacity: hovered ? 1 : 0,
-                }}
-              />
-            </Tooltip>
-          )}
+          {renderSectionLine()}
+          {renderCellIndex()}
+          {renderLockIndicators()}
+          {renderRunButton()}
+          {renderInsertCellButton()}
         </div>
       </DragHandle>
     );

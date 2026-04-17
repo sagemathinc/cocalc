@@ -22,7 +22,7 @@ import {
   Typography,
 } from "antd";
 import * as immutable from "immutable";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import ProgressEstimate from "../components/progress-estimate";
 import { jupyter as jupyterI18n, labels } from "../i18n";
@@ -142,6 +142,77 @@ export function Kernel({
       setIsSpawarning(true);
     }
   }, [backend_state]);
+
+  // In the compact (minimal) status bar, hide the Code/CPU/RAM progress bars
+  // when the row is too narrow to fit all controls. We compare the natural
+  // widths of the left and right groups against the available container
+  // width. Hysteresis: once hidden, only reshow when the container is at
+  // least 5px wider than the width at which we had to hide.
+  const containerElRef = useRef<HTMLDivElement | null>(null);
+  const leftElRef = useRef<HTMLDivElement | null>(null);
+  const rightElRef = useRef<HTMLDivElement | null>(null);
+  const [hideUsageBars, setHideUsageBars] = useState(false);
+  const hideWidthRef = useRef<number | null>(null);
+  const hideUsageBarsRef = useRef(hideUsageBars);
+  hideUsageBarsRef.current = hideUsageBars;
+
+  const measureCompactFit = React.useCallback(() => {
+    const container = containerElRef.current;
+    const left = leftElRef.current;
+    const right = rightElRef.current;
+    if (!container || !left || !right) return;
+    const GAP_PX = 6; // container has gap: 6px between children
+    const containerWidth = container.clientWidth;
+    // offsetWidth reflects the rendered width (may already be shrunk if
+    // flex children with flex-shrink:1 collapsed under pressure). scrollWidth
+    // reflects the natural content width — taking the max gives us the
+    // "would need" width that's robust to internal shrinkage.
+    const leftWidth = Math.max(left.offsetWidth, left.scrollWidth);
+    const rightWidth = Math.max(right.offsetWidth, right.scrollWidth);
+    const needed = leftWidth + rightWidth + GAP_PX * 2;
+    if (!hideUsageBarsRef.current) {
+      if (needed > containerWidth) {
+        hideWidthRef.current = containerWidth;
+        setHideUsageBars(true);
+      }
+    } else {
+      const threshold = hideWidthRef.current ?? 0;
+      if (containerWidth > threshold + 5) {
+        setHideUsageBars(false);
+      }
+    }
+  }, []);
+
+  // Callback ref for the container — sets up ResizeObserver here because
+  // React fires this callback during commit, when all sibling refs in the
+  // same JSX tree (left + right groups) are already attached. Using a
+  // useEffect instead would race: the effect can run before this callback
+  // fires, with all refs still null.
+  const observerCleanupRef = useRef<(() => void) | null>(null);
+  const containerRefCallback = React.useCallback(
+    (el: HTMLDivElement | null) => {
+      observerCleanupRef.current?.();
+      observerCleanupRef.current = null;
+      containerElRef.current = el;
+      if (!el) return;
+      measureCompactFit();
+      const raf = requestAnimationFrame(measureCompactFit);
+      const ro = new ResizeObserver(measureCompactFit);
+      ro.observe(el);
+      if (leftElRef.current) ro.observe(leftElRef.current);
+      if (rightElRef.current) ro.observe(rightElRef.current);
+      observerCleanupRef.current = () => {
+        cancelAnimationFrame(raf);
+        ro.disconnect();
+      };
+    },
+    [measureCompactFit],
+  );
+  // Also remeasure after hideUsageBars flips — the layout changed, so the
+  // threshold vs available-width comparison needs to re-run.
+  useLayoutEffect(() => {
+    measureCompactFit();
+  }, [hideUsageBars, measureCompactFit]);
 
   // render functions start there
 
@@ -791,6 +862,7 @@ export function Kernel({
   if (compact) {
     return (
       <div
+        ref={containerRefCallback}
         style={{
           overflow: "hidden",
           width: "100%",
@@ -805,6 +877,7 @@ export function Kernel({
       >
         {/* Left: logo + kernel + state + trusted */}
         <div
+          ref={leftElRef}
           style={{
             display: "flex",
             alignItems: "center",
@@ -820,16 +893,24 @@ export function Kernel({
         {/* Right: bars + controls */}
         {onLayoutChange && (
           <div
-            style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
+            ref={rightElRef}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              flex: "0 0 auto",
+            }}
           >
-            {renderTip(get_kernel_name(), renderUsage())}
-            <div
-              style={{
-                borderLeft: `1px solid var(--cocalc-border-light, #e0e0e0)`,
-                height: "18px",
-                margin: "0 2px",
-              }}
-            />
+            {!hideUsageBars && renderTip(get_kernel_name(), renderUsage())}
+            {!hideUsageBars && (
+              <div
+                style={{
+                  borderLeft: `1px solid var(--cocalc-border-light, #e0e0e0)`,
+                  height: "18px",
+                  margin: "0 2px",
+                }}
+              />
+            )}
             <Segmented
               size="small"
               className="minimal-status-segmented"
