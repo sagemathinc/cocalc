@@ -520,8 +520,8 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           <Kernel
             is_fullscreen={is_fullscreen}
             actions={actions}
-            usage={cellViewMode === "minimal" && (containerWidth ?? 9999) < 800 ? undefined : usage}
-            expected_cell_runtime={cellViewMode === "minimal" && (containerWidth ?? 9999) < 800 ? undefined : expected_cell_runtime}
+            usage={usage}
+            expected_cell_runtime={expected_cell_runtime}
             computeServerId={computeServerId}
             compact={cellViewMode === "minimal"}
             minimalLayout={cellViewMode === "minimal" ? effectiveLayout : undefined}
