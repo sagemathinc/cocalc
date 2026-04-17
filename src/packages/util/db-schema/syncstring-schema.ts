@@ -86,7 +86,11 @@ Table({
   rules: {
     primary_key: "string_id",
 
-    pg_indexes: ["last_active", "archived"],
+    pg_indexes: [
+      "last_active",
+      "archived",
+      "project_id", // used by cleanup_old_projects_data to find a deleted project's syncstrings
+    ],
 
     user_query: {
       get: {

@@ -328,6 +328,10 @@ Table({
       type: "boolean",
       desc: "True if the account has been deleted.",
     },
+    deleted_at: {
+      type: "timestamp",
+      desc: "Timestamp of when the account was marked deleted. Used to gate the grace period before PII (name, email_address_before_delete, etc.) is scrubbed.",
+    },
     name: {
       type: "string",
       pg_type: "VARCHAR(39)",
@@ -588,6 +592,7 @@ Table({
       "unlisted",
       "((passports IS NOT NULL))",
       "((ssh_keys IS NOT NULL))", // used by ssh-gateway to speed up getting all users
+      "deleted", // so cleanup_deleted_account_pii can scan deleted accounts efficiently
     ],
     crm_indexes: [
       "(lower(first_name) text_pattern_ops)",

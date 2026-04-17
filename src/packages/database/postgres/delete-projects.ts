@@ -119,25 +119,49 @@ WHERE project_id IN (
 
 /*
 Scrub personally identifying information (PII) from accounts flagged
-`deleted = true`. At deletion time (see server/accounts/delete.ts) we
-already clear `email_address` and `passports`; this job additionally clears
-`first_name`, `last_name`, `email_address_before_delete`, and the three
-email-verification/challenge/problem blobs.
+`deleted = true` for at least `age_d` days (default 30). At deletion time
+(see server/accounts/delete.ts) we already clear `email_address` and
+`passports`; this job additionally clears `first_name`, `last_name`,
+`email_address_before_delete`, and the three email-verification/challenge/
+problem blobs. The `accounts` row itself is kept so references to account_id
+elsewhere (projects, central_log, etc.) still resolve.
 
-The `accounts` row itself is kept so references to account_id elsewhere
-(projects, central_log, etc.) still resolve.
-
-Note on age gating: the `accounts` schema has no `deleted_at` timestamp — the
-only time we have is `created`, which is meaningless here (a five-year-old
-account deleted yesterday would otherwise be scrubbed immediately). Rather
-than silently do the wrong thing, we scrub as soon as `deleted = true`.
-Introduce a `deleted_at` column if a grace period is wanted.
+Gating happens via the `deleted_at` timestamp column. Accounts that were
+marked deleted before the column existed get backfilled with `NOW()` on
+first run, so they get a full grace period starting at deploy time rather
+than being scrubbed immediately.
 */
 export async function cleanup_deleted_account_pii(
   db: PostgreSQL,
+  age_d = 30,
 ): Promise<void> {
   const L = log.extend("cleanup_deleted_account_pii").debug;
   const pool = getPool();
+
+  // Backfill deleted_at for legacy deleted accounts (pre-column) so they
+  // still get a grace period before PII is scrubbed.
+  const backfillStats = await throttledRunner(
+    async (limit) => {
+      const ret = await pool.query(
+        `UPDATE accounts SET deleted_at = NOW()
+         WHERE account_id IN (
+           SELECT account_id FROM accounts
+           WHERE deleted = true AND deleted_at IS NULL
+           LIMIT $1
+         )`,
+        [limit],
+      );
+      return ret.rowCount ?? 0;
+    },
+    { label: "cleanup_deleted_account_pii/backfill" },
+  );
+  if (backfillStats.rowsDeleted > 0) {
+    L(
+      `backfilled deleted_at on ${backfillStats.rowsDeleted} legacy deleted accounts`,
+    );
+  }
+
+  // Scrub PII on accounts whose deletion grace period has elapsed.
   const q = `
 UPDATE accounts
 SET
@@ -152,6 +176,8 @@ SET
 WHERE account_id IN (
   SELECT account_id FROM accounts
   WHERE deleted = true
+    AND deleted_at IS NOT NULL
+    AND deleted_at <= NOW() - '${age_d} days'::INTERVAL
     AND (
       first_name <> ''
       OR last_name <> ''
@@ -171,7 +197,9 @@ WHERE account_id IN (
     },
     { label: "cleanup_deleted_account_pii" },
   );
-  L(`scrubbed PII from ${stats.rowsDeleted} deleted accounts in ${stats.durationS.toFixed(1)}s`);
+  L(
+    `scrubbed PII from ${stats.rowsDeleted} deleted accounts in ${stats.durationS.toFixed(1)}s`,
+  );
   db.log({
     event: "cleanup_deleted_projects",
     value: { op: "scrub_account_pii", ...stats },
@@ -309,9 +337,7 @@ async function delete_project_syncstrings(
   project_id: string,
 ): Promise<number> {
   const pool = getPool();
-  // `syncstrings.project_id` is not indexed (PK is string_id). This scan
-  // returns the handful of strings per project; Postgres can seq-scan
-  // syncstrings once and pick out the matches.
+  // Uses the syncstrings.project_id index (added alongside this code path).
   const { rows: syncstrings } = await pool.query(
     "SELECT string_id FROM syncstrings WHERE project_id = $1",
     [project_id],

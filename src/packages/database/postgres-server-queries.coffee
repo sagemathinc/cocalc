@@ -543,6 +543,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query  : "UPDATE accounts"
                     set    :
                         "deleted::BOOLEAN"                  : true
+                        "deleted_at::TIMESTAMP"             : new Date()
                         "email_address_before_delete::TEXT" : email_address
                         "email_address"                     : null
                         "passports"                         : null
@@ -2458,8 +2459,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         return await cleanup_old_projects_data(@, max_run_m)
 
     # async function
-    cleanup_deleted_account_pii: () =>
-        return await cleanup_deleted_account_pii(@)
+    cleanup_deleted_account_pii: (age_d) =>
+        return await cleanup_deleted_account_pii(@, age_d)
 
     # async function
     unlist_all_public_paths: (account_id, is_owner) =>
