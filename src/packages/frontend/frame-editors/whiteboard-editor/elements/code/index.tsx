@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -16,8 +16,11 @@ import { debounce } from "lodash";
 import { useEffect, useRef, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";
 
+import { redux } from "@cocalc/frontend/app-framework";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { codemirrorMode } from "@cocalc/frontend/file-extensions";
+import { type Options } from "@cocalc/frontend/jupyter/codemirror-static";
+import { cm_options } from "@cocalc/frontend/jupyter/cm_options";
 import { useFrameContext } from "../../hooks";
 import { Element } from "../../types";
 import useEditFocus from "../edit-focus";
@@ -64,6 +67,16 @@ export default function Code({
     }
   }, []);
 
+  const account = redux.getStore("account");
+  const immutableEditorSettings = account?.get("editor_settings");
+  const editorSettings = immutableEditorSettings?.toJS() ?? {};
+  const inputStaticOptions: Options = cm_options(
+    mode,
+    editorSettings,
+    false,
+    false,
+  );
+
   const renderInput = () => {
     if (hideInput) return;
     if (!element.locked && (focused || cursors != null) && !readOnly) {
@@ -82,7 +95,9 @@ export default function Code({
         </div>
       );
     }
-    return <InputStatic element={element} mode={mode} />;
+    return (
+      <InputStatic element={element} mode={mode} options={inputStaticOptions} />
+    );
   };
   const outerRef = useRef<HTMLDivElement>(null);
   const divRef = useRef<any>(null);
