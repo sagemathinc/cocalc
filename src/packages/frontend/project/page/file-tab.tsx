@@ -29,6 +29,7 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import useAppContext from "@cocalc/frontend/app/use-context";
 import { Icon, IconName, r_join } from "@cocalc/frontend/components";
 import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -264,6 +265,7 @@ export function FileTab(props: Readonly<Props>) {
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
   const intl = useIntl();
+  const { isDark } = useAppContext();
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [actionsExpanded, setActionsExpanded] = useState(false);
   const { onCoCalcDocker } = useProjectContext();
@@ -512,7 +514,11 @@ export function FileTab(props: Readonly<Props>) {
   } else {
     // highlight info tab if there is at least one alert
     if (status_alerts.length > 0) {
-      style = { backgroundColor: COLORS.ANTD_BG_RED_L };
+      style = {
+        backgroundColor: isDark
+          ? "rgba(var(--cocalc-error-rgb, 255, 77, 79), 0.14)"
+          : "rgba(var(--cocalc-error-rgb, 255, 77, 79), 0.08)",
+      };
     } else {
       style = { flex: "none" };
     }
@@ -750,7 +756,13 @@ export function FileTab(props: Readonly<Props>) {
         >
           {intl.formatMessage(labels.actions)} <Icon name="caret-down" />
         </AntdButton>
-        <div style={{ color: "var(--cocalc-text-secondary, #808080)", marginTop: 4, fontSize: "85%" }}>
+        <div
+          style={{
+            color: "var(--cocalc-text-secondary, #808080)",
+            marginTop: 4,
+            fontSize: "85%",
+          }}
+        >
           <Icon name="info-circle" />{" "}
           {intl.formatMessage(TAB_MENU_LABELS.popoverHint)}
         </div>
