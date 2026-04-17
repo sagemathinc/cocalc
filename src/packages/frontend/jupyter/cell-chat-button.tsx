@@ -19,6 +19,11 @@ import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 import track from "@cocalc/frontend/user-tracking";
 import { CODE_BAR_BTN_STYLE } from "./consts";
 
+const MESSAGE_COUNT_BADGE_STYLE: React.CSSProperties = {
+  backgroundColor: "var(--cocalc-bg-hover, #e8e8e8)",
+  color: "var(--cocalc-text-primary-strong, #555)",
+};
+
 /** Shared hook: threads anchored to a given cell. */
 function useCellThreads(
   project_id: string,
@@ -34,8 +39,7 @@ function useCellThreads(
   const chatMessages = useRedux(["messages"], project_id, chatPath);
   const allThreads = useThreadList(chatMessages, account_id);
   const cellThreads = React.useMemo(
-    () =>
-      allThreads.filter((t) => t.rootMessage?.get("cell_id") === cellId),
+    () => allThreads.filter((t) => t.rootMessage?.get("cell_id") === cellId),
     [allThreads, cellId],
   );
   const totalMessages = React.useMemo(
@@ -146,7 +150,7 @@ export function CellChatButton({
             <Badge
               size="small"
               count={t.messageCount}
-              color="var(--cocalc-border-light, #e0e0e0)"
+              style={MESSAGE_COUNT_BADGE_STYLE}
             />
           )}
         </span>
@@ -181,9 +185,6 @@ export function CellChatButton({
   // Badge: red with unread count if any unread, otherwise gray with total
   const hasUnread = totalUnread > 0;
   const badgeCount = hasUnread ? totalUnread : totalMessages;
-  const badgeColor = hasUnread
-    ? undefined
-    : "var(--cocalc-border-light, #e0e0e0)";
 
   return (
     <div>
@@ -203,8 +204,11 @@ export function CellChatButton({
               <Badge
                 size="small"
                 count={badgeCount}
-                color={badgeColor}
-                style={{ marginLeft: 4 }}
+                style={
+                  hasUnread
+                    ? { marginLeft: 4 }
+                    : { ...MESSAGE_COUNT_BADGE_STYLE, marginLeft: 4 }
+                }
               />
             )}
           </span>

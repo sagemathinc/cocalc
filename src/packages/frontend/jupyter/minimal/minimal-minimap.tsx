@@ -11,7 +11,9 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useAppContext } from "@cocalc/frontend/app/context";
 import { hash_string } from "@cocalc/util/misc";
+import { getSectionBarBackground } from "./styles";
 
 const MINIMAP_WIDTH = 30;
 const VIEWPORT_MIN_HEIGHT = 12;
@@ -19,8 +21,16 @@ const CELL_GAP = 2; // visible gap between cells
 const MIN_CELL_HEIGHT = 2;
 
 const CURRENT_COLOR = "var(--cocalc-primary, #42a5f5)";
+const SELECTED_COLOR = "var(--cocalc-text-primary-strong, #555)";
 
-type CellStatus = "running" | "queued" | "error" | "stale" | "idle" | "dirty" | "markdown";
+type CellStatus =
+  | "running"
+  | "queued"
+  | "error"
+  | "stale"
+  | "idle"
+  | "dirty"
+  | "markdown";
 
 function getCellStatus(
   cell: Map<string, any>,
@@ -42,7 +52,10 @@ function getCellStatus(
   const snapshotHash = lastExecInputHash[id];
   // Unexecuted or modified cells are "dirty" (darker gray)
   if (!cell.get("exec_count") && !output) return "dirty";
-  if (snapshotHash !== undefined && snapshotHash !== hash_string(cell.get("input") ?? "")) {
+  if (
+    snapshotHash !== undefined &&
+    snapshotHash !== hash_string(cell.get("input") ?? "")
+  ) {
     return "dirty";
   }
   return "idle";
@@ -50,12 +63,12 @@ function getCellStatus(
 
 const STATUS_COLORS: Record<CellStatus, string> = {
   running: "var(--cocalc-success, #5cb85c)",
-  queued: "#2e7d32",
+  queued: "var(--cocalc-run, #389e0d)",
   error: "var(--cocalc-error, #ff4d4f)",
-  stale: "var(--cocalc-border, #ccc)",
-  dirty: "var(--cocalc-border, #ccc)",
-  idle: "#eee",
-  markdown: "#eee",
+  stale: "",
+  dirty: "",
+  idle: "",
+  markdown: "",
 };
 
 const DEFAULT_CELL_HEIGHT = 60;
@@ -72,7 +85,17 @@ interface MinimalMinimapProps {
 }
 
 export const MinimalMinimap: React.FC<MinimalMinimapProps> = React.memo(
-  ({ cellList, cells, collapsedSections, scrollerRef, cellHeights, height, curId, selIds }) => {
+  ({
+    cellList,
+    cells,
+    collapsedSections,
+    scrollerRef,
+    cellHeights,
+    height,
+    curId,
+    selIds,
+  }) => {
+    const { isDark } = useAppContext();
     const [scrollRatio, setScrollRatio] = useState(0);
     const [viewportRatio, setViewportRatio] = useState(1);
     const minimapRef = useRef<HTMLDivElement>(null);
@@ -116,7 +139,10 @@ export const MinimalMinimap: React.FC<MinimalMinimapProps> = React.memo(
         const map = minimapRef.current;
         if (!el || !map) return;
         const rect = map.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+        const ratio = Math.max(
+          0,
+          Math.min(1, (clientY - rect.top) / rect.height),
+        );
         const vpHalf = viewportRatio / 2;
         const targetRatio = Math.max(
           0,
@@ -161,7 +187,8 @@ export const MinimalMinimap: React.FC<MinimalMinimapProps> = React.memo(
     cellList.forEach((id: string, index: number) => {
       const cell = cells.get(id);
       const state = cell?.get("state");
-      const isEvaluating = state === "busy" || state === "run" || state === "start";
+      const isEvaluating =
+        state === "busy" || state === "run" || state === "start";
       if (isEvaluating) {
         currentlyEvaluating.add(id);
       }
@@ -253,7 +280,10 @@ export const MinimalMinimap: React.FC<MinimalMinimapProps> = React.memo(
     const scale = minimapHeight / totalPixels;
 
     const vpTop = scrollRatio * (1 - viewportRatio) * minimapHeight;
-    const vpHeight = Math.max(VIEWPORT_MIN_HEIGHT, viewportRatio * minimapHeight);
+    const vpHeight = Math.max(
+      VIEWPORT_MIN_HEIGHT,
+      viewportRatio * minimapHeight,
+    );
 
     return (
       <div
@@ -263,7 +293,6 @@ export const MinimalMinimap: React.FC<MinimalMinimapProps> = React.memo(
           width: MINIMAP_WIDTH,
           minWidth: MINIMAP_WIDTH,
           height: minimapHeight,
-          marginTop: 8,
           cursor: dragging ? "grabbing" : "grab",
           userSelect: "none",
         }}
@@ -279,54 +308,70 @@ export const MinimalMinimap: React.FC<MinimalMinimapProps> = React.memo(
         {/* Cell bars */}
         {(() => {
           let yOffset = 0;
-          return entries.map(({ id, pixelHeight, status, isCode, isCurrent, isSelected }) => {
-            const h = Math.max(MIN_CELL_HEIGHT, pixelHeight * scale - CELL_GAP);
-            const top = yOffset;
-            yOffset += h + CELL_GAP;
+          return entries.map(
+            ({ id, pixelHeight, status, isCurrent, isSelected }) => {
+              const h = Math.max(
+                MIN_CELL_HEIGHT,
+                pixelHeight * scale - CELL_GAP,
+              );
+              const top = yOffset;
+              yOffset += h + CELL_GAP;
 
-            const color = STATUS_COLORS[status];
-            const isEval = status === "running" || status === "queued";
+              const color = STATUS_COLORS[status];
+              const isEval = status === "running" || status === "queued";
+              const neutralColor =
+                status === "dirty"
+                  ? getSectionBarBackground(isDark, "hover")
+                  : status === "markdown"
+                    ? getSectionBarBackground(isDark, "base")
+                    : getSectionBarBackground(isDark, "mid");
 
-            // Running/queued takes precedence over selection highlight
-            // so users can see execution progress sweep through
-            if (!isEval && (isCurrent || isSelected)) {
+              // Running/queued takes precedence over selection highlight
+              // so users can see execution progress sweep through
+              if (!isEval && (isCurrent || isSelected)) {
+                return (
+                  <div
+                    key={id}
+                    style={{
+                      position: "absolute",
+                      top,
+                      left: 4,
+                      right: 4,
+                      height: h,
+                      backgroundColor: isCurrent
+                        ? CURRENT_COLOR
+                        : SELECTED_COLOR,
+                      opacity: isCurrent ? 0.85 : 0.4,
+                      borderRadius: "1px",
+                    }}
+                  />
+                );
+              }
+
+              // Markdown cells: narrower, fainter bars
+              // Code cells: wider bars with status color
+              // Running cell blinks
               return (
                 <div
                   key={id}
+                  className={
+                    status === "running" ? "minimap-cell-running" : undefined
+                  }
                   style={{
                     position: "absolute",
                     top,
                     left: 4,
                     right: 4,
                     height: h,
-                    backgroundColor: CURRENT_COLOR,
-                    opacity: isCurrent ? 0.8 : 0.5,
+                    backgroundColor:
+                      isEval || status === "error" ? color : neutralColor,
+                    opacity: isEval || status === "error" ? 0.8 : 1,
                     borderRadius: "1px",
                   }}
                 />
               );
-            }
-
-            // Markdown cells: narrower, fainter bars
-            // Code cells: wider bars with status color
-            // Running cell blinks
-            return (
-              <div
-                key={id}
-                className={status === "running" ? "minimap-cell-running" : undefined}
-                style={{
-                  position: "absolute",
-                  top,
-                  left: 4,
-                  right: 4,
-                  height: h,
-                  backgroundColor: color,
-                  opacity: isCode ? 0.8 : 0.5,
-                  borderRadius: "1px",
-                }}
-              />
-            );
-          });
+            },
+          );
         })()}
 
         {/* Viewport rectangle */}
@@ -337,7 +382,7 @@ export const MinimalMinimap: React.FC<MinimalMinimapProps> = React.memo(
             left: 0,
             right: 0,
             height: vpHeight,
-            border: `1.5px solid var(--cocalc-text-primary, #888)`,
+            border: `1.5px solid var(--cocalc-border, #666)`,
             borderRadius: "2px",
             backgroundColor: "rgba(0,0,0,0.04)",
             pointerEvents: "none",

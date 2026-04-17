@@ -6,12 +6,13 @@
 import { Button, Tooltip } from "antd";
 import React, { useState } from "react";
 
+import { useAppContext } from "@cocalc/frontend/app/context";
 import { Icon } from "@cocalc/frontend/components";
 import { CODE_BAR_BTN_STYLE } from "@cocalc/frontend/jupyter/consts";
+import { getSectionBarBackground } from "./styles";
 
 /** Section divider row — single hover state across output and code columns */
 export function SectionDividerRow({
-  isFirst,
   sectionCollapsed,
   sectionTitle,
   onToggle,
@@ -22,7 +23,6 @@ export function SectionDividerRow({
   zenMode,
   minimalLayout,
 }: {
-  isFirst?: boolean;
   sectionCollapsed?: boolean;
   sectionTitle?: string;
   onToggle?: () => void;
@@ -33,18 +33,11 @@ export function SectionDividerRow({
   zenMode?: boolean;
   minimalLayout?: string;
 }) {
+  const { isDark } = useAppContext();
   const [hovered, setHovered] = useState(false);
-  const bg = hovered
-    ? "var(--cocalc-bg-hover, #e8e8e8)"
-    : "var(--cocalc-bg-elevated, #f5f5f5)";
-  const borderTop = isFirst
-    ? undefined
-    : `1px solid var(--cocalc-border-light, #e0e0e0)`;
-  const borderBottom = `1px solid var(--cocalc-border-light, #e0e0e0)`;
+  const bg = getSectionBarBackground(isDark, hovered ? "hover" : "base");
   const segmentStyle: React.CSSProperties = {
     backgroundColor: bg,
-    borderTop,
-    borderBottom,
     transition: "background-color 150ms ease",
   };
 

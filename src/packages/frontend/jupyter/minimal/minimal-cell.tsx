@@ -123,7 +123,6 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo((props) => {
     positionInBlock,
     blockSize,
     blockCellIds,
-    isFirst,
     isLast,
     isLastBlock,
     sectionCollapsed,
@@ -930,7 +929,6 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo((props) => {
     !read_only && blockCellIds ? handleRunSection : undefined;
   const sectionDivider = showSectionDivider ? (
     <SectionDividerRow
-      isFirst={isFirst}
       sectionCollapsed={sectionCollapsed}
       sectionTitle={sectionTitle}
       onToggle={onToggleSection}

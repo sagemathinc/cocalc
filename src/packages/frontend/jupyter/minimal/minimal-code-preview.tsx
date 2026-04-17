@@ -43,14 +43,17 @@ export const MinimalCodePreview: React.FC<MinimalCodePreviewProps> = React.memo(
       <div
         ref={containerRef}
         style={{
-          opacity: hovered || highlighted ? CODE_OPACITY_HOVER : CODE_OPACITY_DEFAULT,
+          opacity:
+            hovered || highlighted ? CODE_OPACITY_HOVER : CODE_OPACITY_DEFAULT,
           transition: "opacity 150ms ease",
           cursor: "text",
           position: "relative",
           overflow: "hidden",
           padding: "4px",
           minHeight: `${MIN_HEIGHT}px`,
-          maxHeight: maxHeight ? `${Math.max(MIN_HEIGHT, maxHeight)}px` : undefined,
+          maxHeight: maxHeight
+            ? `${Math.max(MIN_HEIGHT, maxHeight)}px`
+            : undefined,
         }}
         onClick={onActivate}
         onMouseEnter={() => setHovered(true)}
@@ -76,7 +79,8 @@ export const MinimalCodePreview: React.FC<MinimalCodePreviewProps> = React.memo(
             right: 0,
             width: "32px",
             height: "100%",
-            background: "linear-gradient(to right, transparent, var(--cocalc-bg-base, white))",
+            background:
+              "linear-gradient(to right, transparent, rgba(var(--cocalc-bg-base-rgb, 255, 255, 255), 1))",
             pointerEvents: "none",
           }}
         />
@@ -89,7 +93,8 @@ export const MinimalCodePreview: React.FC<MinimalCodePreviewProps> = React.memo(
               left: 0,
               width: "100%",
               height: "32px",
-              background: "linear-gradient(to bottom, transparent, white)",
+              background:
+                "linear-gradient(to bottom, transparent, rgba(var(--cocalc-bg-base-rgb, 255, 255, 255), 1))",
               pointerEvents: "none",
             }}
           />

@@ -85,9 +85,9 @@ export function SwitchToRegularButton() {
           <Tag
             style={{
               ...TAG_STYLE,
-              color: "var(--cocalc-text-on-primary, #fff)",
-              background: "var(--cocalc-text-primary-strong, #555)",
-              borderColor: "var(--cocalc-text-primary-strong, #555)",
+              color: "var(--cocalc-top-bar-text, #fff)",
+              background: "var(--cocalc-top-bar-bg, #333)",
+              borderColor: "var(--cocalc-top-bar-bg, #333)",
             }}
           >
             Old

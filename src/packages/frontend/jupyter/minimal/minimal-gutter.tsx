@@ -81,6 +81,9 @@ interface MinimalGutterProps {
 }
 
 const CURRENT_COLOR = "var(--cocalc-primary, #42a5f5)";
+const SELECTED_COLOR = "var(--cocalc-text-primary-strong, #555)";
+const DEFAULT_GUTTER_COLOR = "var(--cocalc-text-primary, #888)";
+const MUTED_GUTTER_COLOR = "var(--cocalc-text-secondary, #666)";
 
 export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
   ({
@@ -141,9 +144,11 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
     // Index/line color follows run state, then selection, then default.
     const accentColor = isBusy
       ? lineColor
-      : isCurrent || isSelected
+      : isCurrent
         ? CURRENT_COLOR
-        : null;
+        : isSelected
+          ? SELECTED_COLOR
+          : null;
 
     // ---- Local render helpers ----
 
@@ -203,13 +208,13 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
               fontWeight: 600,
               cursor: "pointer",
               zIndex: 2,
-              color: accentColor ?? "var(--cocalc-text-primary-strong, #555)",
+              color: accentColor ?? SELECTED_COLOR,
             }}
           >
             <span
               style={{
                 fontSize: "11px",
-                color: "var(--cocalc-text-primary, #888)",
+                color: accentColor ?? DEFAULT_GUTTER_COLOR,
                 fontWeight: 400,
               }}
             >
@@ -224,7 +229,7 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
     // Lock / protected indicators (editable=false, deletable=false metadata).
     function renderLockIndicators() {
       const style: React.CSSProperties = {
-        color: "var(--cocalc-text-primary, #888)",
+        color: DEFAULT_GUTTER_COLOR,
         fontSize: "12px",
         zIndex: 2,
         marginTop: "2px",
@@ -286,10 +291,10 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
             }}
             style={{
               color: hovered
-                ? "var(--cocalc-text-primary-strong, #555)"
+                ? SELECTED_COLOR
                 : isDirty
-                  ? "var(--cocalc-text-primary, #888)"
-                  : "var(--cocalc-border, #ccc)",
+                  ? MUTED_GUTTER_COLOR
+                  : DEFAULT_GUTTER_COLOR,
               transition: "color 150ms ease",
               zIndex: 2,
             }}

@@ -47,3 +47,22 @@ export const CELL_ROW_STYLE: CSS = {
 
 export const SECTION_LINE_COLOR = "var(--cocalc-border, #ccc)";
 export const SECTION_LINE_WIDTH = 4;
+
+export function getSectionBarBackground(
+  isDark: boolean,
+  strength: "base" | "mid" | "hover" = "base",
+): string {
+  const alpha =
+    strength === "hover"
+      ? isDark
+        ? 0.28
+        : 0.12
+      : strength === "mid"
+        ? isDark
+          ? 0.22
+          : 0.09
+        : isDark
+          ? 0.16
+          : 0.06;
+  return `rgba(var(--cocalc-primary-rgb, 66, 165, 245), ${alpha})`;
+}

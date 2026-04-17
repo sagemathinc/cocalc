@@ -125,6 +125,11 @@ const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
   pointerEvents: "none",
 } as const;
 
+const UNREAD_BADGE_STYLE: React.CSSProperties = {
+  backgroundColor: `var(--cocalc-error, ${COLORS.ANTD_RED})`,
+  color: `var(--cocalc-text-on-primary, ${COLORS.WHITE})`,
+} as const;
+
 const THREAD_SECTION_HEADER_STYLE: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -545,10 +550,7 @@ export function ChatPanel({
               count={unreadCount}
               size="small"
               overflowCount={99}
-              style={{
-                backgroundColor: `var(--cocalc-bg-hover, ${COLORS.GRAY_L0})`,
-                color: "var(--cocalc-text-primary-strong, #434343)",
-              }}
+              style={UNREAD_BADGE_STYLE}
             />
           )}
           {showMenu && (
@@ -584,14 +586,7 @@ export function ChatPanel({
       return null;
     }
     const badge = (
-      <Badge
-        count={count}
-        size="small"
-        style={{
-          backgroundColor: `var(--cocalc-bg-hover, ${COLORS.GRAY_L0})`,
-          color: "var(--cocalc-text-primary-strong, #434343)",
-        }}
-      />
+      <Badge count={count} size="small" style={UNREAD_BADGE_STYLE} />
     );
     if (!actions?.updateLastRead) {
       return badge;
@@ -1153,10 +1148,7 @@ export function ChatPanel({
           <Badge
             count={totalUnread}
             overflowCount={99}
-            style={{
-              backgroundColor: `var(--cocalc-bg-hover, ${COLORS.GRAY_L0})`,
-              color: "var(--cocalc-text-primary-strong, #434343)",
-            }}
+            style={UNREAD_BADGE_STYLE}
           />
         </Button>
         <Button
