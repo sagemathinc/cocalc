@@ -330,7 +330,7 @@ Table({
     },
     deleted_at: {
       type: "timestamp",
-      desc: "Timestamp of when the account was marked deleted. Used to gate the grace period before PII (name, email_address_before_delete, etc.) is scrubbed.",
+      desc: "Timestamp of when the account was marked deleted. Used by cleanup_deleted_account_pii to gate the grace period (site setting 'pii_retention') before PII such as name and email_address_before_delete is scrubbed.",
     },
     name: {
       type: "string",

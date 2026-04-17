@@ -119,27 +119,43 @@ WHERE project_id IN (
 
 /*
 Scrub personally identifying information (PII) from accounts flagged
-`deleted = true` for at least `age_d` days (default 30). At deletion time
-(see server/accounts/delete.ts) we already clear `email_address` and
-`passports`; this job additionally clears `first_name`, `last_name`,
-`email_address_before_delete`, and the three email-verification/challenge/
-problem blobs. The `accounts` row itself is kept so references to account_id
-elsewhere (projects, central_log, etc.) still resolve.
+`deleted = true` once the site's PII-retention grace period has elapsed.
 
-Gating happens via the `deleted_at` timestamp column. Accounts that were
-marked deleted before the column existed get backfilled with `NOW()` on
-first run, so they get a full grace period starting at deploy time rather
-than being scrubbed immediately.
+Retention is driven by the `pii_retention` site setting (see
+packages/util/db-schema/site-settings-extras.ts and the parser in
+packages/database/postgres/pii.ts). Accepted values: "never" (default,
+scrub disabled), "30 days", "3 month", "1 year", etc. When retention is a
+duration, an account with `deleted = true` becomes eligible for scrub once
+`NOW() - deleted_at >= pii_retention`.
+
+At deletion time (see server/accounts/delete.ts) we already clear
+`email_address` and `passports`; this job additionally clears `first_name`,
+`last_name`, `email_address_before_delete`, and the three email-
+verification/challenge/problem blobs. The `accounts` row itself is kept so
+references to account_id elsewhere (projects, central_log, etc.) still
+resolve.
+
+Accounts marked deleted before the `deleted_at` column existed get
+backfilled with `NOW()` on first run, so the existing backlog gets a fresh
+retention window starting at deploy time rather than being scrubbed
+immediately.
 */
 export async function cleanup_deleted_account_pii(
   db: PostgreSQL,
-  age_d = 30,
 ): Promise<void> {
   const L = log.extend("cleanup_deleted_account_pii").debug;
+  const settings = await getServerSettings();
+  // pii_retention is already parsed by pii_retention_parse: either `false`
+  // (retention = "never", disabled) or a number of seconds.
+  const pii_retention_s = settings.pii_retention;
+  if (!pii_retention_s) {
+    L(`pii_retention = "never" — account PII scrub disabled.`);
+    return;
+  }
   const pool = getPool();
 
   // Backfill deleted_at for legacy deleted accounts (pre-column) so they
-  // still get a grace period before PII is scrubbed.
+  // still get a full retention window before PII is scrubbed.
   const backfillStats = await throttledRunner(
     async (limit) => {
       const ret = await pool.query(
@@ -161,7 +177,9 @@ export async function cleanup_deleted_account_pii(
     );
   }
 
-  // Scrub PII on accounts whose deletion grace period has elapsed.
+  // Scrub PII on accounts whose retention window has elapsed. The interval
+  // is computed server-side from the parsed seconds value to avoid any
+  // interpolation of user-controlled strings into SQL.
   const q = `
 UPDATE accounts
 SET
@@ -177,7 +195,7 @@ WHERE account_id IN (
   SELECT account_id FROM accounts
   WHERE deleted = true
     AND deleted_at IS NOT NULL
-    AND deleted_at <= NOW() - '${age_d} days'::INTERVAL
+    AND deleted_at <= NOW() - make_interval(secs => $1)
     AND (
       first_name <> ''
       OR last_name <> ''
@@ -188,21 +206,21 @@ WHERE account_id IN (
       OR email_address_problem IS NOT NULL
       OR passports IS NOT NULL
     )
-  LIMIT $1
+  LIMIT $2
 )`;
   const stats = await throttledRunner(
     async (limit) => {
-      const ret = await pool.query(q, [limit]);
+      const ret = await pool.query(q, [pii_retention_s, limit]);
       return ret.rowCount ?? 0;
     },
     { label: "cleanup_deleted_account_pii" },
   );
   L(
-    `scrubbed PII from ${stats.rowsDeleted} deleted accounts in ${stats.durationS.toFixed(1)}s`,
+    `scrubbed PII from ${stats.rowsDeleted} deleted accounts (retention=${pii_retention_s}s) in ${stats.durationS.toFixed(1)}s`,
   );
   db.log({
     event: "cleanup_deleted_projects",
-    value: { op: "scrub_account_pii", ...stats },
+    value: { op: "scrub_account_pii", pii_retention_s, ...stats },
   });
 }
 

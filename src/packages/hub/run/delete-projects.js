@@ -24,7 +24,8 @@ async function update() {
     // limit the max runtime to half the interval time
     const max_run_m = (INTERVAL_MS / 2) / (1000 * 60)
     await db.cleanup_old_projects_data(max_run_m);
-    // scrub PII from accounts marked as deleted
+    // scrub PII from accounts marked as deleted, once the pii_retention
+    // grace period has elapsed (no-op when pii_retention = "never")
     await db.cleanup_deleted_account_pii();
   } catch (err) {
     if (err !== null) {
