@@ -200,6 +200,20 @@ export function ChatPanel({
   const disableFilters = disableFiltersProp ?? isCompact;
   const storedThreadFromDesc =
     getDescValue(desc, "data-selectedThreadKey") ?? null;
+  // set_frame_data stores values via fromJS, so we get an Immutable Map back.
+  const pendingCellThread = useMemo<{
+    cellId: string;
+    cellLabel?: string;
+  } | null>(() => {
+    const raw = getDescValue(desc, "data-pendingCellThread");
+    if (raw == null) return null;
+    const v = raw?.toJS?.() ?? raw;
+    if (!v || typeof v.cellId !== "string") return null;
+    return {
+      cellId: v.cellId,
+      cellLabel: typeof v.cellLabel === "string" ? v.cellLabel : undefined,
+    };
+  }, [desc]);
   const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
     storedThreadFromDesc,
   );
@@ -301,6 +315,15 @@ export function ChatPanel({
     }
   }, [storedThreadFromDesc]);
 
+  // When a pending cell-thread anchor is staged, clear any previously-selected
+  // thread so the compose placeholder is shown instead of the stale thread.
+  useEffect(() => {
+    if (pendingCellThread && selectedThreadKey !== null) {
+      setSelectedThreadKey(null);
+      setAllowAutoSelectThread(false);
+    }
+  }, [pendingCellThread]);
+
   useEffect(() => {
     if (threads.length === 0) {
       if (selectedThreadKey !== null) {
@@ -309,11 +332,14 @@ export function ChatPanel({
       setAllowAutoSelectThread(true);
       return;
     }
+    // When the Jupyter "Chat" button staged a pending cell anchor, keep the
+    // compose view open instead of auto-jumping into some other thread.
+    if (pendingCellThread) return;
     const exists = threads.some((thread) => thread.key === selectedThreadKey);
     if (!exists && allowAutoSelectThread) {
       setSelectedThreadKey(threads[0].key);
     }
-  }, [threads, selectedThreadKey, allowAutoSelectThread]);
+  }, [threads, selectedThreadKey, allowAutoSelectThread, pendingCellThread]);
 
   useEffect(() => {
     if (selectedThreadKey != null && selectedThreadKey !== ALL_THREADS_KEY) {
@@ -508,15 +534,7 @@ export function ChatPanel({
           </Tooltip>
           <div style={THREAD_ITEM_LABEL_STYLE}>{plainLabel}</div>
           {unreadCount > 0 && !isHovered && (
-            <Badge
-              count={unreadCount}
-              size="small"
-              overflowCount={99}
-              style={{
-                backgroundColor: COLORS.GRAY_L0,
-                color: COLORS.GRAY_D,
-              }}
-            />
+            <Badge count={unreadCount} size="small" overflowCount={99} />
           )}
           {showMenu && (
             <Dropdown
@@ -550,16 +568,7 @@ export function ChatPanel({
     if (count <= 0) {
       return null;
     }
-    const badge = (
-      <Badge
-        count={count}
-        size="small"
-        style={{
-          backgroundColor: COLORS.GRAY_L0,
-          color: COLORS.GRAY_D,
-        }}
-      />
-    );
+    const badge = <Badge count={count} size="small" />;
     if (!actions?.updateLastRead) {
       return badge;
     }
@@ -910,6 +919,35 @@ export function ChatPanel({
             </Row>
           )}
         </div>
+      ) : pendingCellThread ? (
+        <div
+          className="smc-vfill"
+          style={{
+            ...CHAT_LOG_STYLE,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#888",
+            fontSize: "14px",
+          }}
+        >
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+              Start discussion for{" "}
+              {pendingCellThread.cellLabel ?? "this cell"}
+            </div>
+            <div>Type your first message below to create the thread.</div>
+            <Button
+              size="small"
+              style={{ marginTop: "8px" }}
+              onClick={() => {
+                actions.setPendingCellThread?.(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
       ) : (
         <div
           className="smc-vfill"
@@ -1080,14 +1118,7 @@ export function ChatPanel({
           onClick={() => setSidebarVisible(true)}
         >
           Chats
-          <Badge
-            count={totalUnread}
-            overflowCount={99}
-            style={{
-              backgroundColor: COLORS.GRAY_L0,
-              color: COLORS.GRAY_D,
-            }}
-          />
+          <Badge count={totalUnread} overflowCount={99} />
         </Button>
         <Button
           type={!selectedThreadKey ? "primary" : "default"}
