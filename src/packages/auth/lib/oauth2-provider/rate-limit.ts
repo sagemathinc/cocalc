@@ -11,8 +11,11 @@
 import LRU from "lru-cache";
 import { process_env_int } from "@cocalc/backend/misc";
 
-const RATE_LIMIT_PER_CLIENT = process_env_int("COCALC_OAUTH2_RATE_PER_CLIENT", 5);
-const RATE_LIMIT_GLOBAL = process_env_int("COCALC_OAUTH2_RATE_GLOBAL", 30);
+// Defaults match the values documented in this file, in provider.ts, and
+// in the PR description. Override via env vars if a deployment needs more
+// headroom (e.g., a CI test suite driving many clients).
+const RATE_LIMIT_PER_CLIENT = process_env_int("COCALC_OAUTH2_RATE_PER_CLIENT", 2);
+const RATE_LIMIT_GLOBAL = process_env_int("COCALC_OAUTH2_RATE_GLOBAL", 10);
 const RATE_WINDOW_MS = 1000;
 
 const rateBuckets = new LRU<string, number[]>({ max: 100 });

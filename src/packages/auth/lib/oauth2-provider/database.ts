@@ -206,15 +206,23 @@ export async function saveAuthorizationCode(
   );
 }
 
+/**
+ * Consume an authorization code (single-use). The DELETE is bound to
+ * client_id so a code cannot be burned by a different client that
+ * happened to intercept it. RFC 6749 §4.1.3 requires the server to
+ * ensure the code was issued to the client presenting it BEFORE
+ * invalidating it.
+ */
 export async function consumeAuthorizationCode(
   code: string,
+  clientId: string,
 ): Promise<AuthorizationCode | null> {
   const pool = getPool();
   const { rows } = await pool.query(
     `DELETE FROM oauth2_authorization_codes
-     WHERE code = $1 AND expire > NOW() AND type = 'code'
+     WHERE code = $1 AND client_id = $2 AND expire > NOW() AND type = 'code'
      RETURNING *`,
-    [code],
+    [code, clientId],
   );
   if (rows.length === 0) return null;
   return rows[0] as AuthorizationCode;

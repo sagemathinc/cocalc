@@ -357,6 +357,10 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
   // ========================================
   router.post("/oauth/token", async (req, res) => {
     try {
+      // RFC 6749 §5.1 — token responses MUST include Cache-Control: no-store.
+      // Set it once on entry so every response from this handler is covered,
+      // including rate-limit, validation, and server-error paths.
+      setNoStore(res);
       const { grant_type, client_id } = req.body;
 
       // Rate limit: 2/s per client_id, 10/s global
@@ -415,8 +419,25 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
       return;
     }
 
-    // Verify client secret (if not using PKCE)
-    if (client_secret) {
+    const isConfidential = client.mode === "web";
+
+    // Confidential (web) clients MUST authenticate at the token endpoint
+    // per RFC 6749 §3.2.1.  PKCE is an ADDITIONAL protection, not a
+    // substitute for client authentication on confidential clients.
+    if (isConfidential) {
+      if (
+        !client_secret ||
+        !verifySecret(client_secret, client.client_secret_hash)
+      ) {
+        res.status(401).json({
+          error: "invalid_client",
+          error_description:
+            "Confidential clients must authenticate with client_secret",
+        });
+        return;
+      }
+    } else if (client_secret) {
+      // Native/public clients may optionally send a secret; verify if present.
       if (!verifySecret(client_secret, client.client_secret_hash)) {
         res.status(401).json({
           error: "invalid_client",
@@ -426,21 +447,16 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
       }
     }
 
-    // Consume the authorization code (single use)
-    const authCode = await consumeAuthorizationCode(code);
+    // Consume the authorization code (single use). The DELETE is
+    // scoped to client_id, so a code issued to a different client
+    // will not match and will not be consumed here (prevents a
+    // third party from burning another client's code).
+    const authCode = await consumeAuthorizationCode(code, client_id);
     if (!authCode) {
       res.status(400).json({
         error: "invalid_grant",
-        error_description: "Invalid or expired authorization code",
-      });
-      return;
-    }
-
-    // Verify code belongs to this client
-    if (authCode.client_id !== client_id) {
-      res.status(400).json({
-        error: "invalid_grant",
-        error_description: "Authorization code was not issued to this client",
+        error_description:
+          "Invalid or expired authorization code, or not issued to this client",
       });
       return;
     }
@@ -471,7 +487,11 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
       return;
     }
 
-    // Verify PKCE if code_challenge was set
+    // Verify PKCE if code_challenge was set.
+    // By this point the client is authenticated (web: client_secret above,
+    // native: PKCE required by the previous guard), so a missing
+    // code_challenge on a web client is acceptable — client_secret alone
+    // is sufficient authentication per RFC 6749 §3.2.1.
     if (authCode.code_challenge) {
       if (!code_verifier) {
         res.status(400).json({
@@ -493,14 +513,6 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
         });
         return;
       }
-    } else if (!client_secret) {
-      // If no PKCE and no client_secret, reject
-      res.status(401).json({
-        error: "invalid_client",
-        error_description:
-          "Client authentication required (client_secret or PKCE)",
-      });
-      return;
     }
 
     // Issue tokens
@@ -675,6 +687,8 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
 
   async function handleUserInfo(req: express.Request, res: express.Response) {
     try {
+      // RFC 6749 §5.1 — never cache identity responses.
+      setNoStore(res);
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
         res.status(401).json({
@@ -704,11 +718,14 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
         return;
       }
 
-      // Fetch user info from the accounts table
+      // Fetch user info from the accounts table — including the banned
+      // flag, so a user banned after token issuance can no longer use
+      // this token to retrieve identity.  (Matches the banned check in
+      // getAccountFromOAuth2Token at the API boundary.)
       const pool = getPool();
       const { rows } = await pool.query(
         `SELECT account_id, first_name, last_name, email_address,
-                email_address_verified, created
+                email_address_verified, banned, created
          FROM accounts WHERE account_id = $1`,
         [token.account_id],
       );
@@ -722,6 +739,13 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
       }
 
       const account = rows[0];
+      if (account.banned) {
+        res.status(401).json({
+          error: "invalid_token",
+          error_description: "Account has been banned",
+        });
+        return;
+      }
       const scopes = token.scope.split(" ");
       const userInfo: Record<string, any> = {
         sub: account.account_id,
@@ -752,17 +776,43 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
   }
 
   // ========================================
-  // Token Revocation (POST)
+  // Token Revocation (POST) — RFC 7009
   // ========================================
   router.post("/oauth/revoke", async (req, res) => {
     try {
-      const { token, client_id } = req.body;
+      const { token, client_id, client_secret } = req.body;
       if (!token || !client_id) {
         res.status(400).json({
           error: "invalid_request",
           error_description: "Missing required parameters: token, client_id",
         });
         return;
+      }
+
+      // RFC 7009 §2.1 requires identifying the client; confidential
+      // clients MUST authenticate per RFC 6749 §2.3.1.  Without this,
+      // anyone who learns a token plus the (public) client_id could
+      // invoke a denial-of-service by revoking it.
+      const client = await getClient(client_id);
+      if (!client || !client.active) {
+        res.status(401).json({
+          error: "invalid_client",
+          error_description: "Unknown or inactive client",
+        });
+        return;
+      }
+      if (client.mode === "web") {
+        if (
+          !client_secret ||
+          !verifySecret(client_secret, client.client_secret_hash)
+        ) {
+          res.status(401).json({
+            error: "invalid_client",
+            error_description:
+              "Confidential clients must authenticate with client_secret",
+          });
+          return;
+        }
       }
 
       // Try revoking as both access and refresh token, scoped to this
@@ -793,4 +843,10 @@ function redirectWithError(
   url.searchParams.set("error", error);
   if (state) url.searchParams.set("state", state);
   res.redirect(url.toString());
+}
+
+/** RFC 6749 §5.1 — token responses MUST NOT be cached. */
+function setNoStore(res: express.Response) {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Pragma", "no-cache");
 }

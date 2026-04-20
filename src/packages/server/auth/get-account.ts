@@ -4,7 +4,8 @@
  */
 
 import getPool from "@cocalc/database/pool";
-import { getAccountFromApiKeyOnly } from "@cocalc/server/auth/api";
+import { getApiKey } from "@cocalc/server/auth/api";
+import { getAccountWithApiKey } from "@cocalc/server/api/manage";
 import { getRememberMeHash } from "@cocalc/server/auth/remember-me";
 import getLogger from "@cocalc/backend/logger";
 import isBanned from "@cocalc/server/accounts/is-banned";
@@ -38,19 +39,26 @@ export default async function getAccountId(
     // not signed in via a cookie.
     // What about an api key?
     if (req.header("Authorization")) {
+      logger.debug("check for api key");
+      // getApiKey throws only for malformed/unsupported Authorization
+      // headers (e.g. "Digest ..."). That's an expected "not our scheme"
+      // signal — return undefined (unauthenticated). DB errors from
+      // getAccountWithApiKey below are NOT swallowed; they propagate so
+      // a transient outage surfaces as 500 instead of silently looking
+      // like a valid "not signed in" response.
+      let key: string;
       try {
-        logger.debug("check for api key");
-        const account = await getAccountFromApiKeyOnly(req);
-        // TODO: I do not like mixing these up, since there is a ~0% chance of a collision between
-        // account_id and project_id, which could lead to a security vulnerability.  This is not
-        // exploitable, of course, and there's a much bigger chance that a monkey guesses a password.
-        // For now, leaving this as-is for compat.
-        return account?.account_id ?? account?.project_id;
-      } catch (_err) {
-        logger.debug("no valid api key");
-        // non-fatal, at least for now...
+        key = getApiKey(req);
+      } catch (err) {
+        logger.debug("unsupported Authorization header", err);
         return;
       }
+      const account = await getAccountWithApiKey(key);
+      // TODO: I do not like mixing these up, since there is a ~0% chance of a collision between
+      // account_id and project_id, which could lead to a security vulnerability.  This is not
+      // exploitable, of course, and there's a much bigger chance that a monkey guesses a password.
+      // For now, leaving this as-is for compat.
+      return account?.account_id ?? account?.project_id;
     }
     return;
   }

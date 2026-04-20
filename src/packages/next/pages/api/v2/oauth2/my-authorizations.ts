@@ -15,7 +15,8 @@ export default async function handle(req, res) {
   try {
     const account_id = await getAccountId(req);
     if (!account_id) {
-      throw Error("must be signed in");
+      res.status(401).json({ error: "must be signed in" });
+      return;
     }
 
     const { action, client_id } = getParams(req);
@@ -77,6 +78,6 @@ export default async function handle(req, res) {
       });
     }
   } catch (err) {
-    res.json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 }

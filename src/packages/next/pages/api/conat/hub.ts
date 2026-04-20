@@ -43,9 +43,11 @@ export default async function handle(req, res) {
   try {
     const { account_id, scope } = (await getAccountFromApiKey(req)) ?? {};
     if (!account_id) {
-      throw Error(
-        "must be signed in and MUST provide an api key (cookies are not allowed)",
-      );
+      res.status(401).json({
+        error:
+          "must be signed in and MUST provide an api key (cookies are not allowed)",
+      });
+      return;
     }
     const { name, args, timeout } = getParams(req);
 
@@ -53,7 +55,10 @@ export default async function handle(req, res) {
     if (scope != null) {
       // Must have at least api:read
       if (!hasScope(scope, "api:read") && !hasScope(scope, "api:write")) {
-        throw Error("OAuth2 token does not have api:read or api:write scope");
+        res.status(403).json({
+          error: "OAuth2 token does not have api:read or api:write scope",
+        });
+        return;
       }
 
       // db.userQuery: classify as read or write based on query shape.
@@ -63,7 +68,19 @@ export default async function handle(req, res) {
       if (name === "db.userQuery") {
         const queryArgs = args ?? [];
         for (const arg of queryArgs) {
-          const query = arg?.query ?? arg ?? {};
+          // Reject malformed payloads explicitly — do NOT default to an
+          // empty read when `arg.query` is missing. hubBridge will also
+          // reject these, but the scope gate here is load-bearing: a
+          // malformed payload that bypasses classification could be
+          // treated as read and then interpreted downstream as something
+          // the token is not entitled to perform.
+          const query = arg?.query;
+          if (query == null || typeof query !== "object") {
+            res.status(400).json({
+              error: "invalid db.userQuery payload: `query` must be an object",
+            });
+            return;
+          }
           const options = arg?.options ?? [];
           const hasSetOption =
             Array.isArray(options) &&
@@ -72,9 +89,11 @@ export default async function handle(req, res) {
             (isUserQueryWrite(query) || hasSetOption) &&
             !hasScope(scope, "api:write")
           ) {
-            throw Error(
-              "OAuth2 token requires api:write scope for write operations via db.userQuery",
-            );
+            res.status(403).json({
+              error:
+                "OAuth2 token requires api:write scope for write operations via db.userQuery",
+            });
+            return;
           }
         }
       } else if (
@@ -82,13 +101,18 @@ export default async function handle(req, res) {
         !hasScope(scope, "api:write")
       ) {
         // Any method not in the read-only allowlist requires api:write
-        throw Error(`OAuth2 token requires api:write scope for ${name}`);
+        res.status(403).json({
+          error: `OAuth2 token requires api:write scope for ${name}`,
+        });
+        return;
       }
     }
 
     const resp = await hubBridge({ account_id, name, args, timeout });
     res.json(resp);
   } catch (err) {
-    res.json({ error: err.message });
+    // Unexpected error (DB, RPC, etc.) — client-visible messages above are
+    // early-return with proper status codes; anything reaching here is 500.
+    res.status(500).json({ error: err.message });
   }
 }

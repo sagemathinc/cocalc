@@ -27,7 +27,8 @@ export default async function handle(req, res) {
     const { account_id, project_id: project_id0, scope } =
       (await getAccountFromApiKey(req)) ?? {};
     if (!account_id && !project_id0) {
-      throw Error("must sign in as project or account");
+      res.status(401).json({ error: "must sign in as project or account" });
+      return;
     }
     const {
       project_id = project_id0,
@@ -37,26 +38,37 @@ export default async function handle(req, res) {
       timeout,
     } = getParams(req);
     if (!project_id) {
-      throw Error("must specify project_id or use project-specific api key");
+      res.status(400).json({
+        error: "must specify project_id or use project-specific api key",
+      });
+      return;
     }
     if (project_id0) {
       // auth via project-specific API key
       if (project_id0 != project_id) {
-        throw Error("project specific api key must match requested project");
+        res.status(403).json({
+          error: "project specific api key must match requested project",
+        });
+        return;
       }
     }
     if (account_id) {
       // Enforce OAuth2 project scope (API keys have scope=undefined → unrestricted)
       if (!hasProjectScope(scope, project_id)) {
-        throw Error(
-          "OAuth2 token does not have project access scope. " +
+        res.status(403).json({
+          error:
+            "OAuth2 token does not have project access scope. " +
             "Required: api:project or api:project:" +
             project_id,
-        );
+        });
+        return;
       }
       // Collaborator check (applies to both API keys and OAuth2 tokens)
       if (!(await isCollaborator({ account_id, project_id }))) {
-        throw Error("user must be a collaborator on the project");
+        res
+          .status(403)
+          .json({ error: "user must be a collaborator on the project" });
+        return;
       }
     }
     const resp = await projectBridge({
@@ -69,6 +81,6 @@ export default async function handle(req, res) {
     });
     res.json(resp);
   } catch (err) {
-    res.json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 }

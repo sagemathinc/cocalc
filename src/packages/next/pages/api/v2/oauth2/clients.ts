@@ -20,10 +20,14 @@ export default async function handle(req, res) {
   try {
     const account_id = await getAccountId(req);
     if (!account_id) {
-      throw Error("must be signed in");
+      res.status(401).json({ error: "must be signed in" });
+      return;
     }
     if (!(await userIsInGroup(account_id, "admin"))) {
-      throw Error("only admins can manage OAuth2 clients");
+      res
+        .status(403)
+        .json({ error: "only admins can manage OAuth2 clients" });
+      return;
     }
 
     const { name, description, mode, redirect_uris, scopes } = getParams(req);
@@ -31,7 +35,10 @@ export default async function handle(req, res) {
     if (name) {
       // Create a new client
       if (!redirect_uris || !Array.isArray(redirect_uris)) {
-        throw Error("redirect_uris must be an array of URIs");
+        res
+          .status(400)
+          .json({ error: "redirect_uris must be an array of URIs" });
+        return;
       }
       const result = await createOAuth2Client({
         name,
@@ -54,6 +61,6 @@ export default async function handle(req, res) {
       });
     }
   } catch (err) {
-    res.json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 }

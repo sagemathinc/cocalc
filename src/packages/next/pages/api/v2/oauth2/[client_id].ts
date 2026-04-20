@@ -22,15 +22,20 @@ export default async function handle(req, res) {
   try {
     const account_id = await getAccountId(req);
     if (!account_id) {
-      throw Error("must be signed in");
+      res.status(401).json({ error: "must be signed in" });
+      return;
     }
     if (!(await userIsInGroup(account_id, "admin"))) {
-      throw Error("only admins can manage OAuth2 clients");
+      res
+        .status(403)
+        .json({ error: "only admins can manage OAuth2 clients" });
+      return;
     }
 
     const { client_id } = req.query;
     if (!client_id || typeof client_id !== "string") {
-      throw Error("client_id is required");
+      res.status(400).json({ error: "client_id is required" });
+      return;
     }
 
     if (req.method === "GET") {
@@ -91,6 +96,6 @@ export default async function handle(req, res) {
       res.status(405).json({ error: "Method not allowed" });
     }
   } catch (err) {
-    res.json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 }

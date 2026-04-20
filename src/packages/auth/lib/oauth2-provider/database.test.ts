@@ -87,17 +87,47 @@ D("authorization codes", () => {
       expire: new Date(Date.now() + 600_000),
     });
 
-    const result = await consumeAuthorizationCode(code);
+    const result = await consumeAuthorizationCode(code, TEST_CLIENT_ID);
     expect(result).not.toBeNull();
     expect(result!.account_id).toBe(TEST_ACCOUNT_ID);
 
     // Second consume should return null (single use)
-    const result2 = await consumeAuthorizationCode(code);
+    const result2 = await consumeAuthorizationCode(code, TEST_CLIENT_ID);
     expect(result2).toBeNull();
   });
 
-  // Note: consumeAuthorizationCode doesn't check expire — that's done
-  // by the provider after consuming. The maintenance job cleans up expired codes.
+  it("rejects code consumed with wrong client_id (does not delete)", async () => {
+    const code = "test-code-wrong-client-" + uuidv4();
+    await saveAuthorizationCode({
+      code,
+      client_id: TEST_CLIENT_ID,
+      account_id: TEST_ACCOUNT_ID,
+      redirect_uri: "http://localhost/callback",
+      scope: "openid",
+      expire: new Date(Date.now() + 600_000),
+    });
+
+    const wrongClient = uuidv4();
+    const result = await consumeAuthorizationCode(code, wrongClient);
+    expect(result).toBeNull();
+
+    // The code must still be consumable by the rightful client.
+    const legit = await consumeAuthorizationCode(code, TEST_CLIENT_ID);
+    expect(legit).not.toBeNull();
+  });
+
+  it("rejects expired code", async () => {
+    const code = "test-code-expired-" + uuidv4();
+    await saveAuthorizationCode({
+      code,
+      client_id: TEST_CLIENT_ID,
+      account_id: TEST_ACCOUNT_ID,
+      redirect_uri: "http://localhost/callback",
+      scope: "openid",
+      expire: new Date(Date.now() - 1000),
+    });
+    expect(await consumeAuthorizationCode(code, TEST_CLIENT_ID)).toBeNull();
+  });
 });
 
 D("access tokens", () => {
@@ -267,7 +297,7 @@ D("consent nonces", () => {
     });
 
     // Consuming the auth code should work (type='code')
-    const authResult = await consumeAuthorizationCode(code);
+    const authResult = await consumeAuthorizationCode(code, TEST_CLIENT_ID);
     expect(authResult).not.toBeNull();
 
     // Consuming the nonce should also work (type='consent_nonce')
