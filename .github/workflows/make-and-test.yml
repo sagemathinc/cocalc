@@ -139,6 +139,12 @@ jobs:
 
           cd src/packages/hub
           export COCALC_SETTING_OAUTH2_PROVIDER_ENABLED=yes
+          # Raise OAuth2 token-endpoint rate limits so the E2E suite,
+          # which fires many /oauth/token requests back-to-back, is not
+          # throttled. Production defaults (2/s per client, 10/s global)
+          # are intentionally tight.
+          export COCALC_OAUTH2_RATE_PER_CLIENT=50
+          export COCALC_OAUTH2_RATE_GLOBAL=200
           pnpm run hub-project-dev-nobuild > hub.log 2>&1 &
           HUB_PID=$!
           echo $HUB_PID > hub.pid
@@ -237,6 +243,10 @@ jobs:
             export COCALC_SETTING_JUPYTER_ACCOUNT_ID=$ADMIN_ACCOUNT_ID
             export COCALC_SETTING_JUPYTER_PROJECT_POOL_SIZE=1
             export COCALC_SETTING_OAUTH2_PROVIDER_ENABLED=yes
+            # Raise OAuth2 token-endpoint rate limits for the E2E suite
+            # (production defaults are 2/s per client, 10/s global).
+            export COCALC_OAUTH2_RATE_PER_CLIENT=50
+            export COCALC_OAUTH2_RATE_GLOBAL=200
 
             # Start hub with new configuration
             pnpm run hub-project-dev-nobuild > hub.log 2>&1 &
