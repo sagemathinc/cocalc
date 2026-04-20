@@ -34,6 +34,34 @@ const delete_projects_prom = newCounter(
 );
 
 /*
+Preflight: refuse to run if a required index is missing from the database.
+
+On a large production deployment, operators should create these indexes
+manually with `CREATE INDEX CONCURRENTLY` BEFORE deploying this code, so
+syncSchema does not attempt a blocking plain `CREATE INDEX` on a huge table
+at hub startup. This preflight ensures a misconfigured deploy fails loudly
+(log + no-op) rather than silently running full table scans.
+*/
+async function requireIndex(
+  L: WinstonLogger["debug"],
+  indexName: string,
+): Promise<boolean> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    `SELECT 1 FROM pg_indexes WHERE indexname = $1 LIMIT 1`,
+    [indexName],
+  );
+  if (rows.length === 0) {
+    L(
+      `REFUSING TO RUN: required index '${indexName}' is missing. ` +
+        `Create it manually with CREATE INDEX CONCURRENTLY before enabling cleanup.`,
+    );
+    return false;
+  }
+  return true;
+}
+
+/*
 Permanently delete from the database all project records, where the
 project is explicitly deleted already (so the deleted field is true).
 Call this function to setup projects for permanent deletion.  This blanks
@@ -150,6 +178,9 @@ export async function cleanup_deleted_account_pii(
   const pii_retention_s = settings.pii_retention;
   if (!pii_retention_s) {
     L(`pii_retention = "never" — account PII scrub disabled.`);
+    return;
+  }
+  if (!(await requireIndex(L, "accounts_deleted_idx"))) {
     return;
   }
   const pool = getPool();
@@ -270,6 +301,9 @@ export async function cleanup_old_projects_data(
     L(`deleting project data is disabled ('delete_project_data' setting).`);
     return;
   }
+  if (!(await requireIndex(L, "syncstrings_project_id_idx"))) {
+    return;
+  }
 
   const start_ts = new Date();
   const pool = getPool();
@@ -306,7 +340,12 @@ export async function cleanup_old_projects_data(
         [project_id],
       );
 
-      // 3. On-prem only: delete files from disk.
+      // 3. On-prem only: delete files from disk. Track per-step outcomes
+      //    so a real failure (e.g. misconfigured MOUNTED_PROJECTS_ROOT,
+      //    permission error) does NOT lead to a tombstone — the project
+      //    should be retried on the next run rather than silently leaking
+      //    files forever. ENOENT is treated as success (nothing to delete).
+      let fsOk = true;
       if (on_prem) {
         db.log({
           event: "delete_project",
@@ -314,17 +353,8 @@ export async function cleanup_old_projects_data(
         });
 
         L2(`delete all project files`);
-        await deleteProjectFiles(L2, project_id);
-
-        try {
-          // this is something like /shared/projects/${project_id}
-          const shared_path = pathToFiles(project_id, "");
-          assertPathContainsProjectId(shared_path, project_id);
-          L2(`deleting all shared files in ${shared_path}`);
-          await fs.rm(shared_path, { recursive: true, force: true });
-        } catch (err) {
-          L2(`Unable to delete shared files: ${err}`);
-        }
+        fsOk = (await deleteProjectFiles(L2, project_id)) && fsOk;
+        fsOk = (await deleteSharedFiles(L2, project_id)) && fsOk;
       }
 
       // 4. Delete rows in tables that reference this project_id.
@@ -334,11 +364,21 @@ export async function cleanup_old_projects_data(
         value: { deleting: "database", project_id },
       });
 
-      // 5. Mark project state=deleted so it's not reprocessed.
-      await callback2(db.set_project_state, { project_id, state: "deleted" });
-      L2(
-        `finished deleting project data | deleted ${delRows} entries | state.state="deleted"`,
-      );
+      // 5. Mark project state=deleted only when all required on-disk deletes
+      //    succeeded. If they didn't, leave the project un-tombstoned so
+      //    the next run retries; DB deletes are idempotent (already-gone
+      //    rows are no-ops) so the cost of retry is bounded.
+      if (fsOk) {
+        await callback2(db.set_project_state, { project_id, state: "deleted" });
+        L2(
+          `finished deleting project data | deleted ${delRows} entries | state.state="deleted"`,
+        );
+      } else {
+        delete_projects_prom.labels("fs_delete_failed").inc();
+        L2(
+          `on-disk delete failed; leaving project un-tombstoned for retry | deleted ${delRows} DB entries`,
+        );
+      }
     }
   }
 }
@@ -419,7 +459,6 @@ async function delete_associated_project_data(
     "file_access_log",
     "file_use",
     "jupyter_api_log",
-    "mentions",
     "openai_chatgpt_log",
     "project_log",
     "public_paths",
@@ -434,6 +473,19 @@ async function delete_associated_project_data(
     });
     total += rowsDeleted;
     L2(`deleted in ${table}: ${rowsDeleted} entries`);
+  }
+
+  // `mentions` has a compound primary key (time, project_id, path, target)
+  // and no `id` column, so we chunk by ctid (physical row id).
+  {
+    const { rowsDeleted } = await bulkDelete({
+      table: "mentions",
+      field: "project_id",
+      value: project_id,
+      id: "ctid",
+    });
+    total += rowsDeleted;
+    L2(`deleted in mentions: ${rowsDeleted} entries`);
   }
 
   // these tables are different, i.e. another id, or the field to check the project_id value against is called differently
@@ -473,24 +525,69 @@ async function delete_associated_project_data(
   return total;
 }
 
+// Returns true iff the project directory is now gone (or was already gone).
+// Returns false on any failure that means files may still be present on disk
+// (permission error, safety-check failure, unexpected non-directory node).
 async function deleteProjectFiles(
   L2: WinstonLogger["debug"],
   project_id: string,
-) {
+): Promise<boolean> {
   const project_dir = homePath(project_id);
   try {
     assertPathContainsProjectId(project_dir, project_id);
-    await fs.access(project_dir, F_OK | R_OK | W_OK);
-    const stats = await fs.lstat(project_dir);
-    if (stats.isDirectory()) {
-      L2(`deleting all files in ${project_dir}`);
-      await fs.rm(project_dir, { recursive: true, force: true });
-    } else {
-      L2(`is not a directory: ${project_dir}`);
-    }
   } catch (err) {
-    L2(
-      `not deleting project files: either '${project_dir}' does not exist, is not accessible, or failed a safety check: ${err}`,
-    );
+    L2(`safety check failed for '${project_dir}': ${err}`);
+    return false;
+  }
+  try {
+    await fs.access(project_dir, F_OK | R_OK | W_OK);
+  } catch (err: any) {
+    if (err?.code === "ENOENT") {
+      L2(`no project dir at '${project_dir}'; nothing to delete`);
+      return true;
+    }
+    L2(`cannot access '${project_dir}': ${err}`);
+    return false;
+  }
+  try {
+    const stats = await fs.lstat(project_dir);
+    if (!stats.isDirectory()) {
+      L2(`refusing to delete '${project_dir}': not a directory`);
+      return false;
+    }
+    L2(`deleting all files in ${project_dir}`);
+    await fs.rm(project_dir, { recursive: true, force: true });
+    return true;
+  } catch (err) {
+    L2(`failed to delete '${project_dir}': ${err}`);
+    return false;
+  }
+}
+
+// Delete the per-project shared-files tree (pathToFiles(project_id, "")).
+// Returns the same true/false contract as deleteProjectFiles.
+async function deleteSharedFiles(
+  L2: WinstonLogger["debug"],
+  project_id: string,
+): Promise<boolean> {
+  let shared_path: string;
+  try {
+    // something like /shared/projects/${project_id}
+    shared_path = pathToFiles(project_id, "");
+    assertPathContainsProjectId(shared_path, project_id);
+  } catch (err) {
+    L2(`shared-files path setup failed for project ${project_id}: ${err}`);
+    return false;
+  }
+  try {
+    L2(`deleting all shared files in ${shared_path}`);
+    await fs.rm(shared_path, { recursive: true, force: true });
+    return true;
+  } catch (err: any) {
+    if (err?.code === "ENOENT") {
+      return true;
+    }
+    L2(`failed to delete shared files at '${shared_path}': ${err}`);
+    return false;
   }
 }
