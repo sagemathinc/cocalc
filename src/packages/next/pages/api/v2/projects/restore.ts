@@ -6,7 +6,6 @@ import { isValidUUID } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
-import userQuery from "@cocalc/database/user-query";
 
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
@@ -38,34 +37,33 @@ async function handle(req, res) {
       throw Error("must be an owner to restore a project");
     }
 
-    // Once the delete-projects hub job has unlinked the project (users IS NULL)
-    // or purged its data (state.state='deleted'), restore would produce an
-    // operationally dead row. Refuse up front with a clear message.
+    // Atomic restore: only flip deleted=false if the project is still
+    // restorable. Once the delete-projects hub has unlinked (users IS NULL) or
+    // tombstoned (state.state='deleted') the row, restore would produce an
+    // operationally dead project. Doing this as a single UPDATE closes the
+    // TOCTOU window against a concurrent cleanup run.
     const pool = getPool();
-    const { rows } = await pool.query(
-      `SELECT (users IS NULL) AS unlinked,
-              (state ->> 'state') = 'deleted' AS purged
-       FROM projects WHERE project_id = $1`,
+    const { rowCount } = await pool.query(
+      `UPDATE projects SET deleted = false
+       WHERE project_id = $1
+         AND users IS NOT NULL
+         AND coalesce(state ->> 'state', '') <> 'deleted'`,
       [project_id],
     );
-    if (rows.length === 0) {
-      throw Error("no such project");
-    }
-    if (rows[0].purged || rows[0].unlinked) {
+    if (!rowCount) {
+      const { rows } = await pool.query(
+        `SELECT (users IS NULL) AS unlinked,
+                (state ->> 'state') = 'deleted' AS purged
+         FROM projects WHERE project_id = $1`,
+        [project_id],
+      );
+      if (rows.length === 0) {
+        throw Error("no such project");
+      }
       throw Error(
         "this project has been permanently deleted and cannot be restored; please contact support",
       );
     }
-
-    await userQuery({
-      account_id,
-      query: {
-        projects: {
-          project_id,
-          deleted: false,
-        },
-      },
-    });
 
     res.json(OkStatus);
   } catch (err) {
