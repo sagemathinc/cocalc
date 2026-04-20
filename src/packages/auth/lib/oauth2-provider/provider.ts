@@ -27,6 +27,7 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { renderConsentPage } from "./consent-page";
 import {
   generateRandomToken,
+  hashSecret,
   verifyCodeChallenge,
   verifySecret,
 } from "./crypto";
@@ -47,6 +48,7 @@ import {
   saveRefreshToken,
 } from "./database";
 import { OAUTH2_SCOPES, SUPPORTED_RESPONSE_TYPES } from "./types";
+import type { OAuth2Client } from "./types";
 
 const logger = getLogger("auth:oauth2-provider");
 
@@ -441,35 +443,14 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
       return;
     }
 
-    // Authenticate client. Unknown/inactive clients return the same
-    // uniform invalid_client message as wrong-secret below to avoid
-    // client-id enumeration and mode disclosure.
+    // Authenticate client.  authenticateClientOrReject runs exactly one
+    // verifySecret call (against a dummy hash if the client record is
+    // missing) so unknown-client, inactive-client, missing-secret, and
+    // wrong-secret are all indistinguishable in response body AND timing.
+    // Confidential (web) clients MUST authenticate per RFC 6749 §3.2.1;
+    // PKCE is additive, not a substitute.
     const client = await getClient(client_id);
-    if (!client || !client.active) {
-      sendInvalidClient(res);
-      return;
-    }
-
-    const isConfidential = client.mode === "web";
-
-    // Confidential (web) clients MUST authenticate at the token endpoint
-    // per RFC 6749 §3.2.1.  PKCE is an ADDITIONAL protection, not a
-    // substitute for client authentication on confidential clients.
-    if (isConfidential) {
-      if (
-        !client_secret ||
-        !verifySecret(client_secret, client.client_secret_hash)
-      ) {
-        sendInvalidClient(res);
-        return;
-      }
-    } else if (client_secret) {
-      // Native/public clients may optionally send a secret; verify if present.
-      if (!verifySecret(client_secret, client.client_secret_hash)) {
-        sendInvalidClient(res);
-        return;
-      }
-    }
+    if (!authenticateClientOrReject(res, client, client_secret)) return;
 
     // Consume the authorization code (single use). The DELETE is
     // scoped to client_id, so a code issued to a different client
@@ -620,33 +601,13 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
       return;
     }
 
-    // Authenticate client.  Uniform invalid_client response on any failure
-    // so callers cannot distinguish unknown-client, inactive-client,
-    // missing-secret, or wrong-secret.
+    // Authenticate client via the shared helper so every failure path
+    // (unknown, inactive, missing secret, wrong secret) is indistinguishable
+    // in body AND timing.
     const client = await getClient(client_id);
-    if (!client || !client.active) {
-      sendInvalidClient(res);
-      return;
-    }
+    if (!authenticateClientOrReject(res, client, client_secret)) return;
 
     const isConfidential = client.mode === "web";
-
-    if (isConfidential) {
-      // Confidential clients MUST provide a valid client_secret
-      if (
-        !client_secret ||
-        !verifySecret(client_secret, client.client_secret_hash)
-      ) {
-        sendInvalidClient(res);
-        return;
-      }
-    } else if (client_secret) {
-      // Native client provided a secret — verify it
-      if (!verifySecret(client_secret, client.client_secret_hash)) {
-        sendInvalidClient(res);
-        return;
-      }
-    }
 
     // Confidential web clients with a valid client_secret: reuse the
     // refresh token (no rotation). This is safe because the secret
@@ -830,22 +791,13 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
       // RFC 7009 §2.1 requires identifying the client; confidential
       // clients MUST authenticate per RFC 6749 §2.3.1.  Without this,
       // anyone who learns a token plus the (public) client_id could
-      // invoke a denial-of-service by revoking it.  Uniform
-      // invalid_client response to avoid client enumeration.
+      // invoke a denial-of-service by revoking it.  The shared helper
+      // equalizes body AND timing across unknown-client, inactive,
+      // missing-secret, and wrong-secret cases.  Native clients may
+      // revoke without a secret (public-client model), but a provided-
+      // but-wrong secret is rejected for consistency with /token.
       const client = await getClient(client_id);
-      if (!client || !client.active) {
-        sendInvalidClient(res);
-        return;
-      }
-      if (client.mode === "web") {
-        if (
-          !client_secret ||
-          !verifySecret(client_secret, client.client_secret_hash)
-        ) {
-          sendInvalidClient(res);
-          return;
-        }
-      }
+      if (!authenticateClientOrReject(res, client, client_secret)) return;
 
       // Try revoking as both access and refresh token, scoped to this
       // client_id.  Per RFC 7009 revocation always returns 200 — we
@@ -890,9 +842,55 @@ function setNoStore(res: express.Response) {
 // whether a given client is confidential vs. native.
 const INVALID_CLIENT_MESSAGE = "Invalid client authentication";
 
+// Sentinel hash used to equalize verifySecret cost when the client
+// record is absent. The plaintext value does not matter; it only needs
+// to produce a stable SHA-256 digest so verifySecret does the same
+// amount of work as it does against a real client_secret_hash.
+const DUMMY_CLIENT_SECRET_HASH = hashSecret(
+  "oauth2-provider-timing-equalization-sentinel",
+);
+
 function sendInvalidClient(res: express.Response) {
   res.status(401).json({
     error: "invalid_client",
     error_description: INVALID_CLIENT_MESSAGE,
   });
+}
+
+/**
+ * Authenticate the client for a /token or /revoke request and send an
+ * invalid_client response if authentication fails.  Returns true iff the
+ * client is known, active, and (for web clients) presented a valid
+ * secret; otherwise returns false after sending the 401.
+ *
+ * Always runs exactly one verifySecret call — against a dummy hash when
+ * the client record is missing — so response timing cannot be used to
+ * enumerate valid client_ids or to distinguish unknown-client from
+ * wrong-secret.  For native clients we treat an omitted secret as
+ * acceptable (public clients) but reject a provided-but-wrong secret,
+ * consistent with the /token code path.
+ */
+function authenticateClientOrReject(
+  res: express.Response,
+  client: OAuth2Client | null,
+  submittedSecret: string | undefined,
+): client is OAuth2Client {
+  const targetHash = client?.client_secret_hash ?? DUMMY_CLIENT_SECRET_HASH;
+  const secretOk = verifySecret(submittedSecret ?? "", targetHash);
+
+  if (!client || !client.active) {
+    sendInvalidClient(res);
+    return false;
+  }
+  if (client.mode === "web") {
+    if (!submittedSecret || !secretOk) {
+      sendInvalidClient(res);
+      return false;
+    }
+  } else if (submittedSecret != null && !secretOk) {
+    // Native/public client offered a secret but it does not match.
+    sendInvalidClient(res);
+    return false;
+  }
+  return true;
 }
