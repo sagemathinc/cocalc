@@ -270,6 +270,7 @@ export const ANTHROPIC_MODELS = [
   "claude-4-6-sonnet-8k", // added 2026-02
   "claude-4-5-opus-8k", // added 2025
   "claude-4-6-opus-8k", // added 2026-02
+  "claude-4-7-opus-8k", // added 2026-04
   "claude-4-5-haiku-8k", // added 2025
 ] as const;
 
@@ -287,6 +288,7 @@ export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string | null } = {
   "claude-4-6-sonnet-8k": "claude-sonnet-4-6",
   "claude-4-5-opus-8k": "claude-opus-4-5",
   "claude-4-6-opus-8k": "claude-opus-4-6",
+  "claude-4-7-opus-8k": "claude-opus-4-7",
   "claude-4-5-haiku-8k": "claude-haiku-4-5",
   "claude-3-sonnet": null,
   "claude-3-sonnet-4k": null,
@@ -392,11 +394,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   [vendor in LLMServiceName]: Readonly<LanguageModelCore[]>;
 } = {
   openai: MODELS_OPENAI.filter(
-    (m) =>
-      m === "gpt-5.2-8k" ||
-      m === "gpt-5.4-8k" ||
-      m === "gpt-5-mini-8k" ||
-      m === "gpt-5.4-mini-8k",
+    (m) => m === "gpt-5.4-8k" || m === "gpt-5.4-mini-8k",
   ),
   google: [
     "gemini-3.1-pro-preview-8k",
@@ -408,7 +406,8 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
     return (
       m === "claude-4-5-haiku-8k" ||
       m === "claude-4-6-sonnet-8k" ||
-      m === "claude-4-6-opus-8k"
+      m === "claude-4-6-opus-8k" ||
+      m === "claude-4-7-opus-8k"
     );
   }),
   ollama: [], // this is empty, because these models are not hardcoded
@@ -963,6 +962,7 @@ export const LLM_USERNAMES: LLM2String = {
   "claude-4-6-sonnet-8k": "Claude 4.6 Sonnet",
   "claude-4-5-opus-8k": "Claude 4.5 Opus",
   "claude-4-6-opus-8k": "Claude 4.6 Opus",
+  "claude-4-7-opus-8k": "Claude 4.7 Opus",
   "claude-4-5-haiku-8k": "Claude 4.5 Haiku",
   "claude-3-opus": "Claude 3 Opus",
   "claude-3-opus-8k": "Claude 3 Opus",
@@ -1078,6 +1078,8 @@ export const LLM_DESCR: LLM2String = {
     "Flagship model excelling at complex tasks and writing (Anthropic, 8k token context)",
   "claude-4-6-opus-8k":
     "Most intelligent model for agents and coding (Anthropic, 8k token context)",
+  "claude-4-7-opus-8k":
+    "Latest flagship model for agents and coding (Anthropic, 8k token context)",
   "claude-4-5-haiku-8k":
     "Fastest and most cost-efficient model (Anthropic, 8k token context)",
   "claude-3-sonnet-4k":
@@ -1511,6 +1513,12 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: false,
   },
   "claude-4-6-opus-8k": {
+    prompt_tokens: usd1Mtokens(5),
+    completion_tokens: usd1Mtokens(25),
+    max_tokens: 50_000,
+    free: false,
+  },
+  "claude-4-7-opus-8k": {
     prompt_tokens: usd1Mtokens(5),
     completion_tokens: usd1Mtokens(25),
     max_tokens: 50_000,
