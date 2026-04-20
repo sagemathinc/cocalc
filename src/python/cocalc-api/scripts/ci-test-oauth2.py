@@ -514,8 +514,41 @@ resp = httpx.post(
 check("get token for revocation test", resp.status_code == 200)
 revoke_token = resp.json().get("access_token", "")
 
-resp = httpx.post(f"{HOST}/auth/oauth/revoke", data={"token": revoke_token, "client_id": web_client_id}, timeout=30.0)
-check("revoke returns 200", resp.status_code == 200)
+# Confidential clients MUST provide client_secret to revoke (RFC 7009 §2.1).
+# Negative: missing secret → 401 invalid_client.
+resp = httpx.post(
+    f"{HOST}/auth/oauth/revoke",
+    data={"token": revoke_token, "client_id": web_client_id},
+    timeout=30.0,
+)
+check(
+    "revoke without client_secret rejected (401)",
+    resp.status_code == 401,
+    f"got {resp.status_code}: {resp.text[:200]}",
+)
+# Token should still be valid after a rejected revoke attempt.
+resp = httpx.get(
+    f"{HOST}/auth/oauth/userinfo",
+    headers={"Authorization": f"Bearer {revoke_token}"},
+    timeout=30.0,
+)
+check(
+    "token still valid after rejected revoke",
+    resp.status_code == 200,
+    f"got {resp.status_code}",
+)
+
+# Positive: with correct client_secret → 200, and the token is then rejected.
+resp = httpx.post(
+    f"{HOST}/auth/oauth/revoke",
+    data={
+        "token": revoke_token,
+        "client_id": web_client_id,
+        "client_secret": web_client_secret,
+    },
+    timeout=30.0,
+)
+check("revoke (with secret) returns 200", resp.status_code == 200)
 
 resp = httpx.get(f"{HOST}/auth/oauth/userinfo", headers={"Authorization": f"Bearer {revoke_token}"}, timeout=30.0)
 check("revoked token rejected (401)", resp.status_code == 401, f"got {resp.status_code}")
@@ -535,8 +568,10 @@ resp = httpx.post(
 )
 check("invalid code rejected (400)", resp.status_code == 400, f"got {resp.status_code}")
 
-# --- C3: Missing client_secret AND no PKCE → rejected ---
-print("\n--- C3: No secret and no PKCE → rejected ---")
+# --- C3: Web client code exchange without client_secret → rejected ---
+# Confidential clients MUST authenticate at the token endpoint (RFC 6749
+# §3.2.1). PKCE is additive, not a substitute.
+print("\n--- C3: Web client code exchange without client_secret → rejected ---")
 bare_code = insert_auth_code(cur, web_client_id, web_redirect_uri)
 resp = httpx.post(
     f"{HOST}/auth/oauth/token",
@@ -548,7 +583,88 @@ resp = httpx.post(
     },
     timeout=30.0,
 )
-check("no auth method → rejected (401)", resp.status_code == 401, f"got {resp.status_code}")
+check(
+    "web client code exchange without secret rejected (401)",
+    resp.status_code == 401,
+    f"got {resp.status_code}: {resp.text[:200]}",
+)
+
+# --- C3b: Web client refresh without client_secret → rejected ---
+print("\n--- C3b: Web client refresh without client_secret → rejected ---")
+# Issue fresh tokens first (earlier web_refresh may have been reused/updated).
+c3_code = insert_auth_code(cur, web_client_id, web_redirect_uri)
+resp = httpx.post(
+    f"{HOST}/auth/oauth/token",
+    data={
+        "grant_type": "authorization_code",
+        "code": c3_code,
+        "client_id": web_client_id,
+        "client_secret": web_client_secret,
+        "redirect_uri": web_redirect_uri,
+    },
+    timeout=30.0,
+)
+check("c3b: obtain refresh token", resp.status_code == 200)
+c3_refresh = resp.json().get("refresh_token", "")
+
+time.sleep(1)  # avoid rate limiter
+resp = httpx.post(
+    f"{HOST}/auth/oauth/token",
+    data={
+        "grant_type": "refresh_token",
+        "refresh_token": c3_refresh,
+        "client_id": web_client_id,
+    },
+    timeout=30.0,
+)
+check(
+    "web client refresh without secret rejected (401)",
+    resp.status_code == 401,
+    f"got {resp.status_code}: {resp.text[:200]}",
+)
+
+# --- C3c: Native client with no stored PKCE challenge → rejected at /token ---
+# Defense-in-depth: even if a DB-inserted code bypasses /authorize, the
+# token endpoint must reject a native client whose stored code has no
+# code_challenge.
+print("\n--- C3c: Native code with no code_challenge → rejected ---")
+no_pkce_code = insert_auth_code(cur, native_client_id, native_redirect_uri)
+resp = httpx.post(
+    f"{HOST}/auth/oauth/token",
+    data={
+        "grant_type": "authorization_code",
+        "code": no_pkce_code,
+        "client_id": native_client_id,
+        "redirect_uri": native_redirect_uri,
+        "code_verifier": "arbitrary-string-should-not-matter",
+    },
+    timeout=30.0,
+)
+check(
+    "native code without code_challenge rejected (400)",
+    resp.status_code == 400,
+    f"got {resp.status_code}: {resp.text[:200]}",
+)
+
+# --- C3d: /authorize rejects native client without code_challenge ---
+# The authorize endpoint must require PKCE for native clients up-front.
+print("\n--- C3d: /authorize without code_challenge (native) → rejected ---")
+resp = httpx.get(
+    f"{HOST}/auth/oauth/authorize",
+    params={
+        "response_type": "code",
+        "client_id": native_client_id,
+        "redirect_uri": native_redirect_uri,
+        "scope": "openid",
+    },
+    follow_redirects=False,
+    timeout=30.0,
+)
+check(
+    "/authorize without code_challenge for native client rejected (400)",
+    resp.status_code == 400,
+    f"got {resp.status_code}: {resp.text[:200]}",
+)
 
 # --- C4: OAuth2 server metadata discovery (RFC 8414) ---
 print("\n--- C4: OAuth2 server metadata discovery ---")

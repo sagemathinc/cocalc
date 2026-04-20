@@ -213,6 +213,35 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
       return null;
     }
 
+    // Native (public) clients MUST bind the authorization request to a
+    // PKCE challenge here.  If we only enforce code_verifier at the
+    // token step without requiring the challenge was stored, a native
+    // client could skip PKCE at /authorize and later send any random
+    // verifier at /token — defeating the PKCE guarantee.
+    if (client.mode === "native") {
+      if (!code_challenge) {
+        res.status(400).json({
+          error: "invalid_request",
+          error_description: "Native clients must include code_challenge (PKCE)",
+        });
+        return null;
+      }
+      // code_challenge_method defaults to "plain" in the RFC; we require
+      // it to be explicitly S256 so the verifier check below is meaningful.
+      if (code_challenge_method && code_challenge_method !== "S256") {
+        // Already handled above, but keep for clarity.
+        return null;
+      }
+      if (!code_challenge_method) {
+        res.status(400).json({
+          error: "invalid_request",
+          error_description:
+            "Native clients must set code_challenge_method=S256 (PKCE)",
+        });
+        return null;
+      }
+    }
+
     const accountId = await getAccountId(req);
     if (!accountId) {
       const params = { ...req.query, ...req.body } as Record<string, string>;
@@ -363,8 +392,11 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
       setNoStore(res);
       const { grant_type, client_id } = req.body;
 
-      // Rate limit: 2/s per client_id, 10/s global
-      const rateLimitError = rateLimit(client_id ?? "unknown");
+      // Rate limit: 2/s per (client_id, IP), 10/s global. Keying by IP
+      // as well prevents a caller spoofing a known client_id from
+      // exhausting that client's legitimate quota.
+      const ip = req.ip ?? "unknown";
+      const rateLimitError = rateLimit(client_id ?? "unknown", ip);
       if (rateLimitError) {
         res.status(429).json({
           error: "rate_limit_exceeded",
@@ -409,13 +441,12 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
       return;
     }
 
-    // Authenticate client
+    // Authenticate client. Unknown/inactive clients return the same
+    // uniform invalid_client message as wrong-secret below to avoid
+    // client-id enumeration and mode disclosure.
     const client = await getClient(client_id);
     if (!client || !client.active) {
-      res.status(401).json({
-        error: "invalid_client",
-        error_description: "Unknown or inactive client",
-      });
+      sendInvalidClient(res);
       return;
     }
 
@@ -429,20 +460,13 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
         !client_secret ||
         !verifySecret(client_secret, client.client_secret_hash)
       ) {
-        res.status(401).json({
-          error: "invalid_client",
-          error_description:
-            "Confidential clients must authenticate with client_secret",
-        });
+        sendInvalidClient(res);
         return;
       }
     } else if (client_secret) {
       // Native/public clients may optionally send a secret; verify if present.
       if (!verifySecret(client_secret, client.client_secret_hash)) {
-        res.status(401).json({
-          error: "invalid_client",
-          error_description: "Invalid client credentials",
-        });
+        sendInvalidClient(res);
         return;
       }
     }
@@ -476,15 +500,33 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
     // Expiry is checked in the DB query (consumeAuthorizationCode uses
     // WHERE expire > NOW()), so if we get here the code is still valid.
 
-    // Native clients MUST always use PKCE — accepting only client_secret
-    // defeats the purpose since native apps cannot keep secrets.
-    if (client.mode === "native" && !code_verifier) {
-      res.status(400).json({
-        error: "invalid_grant",
-        error_description:
-          "Native clients must use PKCE (code_verifier required)",
-      });
-      return;
+    // Native clients MUST always use PKCE. Enforced at /authorize
+    // (validateAuthRequest refuses to issue a code without
+    // code_challenge), but we also fail closed here: if a native
+    // client's stored authCode somehow lacks a challenge, reject.
+    // This defends against a validation regression at /authorize and
+    // against any future code path that bypasses validateAuthRequest.
+    if (client.mode === "native") {
+      if (!code_verifier) {
+        res.status(400).json({
+          error: "invalid_grant",
+          error_description:
+            "Native clients must use PKCE (code_verifier required)",
+        });
+        return;
+      }
+      if (!authCode.code_challenge) {
+        logger.error(
+          "native authorization code missing code_challenge — refusing to redeem",
+          { client_id },
+        );
+        res.status(400).json({
+          error: "invalid_grant",
+          error_description:
+            "Native client authorization code missing PKCE challenge",
+        });
+        return;
+      }
     }
 
     // Verify PKCE if code_challenge was set.
@@ -578,13 +620,12 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
       return;
     }
 
-    // Authenticate client
+    // Authenticate client.  Uniform invalid_client response on any failure
+    // so callers cannot distinguish unknown-client, inactive-client,
+    // missing-secret, or wrong-secret.
     const client = await getClient(client_id);
     if (!client || !client.active) {
-      res.status(401).json({
-        error: "invalid_client",
-        error_description: "Unknown or inactive client",
-      });
+      sendInvalidClient(res);
       return;
     }
 
@@ -592,20 +633,17 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
 
     if (isConfidential) {
       // Confidential clients MUST provide a valid client_secret
-      if (!client_secret || !verifySecret(client_secret, client.client_secret_hash)) {
-        res.status(401).json({
-          error: "invalid_client",
-          error_description: "Confidential clients must provide a valid client_secret",
-        });
+      if (
+        !client_secret ||
+        !verifySecret(client_secret, client.client_secret_hash)
+      ) {
+        sendInvalidClient(res);
         return;
       }
     } else if (client_secret) {
       // Native client provided a secret — verify it
       if (!verifySecret(client_secret, client.client_secret_hash)) {
-        res.status(401).json({
-          error: "invalid_client",
-          error_description: "Invalid client credentials",
-        });
+        sendInvalidClient(res);
         return;
       }
     }
@@ -792,13 +830,11 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
       // RFC 7009 §2.1 requires identifying the client; confidential
       // clients MUST authenticate per RFC 6749 §2.3.1.  Without this,
       // anyone who learns a token plus the (public) client_id could
-      // invoke a denial-of-service by revoking it.
+      // invoke a denial-of-service by revoking it.  Uniform
+      // invalid_client response to avoid client enumeration.
       const client = await getClient(client_id);
       if (!client || !client.active) {
-        res.status(401).json({
-          error: "invalid_client",
-          error_description: "Unknown or inactive client",
-        });
+        sendInvalidClient(res);
         return;
       }
       if (client.mode === "web") {
@@ -806,11 +842,7 @@ export function createOAuth2Provider(opts: ProviderOptions): express.Router {
           !client_secret ||
           !verifySecret(client_secret, client.client_secret_hash)
         ) {
-          res.status(401).json({
-            error: "invalid_client",
-            error_description:
-              "Confidential clients must authenticate with client_secret",
-          });
+          sendInvalidClient(res);
           return;
         }
       }
@@ -849,4 +881,18 @@ function redirectWithError(
 function setNoStore(res: express.Response) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Pragma", "no-cache");
+}
+
+// Uniform message for every client-authentication failure at the
+// token/refresh/revoke endpoints.  Using the same text for
+// unknown-client, inactive-client, missing-secret, and wrong-secret
+// prevents an attacker from enumerating valid client_ids or learning
+// whether a given client is confidential vs. native.
+const INVALID_CLIENT_MESSAGE = "Invalid client authentication";
+
+function sendInvalidClient(res: express.Response) {
+  res.status(401).json({
+    error: "invalid_client",
+    error_description: INVALID_CLIENT_MESSAGE,
+  });
 }

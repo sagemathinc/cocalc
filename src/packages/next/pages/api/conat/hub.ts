@@ -66,25 +66,42 @@ export default async function handle(req, res) {
       // Also check options[].set/delete which override the null-leaf heuristic
       // in the DB layer (postgres-user-queries.coffee line 148-149).
       if (name === "db.userQuery") {
-        const queryArgs = args ?? [];
-        for (const arg of queryArgs) {
-          // Reject malformed payloads explicitly — do NOT default to an
-          // empty read when `arg.query` is missing. hubBridge will also
-          // reject these, but the scope gate here is load-bearing: a
-          // malformed payload that bypasses classification could be
-          // treated as read and then interpreted downstream as something
-          // the token is not entitled to perform.
-          const query = arg?.query;
+        // Validate the top-level args shape BEFORE iterating so a
+        // non-array value cannot fall through to the generic catch
+        // (which was 500 rather than the intended 400). The scope gate
+        // here is load-bearing — fail closed and explicitly.
+        if (!Array.isArray(args)) {
+          res.status(400).json({
+            error: "invalid db.userQuery payload: `args` must be an array",
+          });
+          return;
+        }
+        for (const arg of args) {
+          if (arg == null || typeof arg !== "object") {
+            res.status(400).json({
+              error:
+                "invalid db.userQuery payload: each arg must be an object",
+            });
+            return;
+          }
+          const query = arg.query;
           if (query == null || typeof query !== "object") {
             res.status(400).json({
               error: "invalid db.userQuery payload: `query` must be an object",
             });
             return;
           }
-          const options = arg?.options ?? [];
-          const hasSetOption =
-            Array.isArray(options) &&
-            options.some((o: any) => o?.set || o?.delete);
+          const options = arg.options ?? [];
+          if (options !== undefined && !Array.isArray(options)) {
+            res.status(400).json({
+              error:
+                "invalid db.userQuery payload: `options` must be an array",
+            });
+            return;
+          }
+          const hasSetOption = (options as any[]).some(
+            (o: any) => o?.set || o?.delete,
+          );
           if (
             (isUserQueryWrite(query) || hasSetOption) &&
             !hasScope(scope, "api:write")

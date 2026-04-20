@@ -3,6 +3,9 @@ import { split } from "@cocalc/util/misc";
 import { getAccountWithApiKey } from "@cocalc/server/api/manage";
 import getPool from "@cocalc/database/pool";
 import isBanned from "@cocalc/server/accounts/is-banned";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("server:auth:api");
 
 export function getApiKey(req: Request): string {
   const h = req.header("Authorization");
@@ -49,11 +52,19 @@ async function getAccountFromOAuth2Token(
       !lastActive ||
       Date.now() - new Date(lastActive).getTime() > LAST_ACTIVE_THROTTLE_MS
     ) {
-      // fire-and-forget
-      pool.query(
-        `UPDATE oauth2_access_tokens SET last_active = NOW() WHERE token = $1`,
-        [token],
-      );
+      // fire-and-forget; attach .catch so a DB write failure is logged
+      // and cannot surface as an unhandled rejection on the auth path.
+      pool
+        .query(
+          `UPDATE oauth2_access_tokens SET last_active = NOW() WHERE token = $1`,
+          [token],
+        )
+        .catch((err) =>
+          logger.warn(
+            "failed to update oauth2_access_tokens.last_active",
+            err,
+          ),
+        );
     }
     return { account_id, scope: rows[0].scope ?? "" };
   }

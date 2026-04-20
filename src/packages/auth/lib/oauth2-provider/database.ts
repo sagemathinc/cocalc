@@ -10,6 +10,7 @@
 // so the built-in CoCalc maintenance service (delete_expired) automatically
 // cleans up expired rows. See hub/run/maintenance-expired.js.
 
+import { getLogger } from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 
 import type {
@@ -19,6 +20,8 @@ import type {
   OAuth2ClientPublic,
   RefreshToken,
 } from "./types";
+
+const logger = getLogger("auth:oauth2-database");
 
 // ---- OAuth2 Clients ----
 
@@ -291,12 +294,19 @@ export async function getAccessToken(
     Date.now() - new Date(row.last_active).getTime() >
       LAST_ACTIVE_UPDATE_INTERVAL_S * 1000
   ) {
-    // fire-and-forget: don't await, the read already succeeded
-    pool.query(
-      `UPDATE oauth2_access_tokens SET last_active = NOW()
-       WHERE token = $1`,
-      [token],
-    );
+    // fire-and-forget: don't await, the read already succeeded.
+    // .catch() on the promise so a DB write failure does not surface
+    // as an unhandled rejection (which would crash under strict-mode
+    // Node) and is at least logged.
+    pool
+      .query(
+        `UPDATE oauth2_access_tokens SET last_active = NOW()
+         WHERE token = $1`,
+        [token],
+      )
+      .catch((err) =>
+        logger.warn("failed to update oauth2_access_tokens.last_active", err),
+      );
   }
 
   return row;
@@ -383,13 +393,23 @@ export async function reuseRefreshToken(
     Date.now() - new Date(lastActive).getTime() >
       LAST_ACTIVE_UPDATE_INTERVAL_S * 1000;
   if (isStale) {
-    pool.query(
-      `UPDATE oauth2_refresh_tokens
-       SET last_active = NOW(),
-           expire = NOW() + interval '1 millisecond' * $2
-       WHERE token = $1 AND client_id = $3`,
-      [token, slidingLifetimeMs, clientId],
-    );
+    // Fire-and-forget sliding-expiry update. A failure here silently
+    // shortens the refresh window (next reuse will see the old expiry),
+    // so we explicitly log; do not await (hot auth path).
+    pool
+      .query(
+        `UPDATE oauth2_refresh_tokens
+         SET last_active = NOW(),
+             expire = NOW() + interval '1 millisecond' * $2
+         WHERE token = $1 AND client_id = $3`,
+        [token, slidingLifetimeMs, clientId],
+      )
+      .catch((err) =>
+        logger.warn(
+          "failed to update oauth2_refresh_tokens sliding expiry",
+          err,
+        ),
+      );
   }
 
   return row;
