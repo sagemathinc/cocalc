@@ -45,15 +45,30 @@ at hub startup. This preflight ensures a misconfigured deploy fails loudly
 async function requireIndex(
   L: WinstonLogger["debug"],
   indexName: string,
+  tableName: string,
 ): Promise<boolean> {
   const pool = getPool();
+  // Match on schema + table + index name *and* validity. A CONCURRENTLY
+  // build that failed partway leaves an "invalid" index behind with the
+  // expected name (see the 2020 note in postgres/schema/indexes.ts), and a
+  // plain pg_indexes name match would falsely accept it.
   const { rows } = await pool.query(
-    `SELECT 1 FROM pg_indexes WHERE indexname = $1 LIMIT 1`,
-    [indexName],
+    `SELECT 1
+       FROM pg_index i
+       JOIN pg_class ic ON ic.oid = i.indexrelid
+       JOIN pg_class tc ON tc.oid = i.indrelid
+       JOIN pg_namespace n ON n.oid = ic.relnamespace
+      WHERE n.nspname = current_schema()
+        AND tc.relname = $2
+        AND ic.relname = $1
+        AND i.indisvalid
+        AND i.indisready
+      LIMIT 1`,
+    [indexName, tableName],
   );
   if (rows.length === 0) {
     L(
-      `REFUSING TO RUN: required index '${indexName}' is missing. ` +
+      `REFUSING TO RUN: required index '${indexName}' on '${tableName}' is missing or invalid. ` +
         `Create it manually with CREATE INDEX CONCURRENTLY before enabling cleanup.`,
     );
     return false;
@@ -180,7 +195,7 @@ export async function cleanup_deleted_account_pii(
     L(`pii_retention = "never" — account PII scrub disabled.`);
     return;
   }
-  if (!(await requireIndex(L, "accounts_deleted_idx"))) {
+  if (!(await requireIndex(L, "accounts_deleted_idx", "accounts"))) {
     return;
   }
   const pool = getPool();
@@ -301,7 +316,7 @@ export async function cleanup_old_projects_data(
     L(`deleting project data is disabled ('delete_project_data' setting).`);
     return;
   }
-  if (!(await requireIndex(L, "syncstrings_project_id_idx"))) {
+  if (!(await requireIndex(L, "syncstrings_project_id_idx", "syncstrings"))) {
     return;
   }
 
@@ -385,48 +400,50 @@ export async function cleanup_old_projects_data(
 
 /*
  Delete all patches + syncstring rows belonging to one project.
- Patches are chunked by ctid so the DELETE stays throttled even for a
- syncstring with millions of patches. `syncstrings` lookups by string_id use
- the primary-key index; the DELETE by string_id is a single PK-keyed
- statement and is fast regardless of row count.
+
+ Batched so a pathological project with hundreds of thousands of syncstrings
+ does not load the full list into memory and does not issue one huge DELETE.
+ Per batch: read SYNCSTRING_BATCH string_ids, chunk-delete their patches
+ (patches.pkey is compound, so bulkDelete chunks by ctid), then delete those
+ syncstring rows. Order matters — if the loop crashes mid-batch, the already-
+ deleted patches have no orphans, and the surviving syncstrings will be
+ revisited on the next run.
 */
+const SYNCSTRING_BATCH = 1000;
 async function delete_project_syncstrings(
   L2: WinstonLogger["debug"],
   project_id: string,
 ): Promise<number> {
   const pool = getPool();
-  // Uses the syncstrings.project_id index (added alongside this code path).
-  const { rows: syncstrings } = await pool.query(
-    "SELECT string_id FROM syncstrings WHERE project_id = $1",
-    [project_id],
-  );
-  if (syncstrings.length === 0) return 0;
-
   let total = 0;
-  for (const { string_id } of syncstrings) {
-    // Patches primary key is compound (string_id, time, is_snapshot), so we
-    // chunk by ctid (the physical row id) which is unique for every table.
-    const { rowsDeleted } = await bulkDelete({
-      table: "patches",
-      field: "string_id",
-      value: string_id,
-      id: "ctid",
-    });
-    total += rowsDeleted;
-    delete_projects_prom.labels("syncstring").inc();
-    L2(`deleted ${rowsDeleted} patches for syncstring ${string_id}`);
-  }
+  while (true) {
+    // Uses the syncstrings.project_id index (added alongside this code path).
+    const { rows: syncstrings } = await pool.query(
+      "SELECT string_id FROM syncstrings WHERE project_id = $1 LIMIT $2",
+      [project_id, SYNCSTRING_BATCH],
+    );
+    if (syncstrings.length === 0) return total;
 
-  // Drop the syncstring rows themselves. A single PK-keyed DELETE per string
-  // is fast; batching gets us one round trip for the set.
-  const stringIds = syncstrings.map((r) => r.string_id);
-  const ret = await pool.query(
-    "DELETE FROM syncstrings WHERE string_id = ANY($1::CHAR(40)[])",
-    [stringIds],
-  );
-  total += ret.rowCount ?? 0;
-  L2(`deleted ${ret.rowCount} syncstring rows`);
-  return total;
+    for (const { string_id } of syncstrings) {
+      const { rowsDeleted } = await bulkDelete({
+        table: "patches",
+        field: "string_id",
+        value: string_id,
+        id: "ctid",
+      });
+      total += rowsDeleted;
+      delete_projects_prom.labels("syncstring").inc();
+      L2(`deleted ${rowsDeleted} patches for syncstring ${string_id}`);
+    }
+
+    const stringIds = syncstrings.map((r) => r.string_id);
+    const ret = await pool.query(
+      "DELETE FROM syncstrings WHERE string_id = ANY($1::CHAR(40)[])",
+      [stringIds],
+    );
+    total += ret.rowCount ?? 0;
+    L2(`deleted ${ret.rowCount} syncstring rows`);
+  }
 }
 
 // Guard against fs.rm walking into an unrelated tree if MOUNTED_PROJECTS_ROOT
