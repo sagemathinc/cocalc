@@ -3,6 +3,7 @@ API endpoint to restore a deleted a project, which sets the "delete" flag to `fa
 the database.
 */
 import { isValidUUID } from "@cocalc/util/misc";
+import getPool from "@cocalc/database/pool";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import userQuery from "@cocalc/database/user-query";
@@ -35,6 +36,25 @@ async function handle(req, res) {
       !(await isCollaborator({ account_id, project_id }))
     ) {
       throw Error("must be an owner to restore a project");
+    }
+
+    // Once the delete-projects hub job has unlinked the project (users IS NULL)
+    // or purged its data (state.state='deleted'), restore would produce an
+    // operationally dead row. Refuse up front with a clear message.
+    const pool = getPool();
+    const { rows } = await pool.query(
+      `SELECT (users IS NULL) AS unlinked,
+              (state ->> 'state') = 'deleted' AS purged
+       FROM projects WHERE project_id = $1`,
+      [project_id],
+    );
+    if (rows.length === 0) {
+      throw Error("no such project");
+    }
+    if (rows[0].purged || rows[0].unlinked) {
+      throw Error(
+        "this project has been permanently deleted and cannot be restored; please contact support",
+      );
     }
 
     await userQuery({
