@@ -46,17 +46,33 @@ async function requireIndex(
   L: WinstonLogger["debug"],
   indexName: string,
   tableName: string,
+  expectedColumns: string[],
 ): Promise<boolean> {
   const pool = getPool();
-  // Match on schema + table + index name *and* validity. A CONCURRENTLY
-  // build that failed partway leaves an "invalid" index behind with the
-  // expected name (see the 2020 note in postgres/schema/indexes.ts), and a
-  // plain pg_indexes name match would falsely accept it.
+  // Match on schema + table + index name + validity *and* verify the index
+  // definition matches what our queries expect. The new
+  // `CREATE INDEX IF NOT EXISTS` path in schema sync means an operator could
+  // precreate an index with the expected name but the wrong columns/predicate,
+  // and a name-only check would silently accept it while the cleanup query
+  // still seq-scans. We require:
+  //   - indisvalid AND indisready (rules out CONCURRENTLY builds that failed)
+  //   - not a partial index (indpred is null)
+  //   - b-tree access method (pg_am.amname = 'btree')
+  //   - key columns match expectedColumns in order (via pg_get_indexdef which
+  //     returns the bare column name for plain columns and "(expr)" for
+  //     expression indexes — we compare case-sensitively to expected names)
   const { rows } = await pool.query(
-    `SELECT 1
+    `SELECT (
+              SELECT array_agg(pg_get_indexdef(i.indexrelid, k, false)
+                               ORDER BY k)
+                FROM generate_series(1, i.indnkeyatts) AS k
+            ) AS cols,
+            i.indpred IS NOT NULL AS has_predicate,
+            am.amname AS am
        FROM pg_index i
        JOIN pg_class ic ON ic.oid = i.indexrelid
        JOIN pg_class tc ON tc.oid = i.indrelid
+       JOIN pg_am am ON am.oid = ic.relam
        JOIN pg_namespace n ON n.oid = ic.relnamespace
       WHERE n.nspname = current_schema()
         AND tc.relname = $2
@@ -72,6 +88,31 @@ async function requireIndex(
         `Create it manually with CREATE INDEX CONCURRENTLY before enabling cleanup.`,
     );
     return false;
+  }
+  const { cols, has_predicate, am } = rows[0];
+  const reject = (why: string): false => {
+    L(
+      `REFUSING TO RUN: index '${indexName}' on '${tableName}' exists but ${why}. ` +
+        `Expected a plain b-tree index on (${expectedColumns.join(", ")}). ` +
+        `Drop the wrong index and recreate it with CREATE INDEX CONCURRENTLY.`,
+    );
+    return false;
+  };
+  if (am !== "btree") return reject(`uses access method '${am}' (expected btree)`);
+  if (has_predicate) return reject("is a partial index");
+  const actual: string[] = (cols ?? []).map((c: string) =>
+    // pg_get_indexdef quotes identifiers that need quoting; strip for a
+    // plain-column comparison. Expression indexes come back as "(...)" and
+    // will simply not match the bare expected column name.
+    c.startsWith('"') && c.endsWith('"') ? c.slice(1, -1) : c,
+  );
+  if (
+    actual.length !== expectedColumns.length ||
+    actual.some((c, i) => c !== expectedColumns[i])
+  ) {
+    return reject(
+      `indexes columns (${actual.join(", ")}) not (${expectedColumns.join(", ")})`,
+    );
   }
   return true;
 }
@@ -195,7 +236,7 @@ export async function cleanup_deleted_account_pii(
     L(`pii_retention = "never" — account PII scrub disabled.`);
     return;
   }
-  if (!(await requireIndex(L, "accounts_deleted_idx", "accounts"))) {
+  if (!(await requireIndex(L, "accounts_deleted_idx", "accounts", ["deleted"]))) {
     return;
   }
   const pool = getPool();
@@ -316,7 +357,7 @@ export async function cleanup_old_projects_data(
     L(`deleting project data is disabled ('delete_project_data' setting).`);
     return;
   }
-  if (!(await requireIndex(L, "syncstrings_project_id_idx", "syncstrings"))) {
+  if (!(await requireIndex(L, "syncstrings_project_id_idx", "syncstrings", ["project_id"]))) {
     return;
   }
 
