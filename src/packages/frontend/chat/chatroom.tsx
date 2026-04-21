@@ -49,6 +49,7 @@ import type { ChatState } from "./store";
 import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
 import {
   INPUT_HEIGHT,
+  anchorIdOf,
   getThreadRootDate,
   markChatAsReadIfUnseen,
 } from "./utils";
@@ -304,7 +305,7 @@ export function ChatPanel({
   const selectedThreadAnchorId = useMemo(() => {
     if (!singleThreadView || !selectedThreadKey) return undefined;
     const thread = threads.find((t) => t.key === selectedThreadKey);
-    return thread?.rootMessage?.get("id") as string | undefined;
+    return anchorIdOf(thread?.rootMessage);
   }, [singleThreadView, selectedThreadKey, threads]);
 
   useEffect(() => {

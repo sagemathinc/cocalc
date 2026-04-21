@@ -6,7 +6,7 @@ import { React, redux, useRedux } from "@cocalc/frontend/app-framework";
 import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 
 import type { ChatMessageTyped, ChatMessages } from "./types";
-import { newest_content } from "./utils";
+import { anchorIdOf, newest_content } from "./utils";
 
 export const ALL_THREADS_KEY = "__ALL_THREADS__";
 
@@ -158,7 +158,7 @@ export function useAnchoredThreads(
   const chatMessages = useRedux(["messages"], project_id, chatPath);
   const allThreads = useThreadList(chatMessages, account_id);
   const anchoredThreads = React.useMemo(
-    () => allThreads.filter((t) => t.rootMessage?.get("id") === anchorId),
+    () => allThreads.filter((t) => anchorIdOf(t.rootMessage) === anchorId),
     [allThreads, anchorId],
   );
   const totalMessages = React.useMemo(

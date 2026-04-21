@@ -5,7 +5,7 @@
 
 /*
 Gutter component rendered on lines of a `.tex` (or included sub-file) that
-contain a `% cocalc-chat: <hash>` marker. It shows a chat icon plus a badge
+contain a `% chat: <hash>` marker. It shows a chat icon plus a badge
 that mirrors the jupyter per-cell chat UX:
  - red badge with unread count when there are unread messages for this anchor
  - gray badge with total message count when everything is read.
@@ -14,7 +14,6 @@ Clicking opens the side chat focused on that anchor's thread.
 */
 
 import { Popconfirm, Tooltip } from "antd";
-import { useFrameContext } from "@cocalc/frontend/app-framework";
 import { useAnchoredThreads } from "@cocalc/frontend/chat/threads";
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
@@ -26,6 +25,15 @@ interface Props {
   /** Master file path — this is what the `.sage-chat` is anchored to. */
   masterPath: string;
   project_id: string;
+  /**
+   * Called on click. We take the callbacks as props (rather than pulling
+   * them from `useFrameContext`) because this component is mounted via a
+   * standalone `createRoot` that is NOT under the editor's
+   * `FrameContext.Provider` — the hook would return the empty default
+   * actions object and clicks would be a silent no-op.
+   */
+  openAnchorChat: (hash: string, path: string) => void;
+  openAnchorChatThread: (threadKey: string) => void;
 }
 
 export function ChatMarkerGutter({
@@ -33,8 +41,9 @@ export function ChatMarkerGutter({
   path,
   masterPath,
   project_id,
+  openAnchorChat,
+  openAnchorChatThread,
 }: Props) {
-  const frameContext = useFrameContext();
   const { anchoredThreads, totalUnread } = useAnchoredThreads(
     project_id,
     masterPath,
@@ -44,17 +53,16 @@ export function ChatMarkerGutter({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const actions = frameContext.actions as any;
     if (hasUnread) {
       const newestUnread = anchoredThreads
         .filter((t) => t.unreadCount > 0)
         .sort((a, b) => b.newestTime - a.newestTime)[0];
       if (newestUnread) {
-        actions.openAnchorChatThread?.(newestUnread.key);
+        openAnchorChatThread(newestUnread.key);
         return;
       }
     }
-    actions.openAnchorChat?.(hash, path);
+    openAnchorChat(hash, path);
   };
 
   return (
@@ -129,7 +137,7 @@ export function ChatMarkerInlineTail({
             }}
             style={{
               display: "inline-block",
-              padding: "0 6px",
+              padding: "0 10px",
               borderRadius: 10,
               fontSize: "0.85em",
               lineHeight: 1.4,

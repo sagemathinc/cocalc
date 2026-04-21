@@ -30,16 +30,23 @@ import { normalize as path_normalize } from "path";
 import * as React from "react";
 
 import {
+  BookmarkMarker,
   ChatMarker,
   buildBlockInsertion,
+  buildBookmarkLine,
   buildInlineInsertion,
+  buildMarkerLine,
   generateMarkerHash,
   lineHasTexContent,
+  scanBookmarks,
   scanMarkers,
 } from "./chat-markers";
 import { createRoot, Root } from "react-dom/client";
 
+import { Icon } from "@cocalc/frontend/components";
 import { ChatMarkerGutter, ChatMarkerInlineTail } from "./chat-marker-gutter";
+// Side-effect import: registers the "Insert chat marker" command + Insert-menu entry.
+import "./chat-marker-command";
 import { getSideChatActions } from "@cocalc/frontend/frame-editors/generic/chat";
 
 import { type AccountStore } from "@cocalc/frontend/account";
@@ -947,7 +954,39 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
     }
     this._chatDeleteBookmarks = {};
+    for (const entries of Object.values(this._chatGutterHosts)) {
+      for (const { root } of entries) {
+        try {
+          root.unmount();
+        } catch {
+          // ignored
+        }
+      }
+    }
+    this._chatGutterHosts = {};
+    for (const entries of Object.values(this._chatBookmarkGutterHosts)) {
+      for (const { root } of entries) {
+        try {
+          root.unmount();
+        } catch {
+          // ignored
+        }
+      }
+    }
+    this._chatBookmarkGutterHosts = {};
+    this._chatBookmarkLines = {};
+    for (const entry of Object.values(this._chatCursorInsertHosts)) {
+      for (const r of [entry.chatRoot, entry.bookmarkRoot]) {
+        try {
+          r.unmount();
+        } catch {
+          // ignored
+        }
+      }
+    }
+    this._chatCursorInsertHosts = {};
     this._chatClickHandlerInstalled.clear();
+    this._chatKeybindingInstalled.clear();
     this._chatStoreDispose?.();
     this._chatStoreDispose = undefined;
     this.buildCoordinator?.close();
@@ -2204,15 +2243,27 @@ export class Actions extends BaseActions<LatexEditorState> {
       return;
     }
     const contents = fromJS(
-      parseTableOfContents(this._syncstring.to_str() ?? ""),
+      parseTableOfContents(this._syncstring.to_str() ?? "", {
+        includeBookmarks: true,
+      }),
     ) as any;
     this.setState({ contents });
   }
 
   public async scrollToHeading(entry: TableOfContentsEntry): Promise<void> {
-    const id = this.show_focused_frame_of_type("cm");
+    // The TOC is built from the master file, so route to the master CM.
+    // `switch_to_file` finds the matching CM frame (or swaps the current
+    // one to the master's path) and returns its frame id; otherwise, if
+    // the user is currently viewing a sub-file, the goto below would
+    // either miss the CM entirely or scroll the wrong content.
+    const id = await this.switch_to_file(this.path);
     if (id == null) return;
-    this.programmatically_goto_line(parseInt(entry.id), true, true, id);
+    await this.programmatically_goto_line(
+      parseInt(entry.id),
+      true,
+      true,
+      id,
+    );
   }
 
   languageModelExtraFileInfo() {
@@ -2296,7 +2347,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // ===== Chat anchors =======================================================
   //
-  // A `% cocalc-chat: <hash>` comment in the tex source anchors a thread in
+  // A `% chat: <hash>` comment in the tex source anchors a thread in
   // the side chat. We scan the master file (and each open sub-file) for
   // markers on every syncstring change, then render a gutter icon + badge on
   // each marker line. The per-anchor thread lives in the master `.sage-chat`;
@@ -2317,12 +2368,69 @@ export class Actions extends BaseActions<LatexEditorState> {
   } = {};
 
   /**
-   * Bookmarks rendering the delete-widget at the end of each marker line.
-   * We track them separately from the markText ones because they need to
-   * unmount their React roots on clear.
+   * Bookmarks rendering the pill + delete widget at the end of each marker
+   * line. We track them separately from the markText ones because we
+   * preserve their host DOM + React root across rescans (diffed by order
+   * within the path) to avoid flicker during rapid edits like typing a
+   * hash character-by-character.
    */
   private _chatDeleteBookmarks: {
-    [path: string]: Array<{ bookmark: CodeMirror.TextMarker; root: Root }>;
+    [path: string]: Array<{
+      bookmark: CodeMirror.TextMarker;
+      host: HTMLElement;
+      root: Root;
+    }>;
+  } = {};
+
+  /**
+   * Gutter icon hosts (one per marker line, de-duped). We drive CM's native
+   * `setGutterMarker` directly rather than going through cocalc's
+   * `set_gutter_marker` (which would redux-rebuild the React tree on every
+   * scan). Hosts and their React roots persist across rescans; we just
+   * re-attach them to the new line.
+   */
+  private _chatGutterHosts: {
+    [path: string]: Array<{
+      host: HTMLElement;
+      root: Root;
+      line: number;
+    }>;
+  } = {};
+
+  /**
+   * Gray bookmark icon hosts (one per `% bookmark: <text>` line). Like
+   * the chat-marker gutter hosts: persistent React roots in vanilla DOM
+   * wrappers, paired old→new across rescans. Non-interactive — the
+   * tooltip just reminds users where to manage bookmarks.
+   */
+  private _chatBookmarkGutterHosts: {
+    [path: string]: Array<{ host: HTMLElement; root: Root; line: number }>;
+  } = {};
+
+  /**
+   * Fast lookup of lines that currently carry a bookmark per path. Used
+   * by the cursor-follow icon to suppress itself on bookmark lines (and
+   * to avoid stomping the bookmark host when the cursor leaves).
+   */
+  private _chatBookmarkLines: { [path: string]: Set<number> } = {};
+
+  /**
+   * A pair of faint insert icons per open latex file (chat + bookmark)
+   * that track the primary cursor's line. Clicks on each icon insert the
+   * corresponding marker before the line. Hidden when the cursor sits on
+   * a line that already has a marker or bookmark.
+   *
+   * The icons are antd React components mounted once into persistent
+   * child DOM hosts — zero re-renders, no flicker, no dependency on
+   * Font Awesome availability.
+   */
+  private _chatCursorInsertHosts: {
+    [path: string]: {
+      host: HTMLElement;
+      chatRoot: Root;
+      bookmarkRoot: Root;
+      currentHandle: CodeMirror.LineHandle | null;
+    };
   } = {};
 
   /** Paths whose CM mousedown handler has been installed. */
@@ -2349,6 +2457,11 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (this._state === "closed") return;
       const ss = (fileActions as any)._syncstring;
       if (ss == null) return;
+      // Skip while the syncstring is still loading — otherwise the scan
+      // sees partial/stale content and jumps would land on the wrong
+      // line. The syncstring fires a "change" event once it reaches
+      // "ready", so the next rescan will pick up the real content.
+      if (ss.get_state?.() !== "ready") return;
       let text: string;
       try {
         text = ss.to_str();
@@ -2371,6 +2484,11 @@ export class Actions extends BaseActions<LatexEditorState> {
         this._refreshChatMarkerGutters(path);
         this._refreshChatInlineStyles(path);
       }
+      // Bookmarks are tracked outside redux — refresh their gutter
+      // icons on every successful scan. The cursor-follow refresh runs
+      // last so it picks up the latest chat-marker AND bookmark lines.
+      this._refreshBookmarkGutters(path, scanBookmarks(text));
+      this._refreshChatCursorInsert(path);
     }, 300);
 
     const ss = (fileActions as any)._syncstring;
@@ -2380,14 +2498,43 @@ export class Actions extends BaseActions<LatexEditorState> {
     // Initial scan (might be a no-op if syncstring isn't hydrated yet).
     rescan();
 
+    // The syncstring may not be ready yet when this file was just opened
+    // ad-hoc (e.g. a collaborator jumped into a sub-file). Retry the
+    // listener registration every 250 ms until it sticks. Without this,
+    // the "change" event never fires and marker-scan never updates.
+    let registered = ss?.on != null;
+    if (!registered) {
+      const tryRegister = (retries: number) => {
+        if (this._state === "closed") return;
+        if (registered) return;
+        if (this._chatMarkerScanners[path] == null) return; // disposed
+        const ss2 = (fileActions as any)._syncstring;
+        if (ss2?.on) {
+          ss2.on("change", rescan);
+          registered = true;
+          rescan();
+          return;
+        }
+        if (retries > 0) {
+          setTimeout(() => tryRegister(retries - 1), 250);
+        }
+      };
+      tryRegister(40); // up to ~10 seconds
+    }
+
     this._chatMarkerScanners[path] = {
       dispose: () => {
-        if (ss?.removeListener) {
-          ss.removeListener("change", rescan);
+        const ss2 = (fileActions as any)._syncstring;
+        if (ss2?.removeListener && registered) {
+          ss2.removeListener("change", rescan);
         }
         rescan.cancel();
       },
     };
+
+    // Install click handler + Ctrl-Shift-M keybinding as soon as the file's
+    // CM is mounted (even if there are no markers yet).
+    this._ensureChatUI(path);
   }
 
   /**
@@ -2415,35 +2562,352 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  /** Render ChatMarkerGutter markers for a given path's CM gutter. */
+  /**
+   * Render chat-marker gutter icons for a given path.
+   *
+   * Bypasses cocalc's `set_gutter_marker` (which goes through redux and a
+   * `GutterMarker` React component — rebuilt on every scan, causing
+   * flicker) and instead calls CM's native `cm.setGutterMarker` directly
+   * with persistent DOM hosts. Hosts are paired old[i]→new[i] across
+   * rescans so the React tree inside each host stays mounted.
+   */
   private _refreshChatMarkerGutters(path: string): void {
     const fileActions = this.redux.getEditorActions(
       this.project_id,
       path_normalize(path),
     ) as BaseActions<CodeEditorState> | undefined;
     if (fileActions == null) return;
-    fileActions.clear_gutter("CodeMirror-latex-chat");
+    const cm = (fileActions as any)._get_cm?.() as
+      | CodeMirror.Editor
+      | undefined;
+    if (cm == null) return;
+
     const list = this.store.get("chat_markers")?.get(path);
-    if (!list) return;
-    // Dedup by line — only one gutter icon per line even if somebody puts
-    // multiple markers on the same line.
+    // Dedup by line — only one gutter icon per line.
     const seenLines = new Set<number>();
-    for (const m of list) {
-      const marker = m.toJS() as ChatMarker;
-      if (seenLines.has(marker.line)) continue;
-      seenLines.add(marker.line);
-      fileActions.set_gutter_marker({
-        id: `chat-${path}-${marker.line}`,
-        line: marker.line,
-        gutter_id: "CodeMirror-latex-chat",
-        component: React.createElement(ChatMarkerGutter, {
-          hash: marker.hash,
+    const targetLines: Array<{ line: number; hash: string }> = [];
+    if (list) {
+      for (const m of list) {
+        const marker = m.toJS() as ChatMarker;
+        if (seenLines.has(marker.line)) continue;
+        seenLines.add(marker.line);
+        targetLines.push({ line: marker.line, hash: marker.hash });
+      }
+    }
+
+    const existing = this._chatGutterHosts[path] ?? [];
+    const fresh: Array<{
+      host: HTMLElement;
+      root: Root;
+      line: number;
+    }> = [];
+
+    // Pair old[i] → new[i]. Reused hosts keep their React root alive.
+    for (let i = 0; i < targetLines.length; i++) {
+      const target = targetLines[i];
+      const reused = existing[i];
+      const host = reused?.host ?? document.createElement("span");
+      if (reused == null) {
+        host.className = "cc-chat-marker-gutter-host";
+      }
+      const root = reused?.root ?? createRoot(host);
+      root.render(
+        React.createElement(ChatMarkerGutter, {
+          hash: target.hash,
           path,
           masterPath: this.path,
           project_id: this.project_id,
+          openAnchorChat: (h, p) => {
+            void this.openAnchorChat(h, p);
+          },
+          openAnchorChatThread: (k) => {
+            void this.openAnchorChatThread(k);
+          },
         }),
-      });
+      );
+      if (reused != null && reused.line !== target.line) {
+        // Detach from the old line first.
+        cm.setGutterMarker(reused.line, "CodeMirror-latex-chat", null);
+      }
+      cm.setGutterMarker(target.line, "CodeMirror-latex-chat", host);
+      fresh.push({ host, root, line: target.line });
     }
+
+    // Dispose any leftover old hosts beyond the new list.
+    for (let i = targetLines.length; i < existing.length; i++) {
+      const e = existing[i];
+      cm.setGutterMarker(e.line, "CodeMirror-latex-chat", null);
+      try {
+        e.root.unmount();
+      } catch {
+        // ignored
+      }
+    }
+
+    this._chatGutterHosts[path] = fresh;
+  }
+
+  /**
+   * Render a gray bookmark icon in the chat gutter on every `% bookmark:`
+   * line. Non-interactive (no click action) — the tooltip points users
+   * to the Contents tab for navigation. Uses the same persistent-host +
+   * native-setGutterMarker scheme as the chat-marker gutter so there's
+   * no flicker on rescans.
+   */
+  private _refreshBookmarkGutters(
+    path: string,
+    bookmarks: BookmarkMarker[],
+  ): void {
+    const fileActions = this.redux.getEditorActions(
+      this.project_id,
+      path_normalize(path),
+    ) as BaseActions<CodeEditorState> | undefined;
+    if (fileActions == null) return;
+    const cm = (fileActions as any)._get_cm?.() as
+      | CodeMirror.Editor
+      | undefined;
+    if (cm == null) return;
+
+    const seen = new Set<number>();
+    const targetLines: number[] = [];
+    for (const b of bookmarks) {
+      if (seen.has(b.line)) continue;
+      seen.add(b.line);
+      targetLines.push(b.line);
+    }
+    this._chatBookmarkLines[path] = seen;
+
+    const existing = this._chatBookmarkGutterHosts[path] ?? [];
+    const fresh: Array<{ host: HTMLElement; root: Root; line: number }> = [];
+
+    for (let i = 0; i < targetLines.length; i++) {
+      const targetLine = targetLines[i];
+      const reused = existing[i];
+      const host = reused?.host ?? document.createElement("span");
+      if (reused == null) {
+        host.className = "cc-chat-bookmark-gutter-host";
+        host.title =
+          "Bookmark \u2014 open the Contents tab in the Output frame to navigate bookmarks";
+        // Swallow clicks so CM doesn't reposition the cursor.
+        host.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+        host.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+      }
+      const root = reused?.root ?? createRoot(host);
+      root.render(React.createElement(Icon, { name: "bookmark" }));
+      if (reused != null && reused.line !== targetLine) {
+        cm.setGutterMarker(reused.line, "CodeMirror-latex-chat", null);
+      }
+      cm.setGutterMarker(targetLine, "CodeMirror-latex-chat", host);
+      fresh.push({ host, root, line: targetLine });
+    }
+
+    for (let i = targetLines.length; i < existing.length; i++) {
+      const e = existing[i];
+      cm.setGutterMarker(e.line, "CodeMirror-latex-chat", null);
+      try {
+        e.root.unmount();
+      } catch {
+        // ignored
+      }
+    }
+
+    this._chatBookmarkGutterHosts[path] = fresh;
+  }
+
+  /**
+   * Lazily create the cursor-follow insert-icon host for a file. Installs
+   * CM's cursorActivity listener once, then delegates to
+   * `_refreshChatCursorInsert` for every subsequent cursor move.
+   */
+  private _ensureChatCursorInsert(path: string): void {
+    if (this._chatCursorInsertHosts[path] != null) return;
+    const fileActions = this.redux.getEditorActions(
+      this.project_id,
+      path_normalize(path),
+    ) as BaseActions<CodeEditorState> | undefined;
+    if (fileActions == null) return;
+    const cm = (fileActions as any)._get_cm?.() as
+      | CodeMirror.Editor
+      | undefined;
+    if (cm == null) return;
+
+    const host = document.createElement("span");
+    host.className = "cc-chat-cursor-insert";
+    // Swallow the outer mousedown so CM doesn't reposition the cursor
+    // when the user aims at one of our icons.
+    host.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    const makeIconHost = (
+      title: string,
+      onClick: (line: number) => void,
+    ): { child: HTMLElement; root: Root } => {
+      const child = document.createElement("span");
+      child.title = title;
+      child.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const entry = this._chatCursorInsertHosts[path];
+        if (entry?.currentHandle == null) return;
+        const line = cm.getLineNumber(entry.currentHandle);
+        if (line == null) return;
+        onClick(line);
+      });
+      const root = createRoot(child);
+      host.appendChild(child);
+      return { child, root };
+    };
+
+    const { root: chatRoot } = makeIconHost(
+      "Insert chat anchor before this line",
+      (line) => {
+        void this._insertChatMarkerBeforeLine(path, line);
+      },
+    );
+    chatRoot.render(React.createElement(Icon, { name: "comment" }));
+
+    const { root: bookmarkRoot } = makeIconHost(
+      "Insert bookmark before this line",
+      (line) => {
+        void this.insertBookmark({ targetPath: path, targetLine: line });
+      },
+    );
+    bookmarkRoot.render(React.createElement(Icon, { name: "bookmark" }));
+
+    this._chatCursorInsertHosts[path] = {
+      host,
+      chatRoot,
+      bookmarkRoot,
+      currentHandle: null,
+    };
+
+    cm.on("cursorActivity", () => this._refreshChatCursorInsert(path));
+    this._refreshChatCursorInsert(path);
+  }
+
+  /**
+   * Place the single cursor-follow host on the primary cursor's starting
+   * line — unless that line already has a marker, in which case the host
+   * is detached from the gutter.
+   */
+  private _refreshChatCursorInsert(path: string): void {
+    const entry = this._chatCursorInsertHosts[path];
+    if (entry == null) return;
+    const fileActions = this.redux.getEditorActions(
+      this.project_id,
+      path_normalize(path),
+    ) as BaseActions<CodeEditorState> | undefined;
+    if (fileActions == null) return;
+    const cm = (fileActions as any)._get_cm?.() as
+      | CodeMirror.Editor
+      | undefined;
+    if (cm == null) return;
+
+    const selections = cm.listSelections();
+    const primary = selections[0];
+    if (primary == null) return;
+    const startLine = Math.min(primary.anchor.line, primary.head.line);
+
+    const markerList = this.store.get("chat_markers")?.get(path);
+    let hasAnyMarker = false;
+    if (markerList) {
+      for (const m of markerList) {
+        if ((m.toJS() as ChatMarker).line === startLine) {
+          hasAnyMarker = true;
+          break;
+        }
+      }
+    }
+    if (!hasAnyMarker) {
+      const bmLines = this._chatBookmarkLines[path];
+      if (bmLines?.has(startLine)) hasAnyMarker = true;
+    }
+
+    const newHandle = hasAnyMarker ? null : cm.getLineHandle(startLine);
+    if (newHandle === entry.currentHandle) return;
+
+    if (entry.currentHandle != null) {
+      // Only clear if the old line doesn't now have a marker or bookmark —
+      // otherwise the marker/bookmark refresh code has already placed its
+      // own host there and clearing would stomp it.
+      const oldLine = cm.getLineNumber(entry.currentHandle);
+      let oldLineHasHost = false;
+      if (oldLine != null && markerList) {
+        for (const m of markerList) {
+          if ((m.toJS() as ChatMarker).line === oldLine) {
+            oldLineHasHost = true;
+            break;
+          }
+        }
+      }
+      if (!oldLineHasHost && oldLine != null) {
+        const bmLines = this._chatBookmarkLines[path];
+        if (bmLines?.has(oldLine)) oldLineHasHost = true;
+      }
+      if (!oldLineHasHost) {
+        try {
+          cm.setGutterMarker(
+            entry.currentHandle,
+            "CodeMirror-latex-chat",
+            null,
+          );
+        } catch {
+          // stale handle; ignore
+        }
+      }
+    }
+    if (newHandle != null) {
+      cm.setGutterMarker(newHandle, "CodeMirror-latex-chat", entry.host);
+    }
+    entry.currentHandle = newHandle;
+  }
+
+  /**
+   * Insert `% chat: <hash>\n\n` at the start of `line`, push the existing
+   * content down, and open the side chat. Cursor positions after the
+   * insertion point follow automatically (CM shifts them). Unlike the
+   * generic `insertChatMarker`, this never introduces a line break at
+   * the cursor's column.
+   */
+  private async _insertChatMarkerBeforeLine(
+    path: string,
+    line: number,
+  ): Promise<void> {
+    const fileActions = this.redux.getEditorActions(
+      this.project_id,
+      path_normalize(path),
+    ) as BaseActions<CodeEditorState> | undefined;
+    if (fileActions == null) return;
+    const cm = (fileActions as any)._get_cm?.() as
+      | CodeMirror.Editor
+      | undefined;
+    if (cm == null) return;
+
+    const hash = generateMarkerHash();
+    cm.replaceRange(
+      buildMarkerLine(hash) + "\n\n",
+      { line, ch: 0 },
+      { line, ch: 0 },
+    );
+    fileActions.set_syncstring_to_codemirror();
+    (fileActions as any)._syncstring?.commit?.();
+
+    const chatActions = await this._waitForChatActions();
+    if (chatActions == null) return;
+    chatActions.setPendingAnchorThread({
+      id: hash,
+      label: this.getAnchorLabel(hash),
+      path,
+    });
+    this._showChatFrameInChatMode();
   }
 
   /**
@@ -2463,31 +2927,25 @@ export class Actions extends BaseActions<LatexEditorState> {
       | undefined;
     if (cm == null) return;
 
-    // Clear stale TextMarkers + delete bookmarks from the previous scan.
-    const stale = this._chatTextMarkers[path] ?? [];
-    for (const m of stale) {
+    // Clear stale TextMarkers (cheap — CSS-only spans, no React).
+    const staleTms = this._chatTextMarkers[path] ?? [];
+    for (const m of staleTms) {
       try {
         m.clear();
       } catch {
         // already cleared
       }
     }
-    const staleBookmarks = this._chatDeleteBookmarks[path] ?? [];
-    for (const { bookmark, root } of staleBookmarks) {
-      try {
-        bookmark.clear();
-      } catch {
-        // already cleared
-      }
-      try {
-        root.unmount();
-      } catch {
-        // ignored
-      }
-    }
+    // For delete/pill bookmarks we REUSE old entries by order — pairing
+    // old[i] with new[i] — so the bookmark's host DOM + React root stay
+    // alive across rescans. This is what prevents the pill/× flicker when
+    // the user is typing a marker's hash or pressing Enter above a marker.
+    const oldBookmarks = this._chatDeleteBookmarks[path] ?? [];
+    let oldIdx = 0;
     const fresh: CodeMirror.TextMarker[] = [];
     const freshBookmarks: Array<{
       bookmark: CodeMirror.TextMarker;
+      host: HTMLElement;
       root: Root;
     }> = [];
 
@@ -2513,19 +2971,30 @@ export class Actions extends BaseActions<LatexEditorState> {
             inclusiveRight: false,
             readOnly: locked,
             atomic: locked,
+            attributes: {
+              title: locked
+                ? `Open chat thread (locked — remove the marker to edit)`
+                : `Open chat thread`,
+            },
           },
         );
         // Stash the hash on the TextMarker so click handler can recover it.
+        // `chatLocked` lets the narrow lock-only refresh detect state flips.
         (tm as any).chatHash = marker.hash;
         (tm as any).chatPath = path;
+        (tm as any).chatLocked = locked;
         fresh.push(tm);
 
-        // Inline tail widget rendered just after the marker text: message
-        // count pill + delete (x) with Popconfirm. Clicking the x removes
-        // the marker range from the source (thread is kept).
-        const host = document.createElement("span");
-        host.className = "cc-chat-marker-tail-host";
-        const root = createRoot(host);
+        // Inline tail widget: reuse an existing host+root from the old
+        // bookmark list when available (same path, same ordinal). This
+        // keeps the pill/× DOM attached to CM without unmount/remount.
+        const reused = oldBookmarks[oldIdx];
+        oldIdx += 1;
+        const host = reused?.host ?? document.createElement("span");
+        if (reused == null) {
+          host.className = "cc-chat-marker-tail-host";
+        }
+        const root = reused?.root ?? createRoot(host);
         const lineForBookmark = marker.line;
         const colForBookmark = marker.col;
         const hashForBookmark = marker.hash;
@@ -2541,11 +3010,31 @@ export class Actions extends BaseActions<LatexEditorState> {
               this.deleteChatMarker(path, lineForBookmark, colForBookmark),
           }),
         );
+        if (reused?.bookmark) {
+          try {
+            reused.bookmark.clear();
+          } catch {
+            // already cleared
+          }
+        }
         const bookmark = cm.setBookmark(
           { line: marker.line, ch: lineText.length },
           { widget: host, insertLeft: false, handleMouseEvents: true },
         );
-        freshBookmarks.push({ bookmark, root });
+        freshBookmarks.push({ bookmark, host, root });
+      }
+    }
+    // Any old bookmarks not consumed by a new marker get fully disposed.
+    for (let i = oldIdx; i < oldBookmarks.length; i++) {
+      try {
+        oldBookmarks[i].bookmark.clear();
+      } catch {
+        // already cleared
+      }
+      try {
+        oldBookmarks[i].root.unmount();
+      } catch {
+        // ignored
       }
     }
     this._chatTextMarkers[path] = fresh;
@@ -2556,9 +3045,11 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   /**
    * Install a single CM `mousedown` handler per file that opens the side
-   * chat when the user clicks inside a marker range.
+   * chat when the user clicks inside a marker range, and a Ctrl-Shift-M
+   * keybinding for "Insert chat marker".
    */
   private _ensureChatClickHandler(cm: CodeMirror.Editor, path: string): void {
+    this._ensureChatKeybindings(cm, path);
     if (this._chatClickHandlerInstalled.has(path)) return;
     this._chatClickHandlerInstalled.add(path);
 
@@ -2581,6 +3072,69 @@ export class Actions extends BaseActions<LatexEditorState> {
         }
       }
     });
+  }
+
+  /** Paths whose Ctrl-Shift-M CM keybinding is already installed. */
+  private _chatKeybindingInstalled: Set<string> = new Set();
+
+  private _ensureChatKeybindings(
+    cm: CodeMirror.Editor,
+    path: string,
+  ): void {
+    if (this._chatKeybindingInstalled.has(path)) return;
+    this._chatKeybindingInstalled.add(path);
+    cm.addKeyMap({
+      "Shift-Ctrl-M": () => {
+        void this.insertChatMarker({ targetPath: path });
+      },
+      "Shift-Cmd-M": () => {
+        void this.insertChatMarker({ targetPath: path });
+      },
+      "Shift-Ctrl-B": () => {
+        void this.insertBookmark({ targetPath: path });
+      },
+      "Shift-Cmd-B": () => {
+        void this.insertBookmark({ targetPath: path });
+      },
+    });
+  }
+
+  /**
+   * Eagerly install the click handler + keybinding on a file's CM, even if
+   * the file currently has no markers. Retries briefly while CM is still
+   * mounting. Safe to call multiple times (the installers dedupe on path).
+   */
+  private _ensureChatUI(path: string, retries: number = 6): void {
+    if (this._state === "closed") return;
+    if (
+      this._chatClickHandlerInstalled.has(path) &&
+      this._chatKeybindingInstalled.has(path)
+    ) {
+      return;
+    }
+    const fileActions = this.redux.getEditorActions(
+      this.project_id,
+      path_normalize(path),
+    ) as BaseActions<CodeEditorState> | undefined;
+    if (fileActions == null) {
+      return;
+    }
+    const cm = (fileActions as any)._get_cm?.() as
+      | CodeMirror.Editor
+      | undefined;
+    if (cm == null) {
+      if (retries > 0) {
+        setTimeout(() => this._ensureChatUI(path, retries - 1), 250);
+      }
+      return;
+    }
+    this._ensureChatClickHandler(cm, path);
+    this._ensureChatCursorInsert(path);
+    // If a scan already completed while the CM was still mounting, the
+    // refresh calls silently no-op'd. Run them again now that CM is ready
+    // so the inline styling + gutter icon + tail widget show up.
+    this._refreshChatMarkerGutters(path);
+    this._refreshChatInlineStyles(path);
   }
 
   /** Flatten all markers from all scanned files. */
@@ -2610,7 +3164,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     const messages = chatActions?.store?.get("messages");
     if (messages == null) return false;
     for (const [, msg] of messages) {
-      if (msg?.get("id") === hash && !msg.get("reply_to")) {
+      const anchorId = msg?.get("id") ?? msg?.get("cell_id");
+      if (anchorId === hash && !msg.get("reply_to")) {
         return true;
       }
     }
@@ -2621,6 +3176,12 @@ export class Actions extends BaseActions<LatexEditorState> {
    * Subscribe to chat-syncdb changes so the inline `% chat: <hash>` markers
    * flip from editable to read-only the moment the first message is sent
    * (or, conversely, unlock if the thread's root is deleted).
+   *
+   * We purposely do NOT rebuild the bookmark widgets here — the pill/×
+   * React components are already reactive via `useAnchoredThreads` and
+   * update their own counts. Only the TextMarker's locked styling needs a
+   * CM-level recreation, and only when the lock state actually flipped —
+   * otherwise the widgets flicker on every chat message.
    */
   private async _initChatAnchorLockListener(): Promise<void> {
     const chatActions = await this._waitForChatActions();
@@ -2630,7 +3191,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     const onChange = debounce(() => {
       if (this._state === "closed") return;
       for (const p of Object.keys(this._chatTextMarkers)) {
-        this._refreshChatInlineStyles(p);
+        this._refreshChatMarkerLocks(p);
       }
     }, 150);
     store.on("change", onChange);
@@ -2638,6 +3199,85 @@ export class Actions extends BaseActions<LatexEditorState> {
       store.removeListener?.("change", onChange);
       onChange.cancel();
     };
+  }
+
+  /**
+   * Narrow refresh: only re-create TextMarkers whose `locked` state has
+   * changed since the last scan. Leaves the bookmark widgets (and their
+   * React roots) alone, so the pill/× don't blink on chat activity.
+   */
+  private _refreshChatMarkerLocks(path: string): void {
+    const fileActions = this.redux.getEditorActions(
+      this.project_id,
+      path_normalize(path),
+    ) as BaseActions<CodeEditorState> | undefined;
+    if (fileActions == null) return;
+    const cm = (fileActions as any)._get_cm?.() as
+      | CodeMirror.Editor
+      | undefined;
+    if (cm == null) return;
+
+    const existing = this._chatTextMarkers[path] ?? [];
+    const fresh: CodeMirror.TextMarker[] = [];
+    let changed = false;
+
+    for (const tm of existing) {
+      const range = tm.find?.();
+      const hash = (tm as any).chatHash as string | undefined;
+      if (!range || !hash || !("from" in range)) {
+        try {
+          tm.clear();
+        } catch {
+          // already cleared
+        }
+        changed = true;
+        continue;
+      }
+      const wasLocked = (tm as any).chatLocked === true;
+      const nowLocked = this._anchorHasMessages(hash);
+      if (wasLocked === nowLocked) {
+        fresh.push(tm);
+        continue;
+      }
+      // Lock flipped — re-create just this TextMarker (CM5 can't toggle
+      // atomic / readOnly on an existing mark).
+      const fromLine = range.from.line;
+      const fromCh = range.from.ch;
+      try {
+        tm.clear();
+      } catch {
+        // already cleared
+      }
+      const lineText = cm.getLine(fromLine) ?? "";
+      const newTm = cm.markText(
+        { line: fromLine, ch: fromCh },
+        { line: fromLine, ch: lineText.length },
+        {
+          className: nowLocked
+            ? "cc-chat-marker cc-chat-marker-locked"
+            : "cc-chat-marker",
+          handleMouseEvents: false,
+          clearOnEnter: false,
+          inclusiveLeft: false,
+          inclusiveRight: false,
+          readOnly: nowLocked,
+          atomic: nowLocked,
+          attributes: {
+            title: nowLocked
+              ? `Open chat thread (locked — remove the marker to edit)`
+              : `Open chat thread`,
+          },
+        },
+      );
+      (newTm as any).chatHash = hash;
+      (newTm as any).chatPath = path;
+      (newTm as any).chatLocked = nowLocked;
+      fresh.push(newTm);
+      changed = true;
+    }
+    if (changed) {
+      this._chatTextMarkers[path] = fresh;
+    }
   }
 
   private async _waitForChatActions(): Promise<ReturnType<
@@ -2667,13 +3307,38 @@ export class Actions extends BaseActions<LatexEditorState> {
   public getAnchorLocations(
     hash: string,
   ): Array<{ path: string; line: number; label?: string }> {
+    // 1. Live scan results — one entry per marker occurrence, with a real
+    //    line number. Only populated for files currently open in the
+    //    editor (master + open sub-files).
     const out: Array<{ path: string; line: number; label?: string }> = [];
     for (const { path, marker } of this._allChatMarkers()) {
       if (marker.hash === hash) {
         out.push({ path, line: marker.line });
       }
     }
-    return out;
+    if (out.length > 0) return out;
+
+    // 2. Fallback for collaborators who haven't opened the sub-file yet:
+    //    the ChatMessage root carries the `path` it was created in, so we
+    //    can at least offer to open that file. `line: -1` signals "no line
+    //    info available" so the label and jump code omit the line number.
+    const chatActions = getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    const messages = chatActions?.store?.get("messages");
+    if (messages != null) {
+      for (const [, msg] of messages) {
+        const anchorId = msg?.get("id") ?? msg?.get("cell_id");
+        if (anchorId === hash && !msg.get("reply_to")) {
+          const storedPath = msg.get("path") as string | undefined;
+          if (storedPath) {
+            return [{ path: storedPath, line: -1 }];
+          }
+        }
+      }
+    }
+    return [];
   }
 
   public getAnchorLabel(hash: string): string {
@@ -2682,6 +3347,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (locs.length > 1) return `${hash} (${locs.length} locations)`;
     const [loc] = locs;
     const basename = loc.path.split("/").pop() ?? loc.path;
+    if (loc.line < 0) return `${hash} (${basename})`;
     return `${hash} (${basename}:${loc.line + 1})`;
   }
 
@@ -2692,10 +3358,78 @@ export class Actions extends BaseActions<LatexEditorState> {
     const locs = this.getAnchorLocations(hash);
     if (locs.length === 0) return;
     const target = locs[occurrenceIndex] ?? locs[0];
-    if (target.path !== this.path) {
-      await this.switch_to_file(target.path);
+
+    // Always switch_to_file to make sure SOME frame is showing the target
+    // path — even for the master file. Without this, if the user is
+    // currently viewing a sub-file, clicking a master-file anchor would
+    // fire goto_line on the recently-focused CM (the sub-file's), which
+    // would scroll the wrong file.
+    const frameId = await this.switch_to_file(target.path);
+
+    // Pick the actions instance that owns the CM for the target path. The
+    // master file's CM is registered on `this`; a sub-file's CM is on its
+    // own CodeEditorActions. Calling goto_line on the wrong one would
+    // poll fruitlessly.
+    let targetActions: BaseActions<CodeEditorState>;
+    if (target.path === this.path) {
+      targetActions = this as BaseActions<CodeEditorState>;
+    } else {
+      const a = this.redux.getEditorActions(
+        this.project_id,
+        path_normalize(target.path),
+      ) as BaseActions<CodeEditorState> | undefined;
+      if (a == null) return;
+      targetActions = a;
+      // Sub-file may have been opened ad-hoc (e.g. collaborator jumping
+      // into a file that isn't in switch_to_files yet) — attach scanner.
+      this._attachChatMarkerScanner(targetActions, target.path);
+      this._ensureChatUI(target.path);
     }
-    await this.programmatically_goto_line(target.line + 1, true, true);
+
+    // Wait for the target's syncstring to be fully loaded. Otherwise the
+    // scan runs on partial content and returns an outdated line number.
+    const targetSs = (targetActions as any)._syncstring;
+    if (targetSs != null && targetSs.get_state?.() === "init") {
+      try {
+        await once(targetSs, "ready");
+      } catch {
+        // give up — the syncstring errored; we'll jump with whatever
+        // line info we have
+      }
+      if (this._state === "closed") return;
+    }
+
+    // Re-read after ready: live scan may now have the current line.
+    let line = target.line;
+    {
+      const refreshed = this.getAnchorLocations(hash).find(
+        (l) => l.path === target.path && l.line >= 0,
+      );
+      if (refreshed) line = refreshed.line;
+    }
+    if (line < 0) {
+      // The scanner hasn't produced a result yet even though ss is ready
+      // (debounce is 300ms). Poll briefly.
+      for (const d of [50, 100, 200, 500, 1000, 2000]) {
+        await delay(d);
+        if (this._state === "closed") return;
+        const live = this.getAnchorLocations(hash).find(
+          (l) => l.path === target.path && l.line >= 0,
+        );
+        if (live) {
+          line = live.line;
+          break;
+        }
+      }
+    }
+    if (line < 0) return;
+
+    await targetActions.programmatically_goto_line(
+      line + 1,
+      true,
+      true,
+      frameId,
+    );
   }
 
   public async openAnchorChat(hash: string, path?: string): Promise<void> {
@@ -2822,7 +3556,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     targetLine?: number;
     mode?: "inline" | "block" | "auto";
   } = {}): Promise<void> {
-    const targetPath = opts.targetPath ?? this.path;
+    const targetPath = opts.targetPath ?? this._activeCmPath();
     const fileActions = this.redux.getEditorActions(
       this.project_id,
       path_normalize(targetPath),
@@ -2846,7 +3580,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     const hash = generateMarkerHash();
 
     if (mode === "inline") {
-      // Append `  % cocalc-chat: <hash>` to end of the target line.
+      // Append `  % chat: <hash>` to end of the target line.
       const insertion = buildInlineInsertion(hash);
       cm.replaceRange(
         insertion,
@@ -2882,5 +3616,67 @@ export class Actions extends BaseActions<LatexEditorState> {
       path: targetPath,
     });
     this._showChatFrameInChatMode();
+  }
+
+  /**
+   * Look up the path the user is currently editing. Prefer the path of the
+   * most recently focused CM frame (which may be a sub-file); fall back to
+   * the master path.
+   */
+  private _activeCmPath(): string {
+    const frameId = this.show_recently_focused_frame_of_type?.("cm");
+    if (frameId != null) {
+      const node = this._get_frame_node(frameId);
+      const p = node?.get("path");
+      if (typeof p === "string" && p.length > 0) return p;
+    }
+    return this.path;
+  }
+
+  /**
+   * Insert a collaborative bookmark above the cursor's line in the
+   * currently-active CM. The default text is a short random hash, inserted
+   * as `% bookmark: <text>` with the text portion selected so the user can
+   * immediately type a meaningful label.
+   *
+   * Unlike chat markers, bookmarks are free-form text and never become
+   * read-only.
+   */
+  public async insertBookmark(opts: {
+    targetPath?: string;
+    targetLine?: number;
+  } = {}): Promise<void> {
+    const targetPath = opts.targetPath ?? this._activeCmPath();
+    const fileActions = this.redux.getEditorActions(
+      this.project_id,
+      path_normalize(targetPath),
+    ) as BaseActions<CodeEditorState> | undefined;
+    if (fileActions == null) return;
+    const cm = (fileActions as any)._get_cm?.() as
+      | CodeMirror.Editor
+      | undefined;
+    if (cm == null) return;
+
+    const cursor = cm.getCursor();
+    const targetLine = opts.targetLine ?? cursor.line;
+    const defaultText = generateMarkerHash();
+    const markerLine = buildBookmarkLine(defaultText);
+    // Insert the bookmark line + trailing newline above the current line,
+    // pushing existing content down by 2 (marker line + one blank spacer).
+    cm.replaceRange(
+      markerLine + "\n\n",
+      { line: targetLine, ch: 0 },
+      { line: targetLine, ch: 0 },
+    );
+    fileActions.set_syncstring_to_codemirror();
+    (fileActions as any)._syncstring?.commit?.();
+
+    // Select the default text so the user can type-over to rename it.
+    const textStart = markerLine.length - defaultText.length;
+    cm.setSelection(
+      { line: targetLine, ch: textStart },
+      { line: targetLine, ch: markerLine.length },
+    );
+    cm.focus();
   }
 }

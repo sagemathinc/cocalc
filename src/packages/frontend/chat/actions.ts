@@ -53,7 +53,12 @@ import type {
   Feedback,
   MessageHistory,
 } from "./types";
-import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
+import {
+  anchorIdOf,
+  getReplyToRoot,
+  getThreadRootDate,
+  toMsString,
+} from "./utils";
 
 const MAX_CHAT_STREAM = 10;
 
@@ -1508,7 +1513,7 @@ export class ChatActions extends Actions<ChatState> {
     let bestKey: string | null = null;
     let bestTime = 0;
     for (const [key, msg] of messages) {
-      if (msg?.get("id") === id && !msg.get("reply_to")) {
+      if (anchorIdOf(msg) === id && !msg.get("reply_to")) {
         const t = msg.get("date")?.valueOf() ?? 0;
         if (t > bestTime) {
           bestTime = t;
