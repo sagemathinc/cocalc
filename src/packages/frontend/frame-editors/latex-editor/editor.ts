@@ -89,7 +89,7 @@ const cm: EditorDescription = {
     },
   },
 
-  gutters: ["Codemirror-latex-errors"],
+  gutters: ["CodeMirror-latex-chat", "Codemirror-latex-errors"],
 } as const;
 
 const output: EditorDescription = {

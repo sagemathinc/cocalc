@@ -58,7 +58,7 @@ import {
   useThreadList,
 } from "./threads";
 import type { ThreadListItem, ThreadSection } from "./threads";
-import { CellAnchorButton } from "./cell-anchor-banner";
+import { ThreadAnchorButton } from "./thread-anchor-button";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -201,17 +201,19 @@ export function ChatPanel({
   const storedThreadFromDesc =
     getDescValue(desc, "data-selectedThreadKey") ?? null;
   // set_frame_data stores values via fromJS, so we get an Immutable Map back.
-  const pendingCellThread = useMemo<{
-    cellId: string;
-    cellLabel?: string;
+  const pendingAnchorThread = useMemo<{
+    id: string;
+    label?: string;
+    path?: string;
   } | null>(() => {
-    const raw = getDescValue(desc, "data-pendingCellThread");
+    const raw = getDescValue(desc, "data-pendingAnchorThread");
     if (raw == null) return null;
     const v = raw?.toJS?.() ?? raw;
-    if (!v || typeof v.cellId !== "string") return null;
+    if (!v || typeof v.id !== "string") return null;
     return {
-      cellId: v.cellId,
-      cellLabel: typeof v.cellLabel === "string" ? v.cellLabel : undefined,
+      id: v.id,
+      label: typeof v.label === "string" ? v.label : undefined,
+      path: typeof v.path === "string" ? v.path : undefined,
     };
   }, [desc]);
   const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
@@ -299,10 +301,10 @@ export function ChatPanel({
     }));
   }, [threads]);
 
-  const selectedThreadCellId = useMemo(() => {
+  const selectedThreadAnchorId = useMemo(() => {
     if (!singleThreadView || !selectedThreadKey) return undefined;
     const thread = threads.find((t) => t.key === selectedThreadKey);
-    return thread?.rootMessage?.get("cell_id") as string | undefined;
+    return thread?.rootMessage?.get("id") as string | undefined;
   }, [singleThreadView, selectedThreadKey, threads]);
 
   useEffect(() => {
@@ -315,14 +317,14 @@ export function ChatPanel({
     }
   }, [storedThreadFromDesc]);
 
-  // When a pending cell-thread anchor is staged, clear any previously-selected
+  // When a pending anchor thread is staged, clear any previously-selected
   // thread so the compose placeholder is shown instead of the stale thread.
   useEffect(() => {
-    if (pendingCellThread && selectedThreadKey !== null) {
+    if (pendingAnchorThread && selectedThreadKey !== null) {
       setSelectedThreadKey(null);
       setAllowAutoSelectThread(false);
     }
-  }, [pendingCellThread]);
+  }, [pendingAnchorThread]);
 
   useEffect(() => {
     if (threads.length === 0) {
@@ -332,14 +334,14 @@ export function ChatPanel({
       setAllowAutoSelectThread(true);
       return;
     }
-    // When the Jupyter "Chat" button staged a pending cell anchor, keep the
-    // compose view open instead of auto-jumping into some other thread.
-    if (pendingCellThread) return;
+    // When an editor staged a pending anchor thread, keep the compose view
+    // open instead of auto-jumping into some other thread.
+    if (pendingAnchorThread) return;
     const exists = threads.some((thread) => thread.key === selectedThreadKey);
     if (!exists && allowAutoSelectThread) {
       setSelectedThreadKey(threads[0].key);
     }
-  }, [threads, selectedThreadKey, allowAutoSelectThread, pendingCellThread]);
+  }, [threads, selectedThreadKey, allowAutoSelectThread, pendingAnchorThread]);
 
   useEffect(() => {
     if (selectedThreadKey != null && selectedThreadKey !== ALL_THREADS_KEY) {
@@ -919,7 +921,7 @@ export function ChatPanel({
             </Row>
           )}
         </div>
-      ) : pendingCellThread ? (
+      ) : pendingAnchorThread ? (
         <div
           className="smc-vfill"
           style={{
@@ -934,14 +936,14 @@ export function ChatPanel({
           <div style={{ textAlign: "center" }}>
             <div style={{ fontWeight: 600, marginBottom: "4px" }}>
               Start discussion for{" "}
-              {pendingCellThread.cellLabel ?? "this cell"}
+              {pendingAnchorThread.label ?? "this anchor"}
             </div>
             <div>Type your first message below to create the thread.</div>
             <Button
               size="small"
               style={{ marginTop: "8px" }}
               onClick={() => {
-                actions.setPendingCellThread?.(null);
+                actions.setPendingAnchorThread?.(null);
               }}
             >
               Cancel
@@ -1106,9 +1108,9 @@ export function ChatPanel({
           alignItems: "center",
         }}
       >
-        {selectedThreadCellId && (
-          <CellAnchorButton
-            cellId={selectedThreadCellId}
+        {selectedThreadAnchorId && (
+          <ThreadAnchorButton
+            anchorId={selectedThreadAnchorId}
             actions={actions}
           />
         )}

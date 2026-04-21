@@ -69,3 +69,20 @@
 .cc-toolbar-dragging,
 .cc-toolbar-dragging *
   cursor: grabbing !important
+
+// LaTeX chat-anchor marker: styled `% chat: <hash>` comment. Looks like a URL
+// link, is clickable to open the associated side-chat thread. The
+// `.CodeMirror` prefix is needed to outrank CM's own `.cm-comment` styling.
+.CodeMirror
+  .cc-chat-marker
+    color: #1677ff
+    text-decoration: underline
+    cursor: pointer
+
+    &:hover
+      background-color: rgba(22, 119, 255, 0.1)
+
+  // Locked: a real thread already exists for this hash, editing the range is
+  // prevented. Rendered bold so the locked state is visible at a glance.
+  .cc-chat-marker-locked
+    font-weight: 600
