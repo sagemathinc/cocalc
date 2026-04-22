@@ -97,6 +97,7 @@ import {
   get_engine_from_config,
   latexmk,
 } from "./latexmk";
+import type { SyncString } from "@cocalc/sync/editor/string/sync";
 import { PDFWatcher } from "./pdf-watcher";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { pythontex, pythontex_errors } from "./pythontex";
@@ -152,6 +153,10 @@ interface LatexEditorState extends CodeEditorState {
   includeError?: string;
   build_command_hardcoded?: boolean; // if true, an % !TeX cocalc = ... directive sets the command via the document itself
   contents?: TableOfContentsEntryList; // table of contents data.
+  // Path whose text the current `contents` was parsed from — master or a
+  // sub-file. Tracked so `scrollToHeading` jumps inside the right file
+  // (the TOC follows whichever .tex frame the user is focused on).
+  contents_path?: string;
   switch_output_to_pdf_tab?: boolean; // used for SyncTeX to switch output panel to PDF tab
   output_panel_id_for_sync?: string; // stores the output panel ID for SyncTeX operations
   // job_infos: JobInfos;
@@ -247,6 +252,12 @@ export class Actions extends BaseActions<LatexEditorState> {
       leading: false,
       trailing: true,
     });
+    // Hydrate `switch_to_files` from the per-file local_view_state so the
+    // title-bar file dropdown is populated on a fresh page load, before
+    // the user has triggered a build. Master is always `this.path` — no
+    // special marking is needed; `all_actions()` and the dropdown treat
+    // the master as whichever entry equals `this.path`.
+    this._hydrateSwitchToFiles();
     if (!this.is_public) {
       this.init_bad_filename();
       this.init_ext_filename(); // safe to set before syncstring init
@@ -279,9 +290,27 @@ export class Actions extends BaseActions<LatexEditorState> {
         this as BaseActions<CodeEditorState>,
         this.path,
       );
+      // Refresh the TOC when the focused CM frame changes — the panel
+      // follows whichever .tex the user is editing. Debounce matches the
+      // existing master-syncstring hook so rapid frame swaps don't
+      // thrash the parser.
+      const reparseTocOnActiveChange = debounce(() => {
+        if (this._state === "closed") return;
+        this.updateTableOfContents();
+      }, 200);
+      let lastActiveTocPath: string | undefined;
       this.store.on("change", () => {
         // switch_to_files is recomputed after each build; refresh scanners.
         this._refreshChatMarkerScanners();
+        // Detect focus changes between CM frames and re-parse the TOC
+        // against the newly-active file. Using `_activeCmPath` here (not
+        // `active_id`) means splits and focus-only changes within the
+        // same file don't trigger a reparse.
+        const active = this._activeCmPath();
+        if (active !== lastActiveTocPath) {
+          lastActiveTocPath = active;
+          reparseTocOnActiveChange();
+        }
       });
       // Watch chat messages so we can flip inline markers to read-only once
       // a root message references the hash.
@@ -929,64 +958,21 @@ export class Actions extends BaseActions<LatexEditorState> {
       handle.dispose();
     }
     this._chatMarkerScanners = {};
-    for (const marks of Object.values(this._chatTextMarkers)) {
-      for (const m of marks) {
-        try {
-          m.clear();
-        } catch {
-          // already cleared
-        }
-      }
+    // Tear down every per-path chat/bookmark artifact. Collect keys
+    // first since `_disposeChatStateForPath` mutates the underlying
+    // maps as it runs.
+    const chatPaths = new Set<string>([
+      ...Object.keys(this._chatTextMarkers),
+      ...Object.keys(this._chatDeleteBookmarks),
+      ...Object.keys(this._chatGutterHosts),
+      ...Object.keys(this._chatBookmarkGutterHosts),
+      ...Object.keys(this._chatCursorInsertHosts),
+      ...this._chatClickHandlerInstalled,
+      ...this._chatKeybindingInstalled,
+    ]);
+    for (const path of chatPaths) {
+      this._disposeChatStateForPath(path);
     }
-    this._chatTextMarkers = {};
-    for (const entries of Object.values(this._chatDeleteBookmarks)) {
-      for (const { bookmark, root } of entries) {
-        try {
-          bookmark.clear();
-        } catch {
-          // already cleared
-        }
-        try {
-          root.unmount();
-        } catch {
-          // ignored
-        }
-      }
-    }
-    this._chatDeleteBookmarks = {};
-    for (const entries of Object.values(this._chatGutterHosts)) {
-      for (const { root } of entries) {
-        try {
-          root.unmount();
-        } catch {
-          // ignored
-        }
-      }
-    }
-    this._chatGutterHosts = {};
-    for (const entries of Object.values(this._chatBookmarkGutterHosts)) {
-      for (const { root } of entries) {
-        try {
-          root.unmount();
-        } catch {
-          // ignored
-        }
-      }
-    }
-    this._chatBookmarkGutterHosts = {};
-    this._chatBookmarkLines = {};
-    for (const entry of Object.values(this._chatCursorInsertHosts)) {
-      for (const r of [entry.chatRoot, entry.bookmarkRoot]) {
-        try {
-          r.unmount();
-        } catch {
-          // ignored
-        }
-      }
-    }
-    this._chatCursorInsertHosts = {};
-    this._chatClickHandlerInstalled.clear();
-    this._chatKeybindingInstalled.clear();
     this._chatStoreDispose?.();
     this._chatStoreDispose = undefined;
     this.buildCoordinator?.close();
@@ -1482,6 +1468,29 @@ export class Actions extends BaseActions<LatexEditorState> {
     return this.canonical_paths[norm];
   }
 
+  /**
+   * Seed `switch_to_files` from the persisted local_view_state, so the
+   * title-bar file dropdown survives page refreshes without requiring a
+   * rebuild to repopulate. Only reads — `set_switch_to_files` is the sole
+   * writer to both redux state and local_view_state.
+   */
+  private _hydrateSwitchToFiles(): void {
+    const lvs = this.store.get("local_view_state");
+    const persisted = lvs?.get("switch_to_files");
+    if (persisted == null) return;
+    const arr = (persisted as any).toJS
+      ? (persisted as any).toJS()
+      : persisted;
+    if (!Array.isArray(arr) || arr.length === 0) return;
+    const filtered = arr.filter(
+      (p: unknown) => typeof p === "string" && p.length > 0,
+    ) as string[];
+    if (filtered.length === 0) return;
+    this.setState({
+      switch_to_files: Array.from(new Set(filtered)).sort(),
+    });
+  }
+
   private async set_switch_to_files(files: string[]): Promise<void> {
     let switch_to_files: string[];
     const cur = this.store.get("switch_to_files");
@@ -1535,9 +1544,14 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
     }
     // sort and make unique.
-    this.setState({
-      switch_to_files: Array.from(new Set(switch_to_files)).sort(),
-    });
+    const next = Array.from(new Set(switch_to_files)).sort();
+    this.setState({ switch_to_files: next });
+    // Persist to per-file local_view_state so the dropdown survives
+    // page refreshes. Canonical paths are stable relative to the
+    // project root; synctex-related maps (canonical_paths /
+    // relative_paths) aren't persisted and simply re-fill on the
+    // next build.
+    this.set_local_view_state({ switch_to_files: next });
   }
 
   private _update_pdf(time: number, force: boolean): void {
@@ -2242,23 +2256,83 @@ export class Actions extends BaseActions<LatexEditorState> {
       // There is no table of contents frame or output frame so don't update that info.
       return;
     }
+    // Per-frame TOC: parse from whichever .tex the user is focused on.
+    // Falls back to master when the active sub-file's syncstring isn't
+    // available yet; bails entirely if even the master isn't hydrated
+    // (redux `store.on("change")` can fire before `ready`). `try_to_str`
+    // encodes that possibility in the return type so the caller is
+    // forced to handle `undefined` instead of catching a runtime throw.
+    const sourcePath = this._activeCmPath();
+    let sourceText: string | undefined;
+    let resolvedPath = sourcePath;
+    if (sourcePath !== this.path) {
+      const subActions = this.redux.getEditorActions(
+        this.project_id,
+        path_normalize(sourcePath),
+      ) as BaseActions<CodeEditorState> | undefined;
+      const subSs = (subActions as any)?._syncstring as
+        | SyncString
+        | undefined;
+      sourceText = subSs?.try_to_str();
+    }
+    if (sourceText == null) {
+      sourceText = this._syncstring?.try_to_str();
+      resolvedPath = this.path;
+    }
+    if (sourceText == null) {
+      // Neither the active sub-file nor master is ready yet — defer.
+      // A subsequent syncstring "change" event will trigger us again
+      // once the doc is hydrated.
+      return;
+    }
     const contents = fromJS(
-      parseTableOfContents(this._syncstring.to_str() ?? "", {
+      parseTableOfContents(sourceText, {
         includeBookmarks: true,
       }),
     ) as any;
-    this.setState({ contents });
+    this.setState({ contents, contents_path: resolvedPath });
   }
 
   public async scrollToHeading(entry: TableOfContentsEntry): Promise<void> {
-    // The TOC is built from the master file, so route to the master CM.
-    // `switch_to_file` finds the matching CM frame (or swaps the current
-    // one to the master's path) and returns its frame id; otherwise, if
-    // the user is currently viewing a sub-file, the goto below would
-    // either miss the CM entirely or scroll the wrong content.
-    const id = await this.switch_to_file(this.path);
+    // The TOC is parsed from whichever .tex was focused when
+    // `updateTableOfContents` last ran — so route to that same file.
+    // `switch_to_file` finds the matching CM frame (or swaps the
+    // current one to that path) and returns its frame id; if the user
+    // switched focus since, this may reopen the file in a fresh frame.
+    const targetPath = this.store.get("contents_path") ?? this.path;
+    const id = await this.switch_to_file(targetPath);
     if (id == null) return;
-    await this.programmatically_goto_line(
+    // `programmatically_goto_line` looks up the CM via `this._cm[id]`;
+    // master's `_cm` map doesn't contain sub-file CMs, so if we just
+    // called `this.programmatically_goto_line` with a sub-file's frame
+    // id, master's goto would silently fall back to its own active CM
+    // (wrong file, no scroll, no focus). Dispatch through the file's
+    // own BaseActions when the TOC source is a sub-file. Master itself
+    // stays on `this` — same instance, so no redux lookup needed.
+    const targetActions =
+      targetPath === this.path
+        ? (this as BaseActions<CodeEditorState>)
+        : (this.redux.getEditorActions(
+            this.project_id,
+            path_normalize(targetPath),
+          ) as BaseActions<CodeEditorState> | undefined);
+    if (targetActions == null) return;
+    // Wait briefly for the target frame's CM to register on the
+    // sub-file's actions. Without this, a click arriving before the
+    // CM has mounted (e.g. first click after a fresh focus swap)
+    // would fall through `_get_cm`'s `_cm[id] ?? _active_cm()`
+    // fallback and scroll the wrong editor — which is exactly what
+    // the "sometimes have to click twice" symptom looks like.
+    const cmMap = (targetActions as any)._cm as
+      | Record<string, unknown>
+      | undefined;
+    if (cmMap != null) {
+      for (let i = 0; i < 20; i++) {
+        if (cmMap[id] != null) break;
+        await delay(50);
+      }
+    }
+    await targetActions.programmatically_goto_line(
       parseInt(entry.id),
       true,
       true,
@@ -2355,7 +2429,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   /** Per-path marker scanner handles. Cleared on `close()`. */
   private _chatMarkerScanners: {
-    [path: string]: { dispose: () => void };
+    [path: string]: { dispose: () => void; rescan: () => void };
   } = {};
 
   /**
@@ -2439,6 +2513,79 @@ export class Actions extends BaseActions<LatexEditorState> {
   /** Dispose the chat-syncdb subscription that drives lock refresh. */
   private _chatStoreDispose?: () => void;
 
+  /**
+   * Tear down every per-path chat/bookmark artifact for a single file.
+   * Used both when a sub-file drops out of `switch_to_files` (so a later
+   * reopen re-runs `_ensureChatUI` / `_ensureChatCursorInsert` against the
+   * new CM instance instead of short-circuiting against stale caches)
+   * and from `close()`, which iterates over every tracked path.
+   */
+  private _disposeChatStateForPath(path: string): void {
+    const marks = this._chatTextMarkers[path];
+    if (marks) {
+      for (const m of marks) {
+        try {
+          m.clear();
+        } catch {
+          // already cleared
+        }
+      }
+      delete this._chatTextMarkers[path];
+    }
+    const deleteBookmarks = this._chatDeleteBookmarks[path];
+    if (deleteBookmarks) {
+      for (const { bookmark, root } of deleteBookmarks) {
+        try {
+          bookmark.clear();
+        } catch {
+          // already cleared
+        }
+        try {
+          root.unmount();
+        } catch {
+          // ignored
+        }
+      }
+      delete this._chatDeleteBookmarks[path];
+    }
+    const gutterHosts = this._chatGutterHosts[path];
+    if (gutterHosts) {
+      for (const { root } of gutterHosts) {
+        try {
+          root.unmount();
+        } catch {
+          // ignored
+        }
+      }
+      delete this._chatGutterHosts[path];
+    }
+    const bmGutterHosts = this._chatBookmarkGutterHosts[path];
+    if (bmGutterHosts) {
+      for (const { root } of bmGutterHosts) {
+        try {
+          root.unmount();
+        } catch {
+          // ignored
+        }
+      }
+      delete this._chatBookmarkGutterHosts[path];
+    }
+    delete this._chatBookmarkLines[path];
+    const cursorHost = this._chatCursorInsertHosts[path];
+    if (cursorHost) {
+      for (const r of [cursorHost.chatRoot, cursorHost.bookmarkRoot]) {
+        try {
+          r.unmount();
+        } catch {
+          // ignored
+        }
+      }
+      delete this._chatCursorInsertHosts[path];
+    }
+    this._chatClickHandlerInstalled.delete(path);
+    this._chatKeybindingInstalled.delete(path);
+  }
+
   /** Monotonic generation so a slow openAnchorChat can detect supersede. */
   private _anchorChatOpenGeneration = 0;
 
@@ -2481,14 +2628,23 @@ export class Actions extends BaseActions<LatexEditorState> {
       );
       if (!cur.equals(next)) {
         this.setState({ chat_markers: next });
-        this._refreshChatMarkerGutters(path);
-        this._refreshChatInlineStyles(path);
       }
-      // Bookmarks are tracked outside redux — refresh their gutter
-      // icons on every successful scan. The cursor-follow refresh runs
-      // last so it picks up the latest chat-marker AND bookmark lines.
+      // Always run the renderers, even when markers are unchanged: the
+      // CM frame may have mounted only now (e.g. user picked this file
+      // from the title-bar dropdown after the scan already completed),
+      // in which case the previous render bailed on a null cm. These
+      // calls diff against their persistent DOM hosts and are cheap.
+      this._refreshChatMarkerGutters(path);
+      this._refreshChatInlineStyles(path);
       this._refreshBookmarkGutters(path, scanBookmarks(text));
       this._refreshChatCursorInsert(path);
+      // If this sub-file is the one the TOC is currently sourced from,
+      // reparse so section/bookmark edits appear in the panel. Master
+      // edits already drive `updateTableOfContents` via the master
+      // syncstring listener hooked in `_init2`.
+      if (path !== this.path && this.store.get("contents_path") === path) {
+        this.updateTableOfContents();
+      }
     }, 300);
 
     const ss = (fileActions as any)._syncstring;
@@ -2530,6 +2686,9 @@ export class Actions extends BaseActions<LatexEditorState> {
         }
         rescan.cancel();
       },
+      rescan: () => {
+        rescan();
+      },
     };
 
     // Install click handler + Ctrl-Shift-M keybinding as soon as the file's
@@ -2548,12 +2707,21 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (!path) continue;
       wanted.add(path);
       this._attachChatMarkerScanner(actions, path);
+      // Trigger a rescan + CM-bound setup. Covers the case where a CM
+      // frame mounts after the scanner was already attached — e.g. a
+      // user selects the master file from the title-bar file dropdown
+      // when the frame tree restored with only a sub-file visible.
+      this._chatMarkerScanners[path]?.rescan();
+      this._ensureChatUI(path);
     }
-    // Dispose scanners for files that are no longer open.
+    // Dispose scanners for files that are no longer open, and tear down
+    // all per-path UI caches so a later reopen rebuilds cleanly against
+    // the freshly-mounted CM.
     for (const path of Object.keys(this._chatMarkerScanners)) {
       if (!wanted.has(path)) {
         this._chatMarkerScanners[path].dispose();
         delete this._chatMarkerScanners[path];
+        this._disposeChatStateForPath(path);
         const cur = this.store.get("chat_markers");
         if (cur?.has(path)) {
           this.setState({ chat_markers: cur.delete(path) });
