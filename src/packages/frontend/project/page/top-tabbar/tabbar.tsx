@@ -24,6 +24,7 @@ import { ChatIndicatorTab } from "./chat-indicator";
 // import { CloseEditor } from "./close-editor";
 import { ExtraButtons } from "./extra-buttons";
 import { TopBarSaveButton } from "./save-indicator";
+import { TopBarTimetravelButton } from "./timetravel-indicator";
 import { ShareIndicatorTab } from "./share-indicator";
 import {
   EditorActions,
@@ -153,7 +154,14 @@ export function TopTabBarActions(
         </Space.Compact>
         {actions != null ? (
           <>
-            <TopBarSaveButton name={name} actions={actions} compact={compact} />
+            <Space.Compact>
+              <TopBarSaveButton
+                name={name}
+                actions={actions}
+                compact={compact}
+              />
+              <TopBarTimetravelButton path={path} actions={actions} />
+            </Space.Compact>
             <ExtraButtons actionsData={actionsData} path={path} />
           </>
         ) : undefined}

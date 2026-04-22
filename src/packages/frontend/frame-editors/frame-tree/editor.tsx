@@ -165,6 +165,13 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
       return () => observer.disconnect();
     }, [frameRootRef.current]);
 
+    // Let actions consult the editor_spec outside the frame tree
+    // (e.g. to decide whether the top-tabbar TimeTravel button should
+    // open time travel as a frame or as a tab).
+    useEffect(() => {
+      actions.setEditorSpec?.(editor_spec);
+    }, [actions]);
+
     function render_frame_tree(): Rendered {
       if (!is_loaded) return;
       const local = local_view_state;

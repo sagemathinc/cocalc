@@ -210,6 +210,19 @@ export class Actions<
     return this._topBarActionsData;
   }
 
+  // editor_spec is needed outside the frame tree (e.g. the top-tabbar
+  // TimeTravel button) to decide whether "time_travel" is supported as a
+  // frame type. FrameTreeEditor registers it on mount.
+  private _editor_spec: any = null;
+
+  public setEditorSpec(spec: any): void {
+    this._editor_spec = spec;
+  }
+
+  public hasFrameType(type: string): boolean {
+    return this._editor_spec?.[type] != null;
+  }
+
   ////////
   // these are for doctype "syncdb":
   protected primary_keys: string[] = [];

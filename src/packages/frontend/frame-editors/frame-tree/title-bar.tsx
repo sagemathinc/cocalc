@@ -681,7 +681,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderTimeTravel(noLabel): Rendered {
-    if (!manageCommands.isVisible("time_travel")) {
+    // Only render in title bars for subframe editors (e.g. LaTeX subfiles
+    // with an explicit path that overrides the parent editor's path) —
+    // matches renderSaveButton above. The main editor's TimeTravel button
+    // lives in the top tab bar (TopBarTimetravelButton).
+    if (!props.is_subframe || !manageCommands.isVisible("time_travel")) {
       return;
     }
     return (
