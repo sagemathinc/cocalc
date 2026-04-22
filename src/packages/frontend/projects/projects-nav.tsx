@@ -318,7 +318,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
             borderRadius: "8px 8px 0 0",
             color: isActive
               ? `var(--cocalc-top-bar-text-active, ${COLORS.TOP_BAR.TEXT_ACTIVE})`
-              : `var(--cocalc-top-bar-text, ${COLORS.TOP_BAR.TEXT})`,
+              : `var(--cocalc-text-primary, ${COLORS.GRAY_D})`,
           };
           const styledNode = cloneElement(node, { style: nodeStyle });
 
