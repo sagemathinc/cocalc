@@ -275,11 +275,15 @@ export async function open_file(
     actions.open_files.set(opts.path, "ext", ext);
     actions.open_files.set(opts.path, "component", { is_public });
     actions.open_files.set(opts.path, "chat_width", opts.chat_width);
-    if (opts.chat) {
-      actions.open_chat({ path: opts.path });
-    }
 
     redux.getActions("page").save_session();
+  }
+
+  // Honor opts.chat whether the file was already open or not — clicking a
+  // chat notification for a file that happens to be already open should
+  // still surface its side chat, not silently ignore the request.
+  if (opts.chat) {
+    actions.open_chat({ path: opts.path });
   }
 
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");

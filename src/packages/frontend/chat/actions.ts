@@ -217,11 +217,23 @@ export class ChatActions extends Actions<ChatState> {
     let effectiveAnchorId = anchor_id;
     let effectiveAnchorPath = anchor_path;
     let effectiveName = name;
-    const pending = !reply_to ? this.getPendingAnchorThread() : null;
+    let pending = !reply_to ? this.getPendingAnchorThread() : null;
     if (pending) {
-      effectiveAnchorId ??= pending.id;
-      effectiveAnchorPath ??= pending.path;
-      effectiveName ??= pending.label;
+      // Validate that the anchor still exists in the document. If the user
+      // renamed or deleted the marker (e.g. edited `% chat: <hash>`) before
+      // the first message was sent, the staged id is stale — use it now and
+      // we'd orphan a thread keyed to a marker that no longer exists.
+      const locs = (this.frameTreeActions as any)?.getAnchorLocations?.(
+        pending.id,
+      );
+      if (Array.isArray(locs) && locs.length === 0) {
+        this.setPendingAnchorThread(null);
+        pending = null;
+      } else {
+        effectiveAnchorId ??= pending.id;
+        effectiveAnchorPath ??= pending.path;
+        effectiveName ??= pending.label;
+      }
     }
     const trimmedName = effectiveName?.trim();
     const message: ChatMessage = {

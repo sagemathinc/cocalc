@@ -624,7 +624,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   // CellChatUnreadBadge, etc.). Jupyter-specific callers should keep using
   // `openCellChat*` / `jump_to_cell`; these thin wrappers let the generic UI
   // treat jupyter and other editors uniformly.
-  public jumpToAnchor(id: string, _occurrenceIndex: number = 0): void {
+  public jumpToAnchor(id: string): void {
     this.jump_to_cell(id);
   }
 

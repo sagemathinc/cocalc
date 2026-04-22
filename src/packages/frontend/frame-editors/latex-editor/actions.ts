@@ -47,7 +47,11 @@ import { Icon } from "@cocalc/frontend/components";
 import { ChatMarkerGutter, ChatMarkerInlineTail } from "./chat-marker-gutter";
 // Side-effect import: registers the "Insert chat marker" command + Insert-menu entry.
 import "./chat-marker-command";
-import { getSideChatActions } from "@cocalc/frontend/frame-editors/generic/chat";
+import {
+  chatFile,
+  getSideChatActions,
+} from "@cocalc/frontend/frame-editors/generic/chat";
+import { initChat } from "@cocalc/frontend/chat/register";
 
 import { type AccountStore } from "@cocalc/frontend/account";
 import { Store, TypedMap } from "@cocalc/frontend/app-framework";
@@ -284,6 +288,11 @@ export class Actions extends BaseActions<LatexEditorState> {
         "change",
         debounce(this.ensureNonempty.bind(this), 1500),
       );
+      // Eagerly initialize the side-chat syncdb even if the chat frame
+      // isn't open yet — otherwise gutter badges for `% chat: <hash>`
+      // markers stay empty (no message counts, no unread dots) until the
+      // user first opens the chat panel.  initChat is idempotent.
+      initChat(this.project_id, chatFile(this.path));
       // Attach chat-marker scanner to the master. Sub-files are picked up
       // when `switch_to_files` changes — see below.
       this._attachChatMarkerScanner(
@@ -2618,6 +2627,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       const markers = scanMarkers(text);
       const cur =
         this.store.get("chat_markers") ?? Map<string, List<TypedMap<ChatMarker>>>();
+      const prevForPath = cur.get(path);
       const next = cur.set(
         path,
         List(
@@ -2629,6 +2639,11 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (!cur.equals(next)) {
         this.setState({ chat_markers: next });
       }
+      // Keep the side chat's pending anchor in sync when the user edits
+      // the marker hash before sending the first message.  If the staged
+      // hash disappeared and a single new hash took its place → rename;
+      // if it just vanished → clear so the next send isn't orphaned.
+      this._reconcilePendingAnchor(path, prevForPath, markers);
       // Always run the renderers, even when markers are unchanged: the
       // CM frame may have mounted only now (e.g. user picked this file
       // from the title-bar dropdown after the scan already completed),
@@ -3185,6 +3200,15 @@ export class Actions extends BaseActions<LatexEditorState> {
             // already cleared
           }
         }
+        // Defensive: if the host element is still attached anywhere
+        // (stale CM wrapper from a clear() that didn't fully detach, a
+        // concurrent rescan that re-attached, etc.), pull it out before
+        // CM places it again. Without this, we can end up with the host
+        // visible in two CM positions ("ghost" delete `×` next to the
+        // real one) until the next full editor mount.
+        if (host.parentNode != null) {
+          host.parentNode.removeChild(host);
+        }
         const bookmark = cm.setBookmark(
           { line: marker.line, ch: lineText.length },
           { widget: host, insertLeft: false, handleMouseEvents: true },
@@ -3207,6 +3231,22 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     this._chatTextMarkers[path] = fresh;
     this._chatDeleteBookmarks[path] = freshBookmarks;
+
+    // Belt-and-braces sweep: if any `cc-chat-marker-tail-host` element
+    // remains in the editor that is NOT one of the hosts we just placed,
+    // it's a stranded duplicate from an earlier render — detach it.
+    const wrapper = cm.getWrapperElement?.();
+    if (wrapper) {
+      const live = new Set<HTMLElement>(freshBookmarks.map((b) => b.host));
+      const stragglers = wrapper.querySelectorAll<HTMLElement>(
+        ".cc-chat-marker-tail-host",
+      );
+      stragglers.forEach((el) => {
+        if (!live.has(el)) {
+          el.parentNode?.removeChild(el);
+        }
+      });
+    }
 
     this._ensureChatClickHandler(cm, path);
   }
@@ -3303,6 +3343,42 @@ export class Actions extends BaseActions<LatexEditorState> {
     // so the inline styling + gutter icon + tail widget show up.
     this._refreshChatMarkerGutters(path);
     this._refreshChatInlineStyles(path);
+  }
+
+  /**
+   * If the side chat has a pending anchor staged for `path`, keep it
+   * aligned with what the scanner currently sees in that file:
+   *   - hash still present → leave alone
+   *   - hash gone, exactly one new hash appeared → rename (follow it)
+   *   - hash gone, nothing new → clear (avoid orphaning a thread)
+   */
+  private _reconcilePendingAnchor(
+    path: string,
+    prev: List<TypedMap<ChatMarker>> | undefined,
+    next: ChatMarker[],
+  ): void {
+    const chatActions = getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    const pending = chatActions?.getPendingAnchorThread?.();
+    if (pending == null || pending.path !== path) return;
+    const nextHashes = next.map((m) => m.hash);
+    if (nextHashes.includes(pending.id)) return;
+    const prevHashes = new Set<string>(
+      prev?.map((m) => m.get("hash") as string).toArray() ?? [],
+    );
+    const newlyAdded = nextHashes.filter((h) => !prevHashes.has(h));
+    if (newlyAdded.length === 1) {
+      const hash = newlyAdded[0];
+      chatActions?.setPendingAnchorThread({
+        id: hash,
+        label: this.getAnchorLabel(hash),
+        path,
+      });
+    } else {
+      chatActions?.setPendingAnchorThread(null);
+    }
   }
 
   /** Flatten all markers from all scanned files. */
@@ -3519,13 +3595,10 @@ export class Actions extends BaseActions<LatexEditorState> {
     return `${hash} (${basename}:${loc.line + 1})`;
   }
 
-  public async jumpToAnchor(
-    hash: string,
-    occurrenceIndex: number = 0,
-  ): Promise<void> {
+  public async jumpToAnchor(hash: string): Promise<void> {
     const locs = this.getAnchorLocations(hash);
     if (locs.length === 0) return;
-    const target = locs[occurrenceIndex] ?? locs[0];
+    const target = locs[0];
 
     // Always switch_to_file to make sure SOME frame is showing the target
     // path — even for the master file. Without this, if the user is
