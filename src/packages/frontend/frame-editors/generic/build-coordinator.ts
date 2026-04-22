@@ -28,7 +28,23 @@ interface BuildState {
   status: "running" | "stopping" | "finished";
   aggregate?: number;
   force?: boolean;
+  /**
+   * Wall-clock ms when this state was written. Used by late joiners to
+   * detect stranded "running" entries (originator crashed / stream lost
+   * its "done" event) instead of joining and hanging forever.
+   * Optional for backwards compatibility with older clients.
+   */
+  startedAt?: number;
 }
+
+/**
+ * Maximum age of a "running" DKV entry we're willing to join as a late
+ * joiner. The latex backend enforces a 15-minute hard timeout on the job
+ * itself; anything older than that plus a generous safety margin is
+ * definitely stranded (the originator's `publishBuildFinished` never ran)
+ * and re-joining would just hang us the same way.
+ */
+const STALE_RUNNING_ENTRY_MS = 20 * 60 * 1000;
 
 export interface BuildCoordinatorCallbacks {
   /** Format-specific build function called when joining a remote build. */
@@ -143,11 +159,27 @@ export class BuildCoordinator {
   // -- Event handlers (replace duplicated code in LaTeX/RMD/QMD actions) --
 
   private handleBuildStart(state: BuildState): void {
-    const { buildId, aggregate, force } = state;
-    if (!this.callbacks.isBuilding() && buildId !== this._localBuildId) {
-      this._remoteBuildId = buildId;
-      void this.joinBuild(aggregate, force);
+    const { buildId, aggregate, force, startedAt } = state;
+    if (this.callbacks.isBuilding() || buildId === this._localBuildId) {
+      return;
     }
+    // Stranded-entry protection: if an entry claims to be "running" for
+    // longer than the backend could possibly have kept the job alive,
+    // the originator must have died without publishing "finished".
+    // Joining would re-run the same hang. Treat the entry as terminal,
+    // publish "finished" so peers clear too, and skip the join.
+    if (
+      typeof startedAt === "number" &&
+      Date.now() - startedAt > STALE_RUNNING_ENTRY_MS
+    ) {
+      console.warn(
+        `BuildCoordinator: ignoring stale "running" DKV entry for ${this.path} (age=${Math.round((Date.now() - startedAt) / 1000)}s, buildId=${buildId})`,
+      );
+      this.dkv?.set(this.path, { ...state, status: "finished" });
+      return;
+    }
+    this._remoteBuildId = buildId;
+    void this.joinBuild(aggregate, force);
   }
 
   private handleBuildFinished(buildId: string): void {
@@ -219,12 +251,14 @@ export class BuildCoordinator {
     aggregate: number | undefined,
     force?: boolean,
   ): void {
+    const startedAt = Date.now();
     const doPublish = () => {
       this.dkv?.set(this.path, {
         buildId,
         status: "running",
         aggregate,
         force,
+        startedAt,
       });
     };
     if (this.dkv) {
