@@ -99,11 +99,14 @@ export class NotebookFrameActions {
   }
 
   private init_syncdb_change_hook(): void {
-    this.jupyter_actions.store.on(
+    // jupyter_actions (or its store) may be undefined during a rapid
+    // frame-type toggle or while TimeTravel is still loading — guard
+    // with optional chaining, matching the pattern above.
+    this.jupyter_actions?.store?.on(
       "syncdb-before-change",
       this.syncdb_before_change,
     );
-    this.jupyter_actions.store.on(
+    this.jupyter_actions?.store?.on(
       "syncdb-after-change",
       this.syncdb_after_change,
     );
@@ -199,19 +202,20 @@ export class NotebookFrameActions {
   }
 
   public close(): void {
-    this.jupyter_actions.store.removeListener(
+    if (this._is_closed) return;
+    this.jupyter_actions?.store?.removeListener(
       "syncdb-before-change",
       this.syncdb_before_change,
     );
-    this.jupyter_actions.store.removeListener(
+    this.jupyter_actions?.store?.removeListener(
       "cell-list-recompute",
       this.update_cur_id,
     );
-    this.jupyter_actions.store.removeListener(
+    this.jupyter_actions?.store?.removeListener(
       "syncdb-after-change",
       this.syncdb_after_change,
     );
-    this.store.close();
+    this.store?.close();
     close(this);
     this._is_closed = true;
   }
