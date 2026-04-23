@@ -53,7 +53,12 @@ import type {
   Feedback,
   MessageHistory,
 } from "./types";
-import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
+import {
+  anchorIdOf,
+  getReplyToRoot,
+  getThreadRootDate,
+  toMsString,
+} from "./utils";
 
 const MAX_CHAT_STREAM = 10;
 
@@ -170,7 +175,8 @@ export class ChatActions extends Actions<ChatState> {
     submitMentionsRef,
     extraInput,
     name,
-    cell_id,
+    id: anchor_id,
+    path: anchor_path,
   }: {
     input?: string;
     sender_id?: string;
@@ -181,8 +187,11 @@ export class ChatActions extends Actions<ChatState> {
     extraInput?: string;
     // if name is given, rename thread to have that name
     name?: string;
-    // when set on a root message, anchors this thread to a Jupyter cell
-    cell_id?: string;
+    // when set on a root message, anchors this thread to a source-document
+    // location (jupyter cell UUID, LaTeX marker hash, etc.).
+    id?: string;
+    // optional sub-file path for multi-file editors (e.g. LaTeX `\input`).
+    path?: string;
   }): string => {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to sendChat before chat actions initialized");
@@ -202,14 +211,23 @@ export class ChatActions extends Actions<ChatState> {
       // do not send when there is nothing to send.
       return "";
     }
-    // When starting a new thread, pick up any pending cell anchor set by the
-    // Jupyter "Chat" button so the first real message becomes the root.
-    let effectiveCellId = cell_id;
+    // When starting a new thread, pick up any pending anchor staged by the
+    // editor (e.g. jupyter Chat button, LaTeX marker insertion) so the first
+    // real message becomes the root.
+    let effectiveAnchorId = anchor_id;
+    let effectiveAnchorPath = anchor_path;
     let effectiveName = name;
-    const pending = !reply_to ? this.getPendingCellThread() : null;
+    const pending = !reply_to ? this.getPendingAnchorThread() : null;
     if (pending) {
-      effectiveCellId ??= pending.cellId;
-      effectiveName ??= pending.cellLabel;
+      // Trust the staged anchor: an empty location lookup is not conclusive
+      // evidence that the marker is gone. Marker scans are debounced, only
+      // track currently-open files, and may not have run yet when the first
+      // message is sent right after inserting the marker. The editor's own
+      // reconcile path (`_reconcilePendingAnchor`) clears or renames a
+      // stale pending anchor when it has positive evidence.
+      effectiveAnchorId ??= pending.id;
+      effectiveAnchorPath ??= pending.path;
+      effectiveName ??= pending.label;
     }
     const trimmedName = effectiveName?.trim();
     const message: ChatMessage = {
@@ -229,8 +247,19 @@ export class ChatActions extends Actions<ChatState> {
     if (trimmedName && !reply_to) {
       (message as any).name = trimmedName;
     }
-    if (effectiveCellId && !reply_to) {
-      message.cell_id = effectiveCellId;
+    if (effectiveAnchorId && !reply_to) {
+      message.id = effectiveAnchorId;
+      if (effectiveAnchorPath) {
+        message.path = effectiveAnchorPath;
+      }
+    }
+    // Stamp the sender's lastread directly on the new root so their own
+    // message doesn't count as unread from the moment it hits the store.
+    // (The async `updateLastRead` call below won't race then: it's still
+    // invoked for consistency / count-based backward-compat fields, but the
+    // badge-driving timestamp is already in place.)
+    if (!reply_to && sender_id) {
+      (message as any)[`lastread-${sender_id}`] = time_stamp.valueOf();
     }
     this.syncdb.set(message);
     const messagesState = this.store.get("messages");
@@ -246,7 +275,7 @@ export class ChatActions extends Actions<ChatState> {
       selectedThreadKey = `${time_stamp.valueOf()}`;
       if (pending) {
         // The pending anchor has now become a real root message; clear it.
-        this.setPendingCellThread(null);
+        this.setPendingAnchorThread(null);
       }
     } else {
       // when replying we make sure that the thread is expanded, since otherwise
@@ -1427,54 +1456,60 @@ export class ChatActions extends Actions<ChatState> {
       selectedThreadKey: threadKey,
     });
     if (threadKey != null) {
-      // Selecting an existing thread cancels any pending cell anchor — the
-      // next message will reply to this thread, not start a new cell thread.
-      this.setPendingCellThread(null);
+      // Selecting an existing thread cancels any pending anchor — the next
+      // message will reply to this thread, not start a new anchored thread.
+      this.setPendingAnchorThread(null);
     }
   };
 
-  // Pending cell-thread anchor: set by the Jupyter "Chat" button so the side
-  // chat knows the next root-message send should be anchored to this cell.
-  // No chat message is written until the user actually sends one.
+  // Pending anchor thread: set by an editor (Jupyter "Chat" button, LaTeX
+  // marker insert, etc.) so the side chat knows the next root-message send
+  // should be anchored to this id/path. No chat message is written until the
+  // user actually sends one.
   //
   // set_frame_data runs the value through fromJS, so what we read back is an
   // Immutable Map; convert to a plain object here.
-  getPendingCellThread = (): { cellId: string; cellLabel?: string } | null => {
+  getPendingAnchorThread = (): {
+    id: string;
+    label?: string;
+    path?: string;
+  } | null => {
     const raw = this.frameTreeActions?._get_frame_data(
       this.frameId,
-      "pendingCellThread",
+      "pendingAnchorThread",
     );
     if (raw == null) return null;
     const value = raw?.toJS?.() ?? raw;
-    if (!value || typeof value.cellId !== "string") return null;
+    if (!value || typeof value.id !== "string") return null;
     return {
-      cellId: value.cellId,
-      cellLabel:
-        typeof value.cellLabel === "string" ? value.cellLabel : undefined,
+      id: value.id,
+      label: typeof value.label === "string" ? value.label : undefined,
+      path: typeof value.path === "string" ? value.path : undefined,
     };
   };
 
-  setPendingCellThread = (
-    pending: { cellId: string; cellLabel?: string } | null,
+  setPendingAnchorThread = (
+    pending: { id: string; label?: string; path?: string } | null,
   ) => {
     this.frameTreeActions?.set_frame_data({
       id: this.frameId,
-      pendingCellThread: pending,
+      pendingAnchorThread: pending,
     });
   };
 
-  // Find the most recent thread anchored to the given cell. If one exists,
+  // Find the most recent thread anchored to the given id. If one exists,
   // select it. Otherwise set a pending anchor so the next message sent will
-  // become that cell's thread root.
-  findOrCreateCellThread = (
-    cellId: string,
-    cellLabel?: string,
+  // become that anchor's thread root.
+  findOrCreateAnchorThread = (
+    id: string,
+    label?: string,
+    path?: string,
   ): string | null => {
     if (!this.store) return null;
     const messages = this.store.get("messages");
     if (!messages) {
       // Messages haven't finished syncing yet — we can't tell whether a
-      // thread for this cell already exists, so staging a pending anchor
+      // thread for this anchor already exists, so staging a pending anchor
       // here could create a duplicate root on the first send. Bail out;
       // the caller (e.g. `waitForChatActions`) now waits for messages
       // before invoking us, so this path should rarely hit in practice.
@@ -1484,7 +1519,7 @@ export class ChatActions extends Actions<ChatState> {
     let bestKey: string | null = null;
     let bestTime = 0;
     for (const [key, msg] of messages) {
-      if (msg?.get("cell_id") === cellId && !msg.get("reply_to")) {
+      if (anchorIdOf(msg) === id && !msg.get("reply_to")) {
         const t = msg.get("date")?.valueOf() ?? 0;
         if (t > bestTime) {
           bestTime = t;
@@ -1499,16 +1534,20 @@ export class ChatActions extends Actions<ChatState> {
     }
 
     // No existing thread — stage a pending anchor and clear selection so the
-    // chatroom renders a blank compose for this cell.
-    this.setPendingCellThread({ cellId, cellLabel });
+    // chatroom renders a blank compose for this anchor.
+    this.setPendingAnchorThread({ id, label, path });
     this.setSelectedThread(null);
     return null;
   };
 
-  // Always start a fresh thread anchored to the given cell (no search for
+  // Always start a fresh thread anchored to the given id (no search for
   // existing thread). Same deferred-creation semantics as above.
-  createCellThread = (cellId: string, cellLabel?: string): string | null => {
-    this.setPendingCellThread({ cellId, cellLabel });
+  createAnchorThread = (
+    id: string,
+    label?: string,
+    path?: string,
+  ): string | null => {
+    this.setPendingAnchorThread({ id, label, path });
     this.setSelectedThread(null);
     return null;
   };

@@ -50,10 +50,29 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     this.init_new_frame();
     this.init_changes_state();
 
-    this.store.on("close-frame", async ({ id }) => {
-      if (this.frame_actions[id] != null) {
-        await delay(1);
-        this.frame_actions[id].close();
+    this.store.on("close-frame", async ({ id, type: oldType }) => {
+      // Capture the specific instance so that a rapid frame-type toggle
+      // (which emits close-frame twice in quick succession) can't end up
+      // closing a freshly-created replacement instance after the delay.
+      const actions = this.frame_actions[id];
+      if (actions == null) return;
+      await delay(1);
+      // Toggling between jupyter_cell_notebook and jupyter_minimal uses
+      // the same CellNotebook component and the same NotebookFrameActions
+      // works for both types.  Closing and recreating on toggle just wipes
+      // this.jupyter_actions/this.store on the instance that still-mounted
+      // cell components hold via useNotebookFrameActions refs, so the next
+      // cell click crashes with "Cannot read properties of undefined
+      // (reading 'store')".  Keep the existing instance in that case.
+      const newType = this._get_frame_type(id);
+      if (
+        isJupyterNotebookFrameType(oldType) &&
+        isJupyterNotebookFrameType(newType)
+      ) {
+        return;
+      }
+      actions.close();
+      if (this.frame_actions[id] === actions) {
         delete this.frame_actions[id];
       }
     });
@@ -583,7 +602,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     // Fast path: chat history is already hydrated, so we can synchronously
     // decide whether to select an existing thread or stage a pending one.
     if (chatActions.store?.get("messages") != null) {
-      chatActions.findOrCreateCellThread(cellId, cellLabel);
+      chatActions.findOrCreateAnchorThread(cellId, cellLabel);
       return;
     }
 
@@ -591,7 +610,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     // upfront — doing so would allow a "Start discussion..." compose view to
     // appear before we know whether a thread for this cell already exists,
     // and a fast-typing user could then create a duplicate root. Instead,
-    // poll until messages hydrate, then call findOrCreateCellThread which
+    // poll until messages hydrate, then call findOrCreateAnchorThread which
     // selects the existing thread if one exists. While we wait, the
     // chatroom renders its native loading state (messages == null branch).
     for (const d of [50, 100, 200, 500, 1000, 2000, 4000]) {
@@ -599,7 +618,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       if (this._state === "closed") return;
       if (gen !== this.cellChatOpenGeneration) return;
       if (chatActions.store?.get("messages") != null) {
-        chatActions.findOrCreateCellThread(cellId, cellLabel);
+        chatActions.findOrCreateAnchorThread(cellId, cellLabel);
         return;
       }
     }
@@ -610,7 +629,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     this.showChatFrameInChatMode();
     const cellLabel = this.getCellLabel(cellId);
     const chatActions = await this.waitForChatActions();
-    chatActions?.createCellThread(cellId, cellLabel);
+    chatActions?.createAnchorThread(cellId, cellLabel);
   }
 
   // Open the side chat and select a specific thread by key.
@@ -618,6 +637,36 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     this.showChatFrameInChatMode();
     const chatActions = await this.waitForChatActions();
     chatActions?.setSelectedThread(threadKey);
+  }
+
+  // Generic anchor-adapter methods used by shared chat UI (ThreadAnchorButton,
+  // CellChatUnreadBadge, etc.). Jupyter-specific callers should keep using
+  // `openCellChat*` / `jump_to_cell`; these thin wrappers let the generic UI
+  // treat jupyter and other editors uniformly.
+  public jumpToAnchor(id: string): void {
+    this.jump_to_cell(id);
+  }
+
+  public getAnchorLabel(id: string): string {
+    return this.getCellLabel(id);
+  }
+
+  public getAnchorLocations(
+    id: string,
+  ): Array<{ path?: string; line?: number; label?: string }> {
+    const store = this.jupyter_actions?.store;
+    const cellList = store?.get("cell_list");
+    const idx = cellList?.indexOf(id) ?? -1;
+    if (idx < 0) return [];
+    return [{ label: `Cell ${idx + 1}` }];
+  }
+
+  public openAnchorChat(id: string, _path?: string): Promise<void> {
+    return this.openCellChat(id);
+  }
+
+  public openAnchorChatThread(threadKey: string): Promise<void> {
+    return this.openCellChatThread(threadKey);
   }
 
   public async show_table_of_contents(

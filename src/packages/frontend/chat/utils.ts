@@ -23,6 +23,19 @@ import { is_date as isDate } from "@cocalc/util/misc";
 
 export const INPUT_HEIGHT = "125px";
 
+/**
+ * Read the anchor id stamped on a chat message's root, preferring the
+ * current `id` field but falling back to the legacy `cell_id` field so
+ * notebooks with pre-rename chat data continue to find their threads.
+ */
+export function anchorIdOf(
+  msg: ChatMessageTyped | undefined,
+): string | undefined {
+  if (msg == null) return undefined;
+  const v = msg.get("id") ?? msg.get("cell_id");
+  return typeof v === "string" ? v : undefined;
+}
+
 export const USER_MENTION_MARKUP =
   '<span class="user-mention" account-id=__id__ >@__display__</span>';
 

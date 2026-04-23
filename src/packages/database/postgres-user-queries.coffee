@@ -432,7 +432,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             return {err: "FATAL: project_id must be specified"}
                         r.query[field] = r.project_id
                     when 'time_id'
-                        r.query[field] = uuid.v1()
+                        r.query[field] = misc.uuid()
                     when 'project_write'
                         if not r.query[field]?
                             return {err: "FATAL: must specify #{opts.table}.#{field}"}
