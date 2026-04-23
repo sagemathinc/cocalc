@@ -23,16 +23,20 @@ duplicated handler code in the LaTeX and RMD/QMD action classes.
 
 import { dkv, type DKV } from "@cocalc/conat/sync/dkv";
 
+import { server_time } from "./client";
+
 interface BuildState {
   buildId: string;
   status: "running" | "stopping" | "finished";
   aggregate?: number;
   force?: boolean;
   /**
-   * Wall-clock ms when this state was written. Used by late joiners to
-   * detect stranded "running" entries (originator crashed / stream lost
-   * its "done" event) instead of joining and hanging forever.
-   * Optional for backwards compatibility with older clients.
+   * Server-clock ms when this state was written (`webapp_client.server_time()`).
+   * Used by late joiners to detect stranded "running" entries (originator
+   * crashed / stream lost its "done" event) instead of joining and hanging
+   * forever. Sourced from the shared server clock so peers with skewed
+   * local wall clocks don't mis-classify live builds as stale. Optional for
+   * backwards compatibility with older clients.
    */
   startedAt?: number;
 }
@@ -168,12 +172,13 @@ export class BuildCoordinator {
     // the originator must have died without publishing "finished".
     // Joining would re-run the same hang. Treat the entry as terminal,
     // publish "finished" so peers clear too, and skip the join.
+    const now = server_time().getTime();
     if (
       typeof startedAt === "number" &&
-      Date.now() - startedAt > STALE_RUNNING_ENTRY_MS
+      now - startedAt > STALE_RUNNING_ENTRY_MS
     ) {
       console.warn(
-        `BuildCoordinator: ignoring stale "running" DKV entry for ${this.path} (age=${Math.round((Date.now() - startedAt) / 1000)}s, buildId=${buildId})`,
+        `BuildCoordinator: ignoring stale "running" DKV entry for ${this.path} (age=${Math.round((now - startedAt) / 1000)}s, buildId=${buildId})`,
       );
       this.dkv?.set(this.path, { ...state, status: "finished" });
       return;
@@ -251,7 +256,7 @@ export class BuildCoordinator {
     aggregate: number | undefined,
     force?: boolean,
   ): void {
-    const startedAt = Date.now();
+    const startedAt = server_time().getTime();
     const doPublish = () => {
       this.dkv?.set(this.path, {
         buildId,

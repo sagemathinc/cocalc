@@ -2672,11 +2672,18 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._refreshChatInlineStyles(path);
       this._refreshBookmarkGutters(path, scanBookmarks(text));
       this._refreshChatCursorInsert(path);
-      // If this sub-file is the one the TOC is currently sourced from,
+      // If this sub-file is the one the user is currently focused on,
       // reparse so section/bookmark edits appear in the panel. Master
       // edits already drive `updateTableOfContents` via the master
       // syncstring listener hooked in `_init2`.
-      if (path !== this.path && this.store.get("contents_path") === path) {
+      //
+      // We check `_activeCmPath` rather than `contents_path`: during a
+      // cold open, the focused sub-file may not be hydrated when the
+      // TOC first parses, so `contents_path` gets stomped to the master
+      // path. Keying on the active CM instead means this scanner still
+      // fires `updateTableOfContents` once the sub-file hydrates,
+      // unsticking the TOC from master.
+      if (path !== this.path && this._activeCmPath() === path) {
         this.updateTableOfContents();
       }
     }, 300);
