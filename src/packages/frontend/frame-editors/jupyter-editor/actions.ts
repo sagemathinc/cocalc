@@ -50,10 +50,29 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     this.init_new_frame();
     this.init_changes_state();
 
-    this.store.on("close-frame", async ({ id }) => {
-      if (this.frame_actions[id] != null) {
-        await delay(1);
-        this.frame_actions[id].close();
+    this.store.on("close-frame", async ({ id, type: oldType }) => {
+      // Capture the specific instance so that a rapid frame-type toggle
+      // (which emits close-frame twice in quick succession) can't end up
+      // closing a freshly-created replacement instance after the delay.
+      const actions = this.frame_actions[id];
+      if (actions == null) return;
+      await delay(1);
+      // Toggling between jupyter_cell_notebook and jupyter_minimal uses
+      // the same CellNotebook component and the same NotebookFrameActions
+      // works for both types.  Closing and recreating on toggle just wipes
+      // this.jupyter_actions/this.store on the instance that still-mounted
+      // cell components hold via useNotebookFrameActions refs, so the next
+      // cell click crashes with "Cannot read properties of undefined
+      // (reading 'store')".  Keep the existing instance in that case.
+      const newType = this._get_frame_type(id);
+      if (
+        isJupyterNotebookFrameType(oldType) &&
+        isJupyterNotebookFrameType(newType)
+      ) {
+        return;
+      }
+      actions.close();
+      if (this.frame_actions[id] === actions) {
         delete this.frame_actions[id];
       }
     });
