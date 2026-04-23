@@ -36,6 +36,7 @@ import {
   buildBookmarkLine,
   buildInlineInsertion,
   buildMarkerLine,
+  generateBookmarkText,
   generateMarkerHash,
   lineHasTexContent,
   scanBookmarks,
@@ -4164,7 +4165,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     const cursor = cm.getCursor();
     const targetLine = opts.targetLine ?? cursor.line;
-    const defaultText = generateMarkerHash();
+    const defaultText = generateBookmarkText(server_time());
     const markerLine = buildBookmarkLine(defaultText);
     // Insert the bookmark line + trailing newline above the current line,
     // pushing existing content down by 2 (marker line + one blank spacer).

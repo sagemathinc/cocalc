@@ -19,6 +19,8 @@ The marker's hash anchors a thread in the side-chat (see
 resolve to the same thread.
 */
 
+import { generate as heroku } from "project-name-generator";
+
 import { randomId } from "@cocalc/conat/names";
 
 /**
@@ -177,4 +179,24 @@ export function scanBookmarks(text: string): BookmarkMarker[] {
 /** Build the standalone bookmark line, e.g. for menu insertion. */
 export function buildBookmarkLine(text: string): string {
   return `% ${BOOKMARK_PREFIX}: ${text}`;
+}
+
+/**
+ * Generate a friendly default label for a new bookmark:
+ * `adjective-noun-YYYYMMDD-HHMM` (e.g. `sparkling-butter-20260423-1432`).
+ * More memorable than a raw 8-char hash and still unique enough in
+ * practice — collisions would need two bookmarks within the same
+ * minute using the same heroku pair.
+ *
+ * `now` is taken as a parameter (callers pass the shared server clock)
+ * so tests can freeze time and so we don't couple this pure helper to
+ * the webapp client.
+ */
+export function generateBookmarkText(now: Date): string {
+  const { dashed } = heroku({ number: false });
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const stamp =
+    `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}` +
+    `-${pad(now.getHours())}${pad(now.getMinutes())}`;
+  return `${dashed}-${stamp}`;
 }

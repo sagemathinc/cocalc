@@ -11,6 +11,7 @@ import {
   buildInlineInsertion,
   buildMarkerLine,
   findCommentStart,
+  generateBookmarkText,
   generateMarkerHash,
   lineHasTexContent,
   scanBlankLines,
@@ -204,6 +205,22 @@ describe("generateMarkerHash", () => {
       const scanned = scanMarkers(`% ${CHAT_PREFIX}: ${h}`);
       expect(scanned).toEqual([{ hash: h, line: 0, col: 0 }]);
     }
+  });
+});
+
+describe("generateBookmarkText", () => {
+  it("pairs two words with a zero-padded yyyymmdd-hhmm stamp", () => {
+    // 2026-04-23 07:05 local time (month is 0-indexed in the Date ctor).
+    const t = new Date(2026, 3, 23, 7, 5);
+    const s = generateBookmarkText(t);
+    expect(s).toMatch(/^[a-z]+-[a-z]+-20260423-0705$/);
+  });
+
+  it("produces text the bookmark scanner accepts", () => {
+    const s = generateBookmarkText(new Date());
+    expect(scanBookmarks(buildBookmarkLine(s))).toEqual([
+      { text: s, line: 0, col: 0 },
+    ]);
   });
 });
 
