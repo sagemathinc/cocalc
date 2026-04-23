@@ -3230,10 +3230,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     ) as BaseActions<CodeEditorState> | undefined;
     if (fileActions == null) return;
     // Use the caller's CM (e.g. the split pane whose cursor-insert fired)
-    // so edits land in the pane the user is looking at.
-    const targetCm =
-      cm ??
-      ((fileActions as any)._get_cm?.() as CodeMirror.Editor | undefined);
+    // so edits land in the pane the user is looking at, falling back to
+    // the recently-focused frame's CM before `_get_cm()`'s first match.
+    const targetCm = cm ?? this._cmForInsert(fileActions);
     if (targetCm == null) return;
 
     const hash = generateMarkerHash();
@@ -4036,9 +4035,10 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (fileActions == null) return;
     // Prefer the CM that fired the trigger (e.g. a split-pane keymap)
     // so inserts land in the pane the user is actually looking at.
-    const cm =
-      opts.cm ??
-      ((fileActions as any)._get_cm?.() as CodeMirror.Editor | undefined);
+    // When absent (Insert-menu click has no CM reference), resolve via
+    // the recently-focused frame so we pick the pane the user last
+    // interacted with instead of the first _cm entry for the file.
+    const cm = opts.cm ?? this._cmForInsert(fileActions);
     if (cm == null) return;
 
     const cursor = cm.getCursor();
@@ -4114,6 +4114,27 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   /**
+   * Look up the CM for `targetPath` to use for an insert-style action
+   * when the caller didn't pass one explicitly. Prefers the CM in the
+   * recently-focused frame so Insert-menu clicks and other non-pane
+   * callers land in the split the user is actually looking at, falling
+   * back to the BaseActions' default `_get_cm()` (first CM for the
+   * file) only if no focused frame targets this path.
+   */
+  private _cmForInsert(
+    fileActions: BaseActions<CodeEditorState>,
+  ): CodeMirror.Editor | undefined {
+    const frameId = this.show_recently_focused_frame_of_type?.("cm");
+    if (frameId != null) {
+      const focused = (fileActions as any)._cm?.[frameId] as
+        | CodeMirror.Editor
+        | undefined;
+      if (focused != null) return focused;
+    }
+    return (fileActions as any)._get_cm?.() as CodeMirror.Editor | undefined;
+  }
+
+  /**
    * Insert a collaborative bookmark above the cursor's line in the
    * currently-active CM. The default text is a short random hash, inserted
    * as `% bookmark: <text>` with the text portion selected so the user can
@@ -4135,9 +4156,10 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (fileActions == null) return;
     // Prefer the CM that fired the trigger (e.g. a split-pane keymap)
     // so inserts land in the pane the user is actually looking at.
-    const cm =
-      opts.cm ??
-      ((fileActions as any)._get_cm?.() as CodeMirror.Editor | undefined);
+    // When absent (Insert-menu click has no CM reference), resolve via
+    // the recently-focused frame so we pick the pane the user last
+    // interacted with instead of the first _cm entry for the file.
+    const cm = opts.cm ?? this._cmForInsert(fileActions);
     if (cm == null) return;
 
     const cursor = cm.getCursor();
