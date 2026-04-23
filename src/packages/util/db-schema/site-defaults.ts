@@ -46,6 +46,7 @@ export const TAGS = [
   "I18N",
   "Security",
   "Support",
+  "OAuth2 Provider",
 ] as const;
 
 export type Tag = (typeof TAGS)[number];
@@ -127,6 +128,7 @@ export type SiteSettingsKeys =
   | "compute_servers_dns"
   | "compute_servers_hyperstack_enabled"
   | "cloud_filesystems_enabled"
+  | "oauth2_provider_enabled"
   | "insecure_test_mode"
   | "samesite_remember_me"
   | "user_tracking";
@@ -1015,6 +1017,14 @@ export const site_settings_conf: SiteSettings = {
       to_bool(conf.compute_servers_enabled) &&
       to_bool(conf.compute_servers_dns_enabled),
     tags: ["Compute Servers"],
+  },
+  oauth2_provider_enabled: {
+    name: "Enable OAuth2 Provider",
+    desc: "Enable CoCalc as an OAuth2 authorization server. This allows third-party applications (e.g., MCP tool providers) to authenticate users via CoCalc. Configure clients in the admin settings below.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["OAuth2 Provider"],
   },
   insecure_test_mode: {
     name: "Insecure Test Mode",

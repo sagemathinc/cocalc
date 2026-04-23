@@ -919,9 +919,9 @@ export const labels = defineMessages({
     defaultMessage: "Keyboard shortcuts",
   },
   ssh_and_api_keys: {
-    id: "labels.keys",
-    defaultMessage: "API & SSH Keys",
-    description: "API keys and SSH keys management",
+    id: "labels.authentication",
+    defaultMessage: "Authentication",
+    description: "API keys, SSH keys, and OAuth2 authorization management",
   },
   terms_of_service: {
     id: "labels.terms_of_service",

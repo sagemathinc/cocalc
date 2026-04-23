@@ -133,4 +133,6 @@ export async function load_server_settings_from_env(
       });
     }
   }
+  // Invalidate the cache so subsequent getServerSettings() reads see the new values
+  resetServerSettingsCache();
 }

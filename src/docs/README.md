@@ -24,20 +24,22 @@ agents (Claude Code, Gemini CLI, etc.) working on the CoCalc codebase.
 - [auth.md](auth.md) — Authentication: cookies, SSO/OAuth, API keys, registration tokens
 - [llm.md](llm.md) — LLM/AI integration: multi-provider routing, cost tracking, streaming
 - [latex.md](latex.md) — LaTeX editor: build pipeline, SyncTeX, SageTeX/PythonTeX/Knitr, PDF viewer
+- [frontend-components.md](frontend-components.md) — Frontend component catalog: reusable UI components in `packages/frontend/components/`
 
 ## Maintenance
 
-> **IMPORTANT**: Feel free to update the documentation. In particular:
+> **IMPORTANT**: If you find discrepancies between the code and these
+> documentation files, you **MUST** update the documentation or point this
+> out to the user. The code is always authoritative — stale docs cause
+> incorrect code generation by coding agents.
 >
-> - If you add a new package
-> - Notice a difference between code and docs -- code is authoritative
+> Update the relevant file(s) whenever you:
+>
+> - Add a new package or module
 > - Change how conat routing works
-> - Modify the API layer
+> - Modify the API layer or authentication
 > - Alter the frontend state management patterns
->
-> Update the relevant file(s) here.
-> These docs are consumed by coding agents and stale information might cause
-> incorrect code generation.
+> - Add or rename database tables or columns
 
 Last reviewed: 2026-03-11
 

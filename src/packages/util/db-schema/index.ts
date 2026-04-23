@@ -43,6 +43,7 @@ import "./lti";
 import "./mentions";
 import "./messages";
 import "./news";
+import "./oauth2";
 import "./organizations";
 import "./password-reset";
 import "./pg-system";

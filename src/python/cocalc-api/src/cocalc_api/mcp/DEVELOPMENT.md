@@ -97,7 +97,7 @@ def register_my_account_tool(mcp) -> None:
         from cocalc_api import Hub
 
         hub = Hub(api_key=_api_key, host=_host)
-        # Use hub.projects.get(), hub.system.user_search(), etc.
+        # Use hub.projects.list(), hub.system.user_search(), etc.
         return result
 ```
 
@@ -189,7 +189,7 @@ If `COCALC_PROJECT_ID` is provided with an account-scoped key, it is used as the
 See `../../hub.py` for full API reference:
 
 **Account-Scoped:**
-- `hub.projects.get()` - List projects
+- `hub.projects.list()` - List projects
 - `hub.system.user_search()` - Search users
 - `hub.db.query()` - Query account data
 - `hub.messages.get()` - Get messages

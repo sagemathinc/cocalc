@@ -124,6 +124,7 @@ def all_packages() -> List[str]:
         'packages/server',  # packages/next assumes this is built
         'packages/database',  # packages/next also assumes database is built (or at least the coffeescript in it is)
         'packages/file-server',
+        'packages/auth',  # packages/next and packages/hub assume this is built
         'packages/next',
         'packages/hub',  # hub won't build if next isn't already built
     ]
