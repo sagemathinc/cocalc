@@ -2,10 +2,11 @@
 Utility helpers for deriving thread metadata from the chat message list.
 */
 
-import { React } from "@cocalc/frontend/app-framework";
+import { React, redux, useRedux } from "@cocalc/frontend/app-framework";
+import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 
 import type { ChatMessageTyped, ChatMessages } from "./types";
-import { newest_content } from "./utils";
+import { anchorIdOf, newest_content } from "./utils";
 
 export const ALL_THREADS_KEY = "__ALL_THREADS__";
 
@@ -136,6 +137,39 @@ export function useThreadList(
     items.sort((a, b) => b.newestTime - a.newestTime);
     return items;
   }, [messages, account_id]);
+}
+
+/**
+ * Filter threads down to those anchored at the given id. An "anchor" is a
+ * source-document location (jupyter cell UUID, LaTeX marker hash, etc.) that
+ * an editor associates with a thread by stamping `id` on the root message.
+ */
+export function useAnchoredThreads(
+  project_id: string,
+  path: string,
+  anchorId: string,
+): {
+  anchoredThreads: ThreadListItem[];
+  totalMessages: number;
+  totalUnread: number;
+} {
+  const account_id = redux.getStore("account")?.get_account_id();
+  const chatPath = chatFile(path);
+  const chatMessages = useRedux(["messages"], project_id, chatPath);
+  const allThreads = useThreadList(chatMessages, account_id);
+  const anchoredThreads = React.useMemo(
+    () => allThreads.filter((t) => anchorIdOf(t.rootMessage) === anchorId),
+    [allThreads, anchorId],
+  );
+  const totalMessages = React.useMemo(
+    () => anchoredThreads.reduce((s, t) => s + t.messageCount, 0),
+    [anchoredThreads],
+  );
+  const totalUnread = React.useMemo(
+    () => anchoredThreads.reduce((s, t) => s + t.unreadCount, 0),
+    [anchoredThreads],
+  );
+  return { anchoredThreads, totalMessages, totalUnread };
 }
 
 export function deriveThreadLabel(

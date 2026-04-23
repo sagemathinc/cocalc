@@ -264,10 +264,11 @@ export default function Message({
     }
   }, [replying]);
 
-  // Hide empty cell-anchored thread root messages — they only exist as
-  // anchors and should not display a visible chat bubble.
+  // Hide empty anchored thread root messages — they only exist as anchors
+  // and should not display a visible chat bubble. (Accept the legacy
+  // `cell_id` field as an anchor too.)
   if (
-    message.get("cell_id") &&
+    (message.get("id") || message.get("cell_id")) &&
     !message.get("reply_to") &&
     newest_content(message).trim() === ""
   ) {

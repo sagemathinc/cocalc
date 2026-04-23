@@ -172,3 +172,50 @@
 .cc-frame-tree-path-current
   background: color-mix(in srgb, var(--cocalc-primary, colors.$COL_BS_BLUE_TEXT) 18%, var(--cocalc-editor-titlebar-bg-active, colors.$COL_GRAY_DD))
   color: var(--cocalc-text-primary-strong, colors.$COL_GRAY_DD)
+
+// LaTeX chat-anchor marker: styled `% chat: <hash>` comment. Clickable to
+// open the associated side-chat thread. The `.CodeMirror` prefix is needed
+// to outrank CM's own `.cm-comment` styling.
+.CodeMirror
+  .cc-chat-marker
+    color: var(--cocalc-link, colors.$COL_ANTD_LINK_BLUE)
+    cursor: pointer
+    background-color: var(--cocalc-bg-hover, colors.$COL_GRAY_LLL) // subtle "this is special" hint
+    border-radius: 2px
+
+    &:hover
+      background-color: color-mix(in srgb, var(--cocalc-link, colors.$COL_ANTD_LINK_BLUE) 18%, transparent)
+
+  // Locked: a real thread already exists for this hash, editing the range is
+  // prevented. Rendered bold so the locked state is visible at a glance.
+  .cc-chat-marker-locked
+    font-weight: 600
+
+  // Cursor-follow insert affordance: a pair of faint icons (chat +
+  // bookmark) that track the primary cursor's line. Click the chat icon
+  // to insert `% chat: <hash>` before the line, or the bookmark icon to
+  // insert `% bookmark: <hash>` (with text selected for rename).
+  .cc-chat-cursor-insert
+    font-size: 0.9em
+    display: inline-flex
+    align-items: center
+    margin-left: -8px
+
+    > span
+      opacity: 0.5
+      color: var(--cocalc-text-secondary, colors.$COL_GRAY_M)
+      cursor: pointer
+      transition: opacity 0.15s, color 0.15s
+      padding: 0 1px
+
+      &:hover
+        opacity: 1
+        color: var(--cocalc-link, colors.$COL_ANTD_LINK_BLUE)
+
+  // Gutter bookmark icon: gray + non-interactive. Hover shows a native
+  // title tooltip pointing users to the Contents tab.
+  .cc-chat-bookmark-gutter-host
+    color: var(--cocalc-text-tertiary, colors.$COL_GRAY)
+    display: inline-flex
+    align-items: center
+    margin-left: -9px

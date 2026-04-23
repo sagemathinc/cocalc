@@ -15,6 +15,7 @@ export interface TableOfContentsEntry {
   value: string; // contents of the heading -- a 1-line string formatted using markdown (will be rendered using markdown)
   level?: 1 | 2 | 3 | 4 | 5 | 6; // optional heading size/level
   icon?: IconName; // default "minus" (a dash)
+  iconColor?: string; // optional CSS color for the icon (default: #666)
   number?: number[]; // section numbering, so for "- 1.2.4  A Subsection" this would be [1,2,4]; omitted if not given.
   extra?: any; // this is just passed back to the scrollTo function to provide extra info about how to scroll to this heading.
 }
@@ -94,6 +95,7 @@ function Entry({
         level={entry.get("level", 1)}
         value={value}
         icon={entry.get("icon")}
+        iconColor={entry.get("iconColor")}
         fontSizes={fontSizes}
       />
     </div>
@@ -104,11 +106,13 @@ function Header({
   level,
   value,
   icon,
+  iconColor,
   fontSizes,
 }: {
   level: 1 | 2 | 3 | 4 | 5 | 6;
   value: string;
   icon?: IconName;
+  iconColor?: string;
   fontSizes?: boolean;
 }) {
   if (level < 1) level = 1;
@@ -125,12 +129,40 @@ function Header({
     >
       <span
         style={{
-          width: level == 1 ? "15px" : level == 2 ? "25px" : "35px",
+          width:
+            level == 1
+              ? "15px"
+              : level == 2
+                ? "25px"
+                : level == 3
+                  ? "35px"
+                  : level == 4
+                    ? "45px"
+                    : level == 5
+                      ? "55px"
+                      : "65px",
           display: "inline-block",
         }}
       >
         {icon && (
-          <Icon name={icon} style={{ marginLeft: "10px", color: "var(--cocalc-text-secondary, #666)" }} />
+          <Icon
+            name={icon}
+            style={{
+              color: iconColor ?? "var(--cocalc-text-secondary, #666)",
+              marginLeft:
+                level == 1
+                  ? "5px"
+                  : level == 2
+                    ? "15px"
+                    : level == 3
+                      ? "25px"
+                      : level == 4
+                        ? "35px"
+                        : level == 5
+                          ? "45px"
+                          : "55px",
+            }}
+          />
         )}
       </span>
       <a
