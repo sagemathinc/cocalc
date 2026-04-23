@@ -53,7 +53,12 @@ import type {
   Feedback,
   MessageHistory,
 } from "./types";
-import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
+import {
+  anchorIdOf,
+  getReplyToRoot,
+  getThreadRootDate,
+  toMsString,
+} from "./utils";
 
 const MAX_CHAT_STREAM = 10;
 
@@ -170,7 +175,8 @@ export class ChatActions extends Actions<ChatState> {
     submitMentionsRef,
     extraInput,
     name,
-    cell_id,
+    id: anchor_id,
+    path: anchor_path,
   }: {
     input?: string;
     sender_id?: string;
@@ -181,8 +187,11 @@ export class ChatActions extends Actions<ChatState> {
     extraInput?: string;
     // if name is given, rename thread to have that name
     name?: string;
-    // when set on a root message, anchors this thread to a Jupyter cell
-    cell_id?: string;
+    // when set on a root message, anchors this thread to a source-document
+    // location (jupyter cell UUID, LaTeX marker hash, etc.).
+    id?: string;
+    // optional sub-file path for multi-file editors (e.g. LaTeX `\input`).
+    path?: string;
   }): string => {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to sendChat before chat actions initialized");
@@ -198,14 +207,29 @@ export class ChatActions extends Actions<ChatState> {
       input = (input ?? "") + extraInput;
     }
     input = input?.trim();
-    if (!input && !cell_id) {
+    if (!input) {
       // do not send when there is nothing to send.
       return "";
     }
-    if (!input) {
-      input = "";
+    // When starting a new thread, pick up any pending anchor staged by the
+    // editor (e.g. jupyter Chat button, LaTeX marker insertion) so the first
+    // real message becomes the root.
+    let effectiveAnchorId = anchor_id;
+    let effectiveAnchorPath = anchor_path;
+    let effectiveName = name;
+    const pending = !reply_to ? this.getPendingAnchorThread() : null;
+    if (pending) {
+      // Trust the staged anchor: an empty location lookup is not conclusive
+      // evidence that the marker is gone. Marker scans are debounced, only
+      // track currently-open files, and may not have run yet when the first
+      // message is sent right after inserting the marker. The editor's own
+      // reconcile path (`_reconcilePendingAnchor`) clears or renames a
+      // stale pending anchor when it has positive evidence.
+      effectiveAnchorId ??= pending.id;
+      effectiveAnchorPath ??= pending.path;
+      effectiveName ??= pending.label;
     }
-    const trimmedName = name?.trim();
+    const trimmedName = effectiveName?.trim();
     const message: ChatMessage = {
       sender_id,
       event: "chat",
@@ -223,8 +247,19 @@ export class ChatActions extends Actions<ChatState> {
     if (trimmedName && !reply_to) {
       (message as any).name = trimmedName;
     }
-    if (cell_id && !reply_to) {
-      message.cell_id = cell_id;
+    if (effectiveAnchorId && !reply_to) {
+      message.id = effectiveAnchorId;
+      if (effectiveAnchorPath) {
+        message.path = effectiveAnchorPath;
+      }
+    }
+    // Stamp the sender's lastread directly on the new root so their own
+    // message doesn't count as unread from the moment it hits the store.
+    // (The async `updateLastRead` call below won't race then: it's still
+    // invoked for consistency / count-based backward-compat fields, but the
+    // badge-driving timestamp is already in place.)
+    if (!reply_to && sender_id) {
+      (message as any)[`lastread-${sender_id}`] = time_stamp.valueOf();
     }
     this.syncdb.set(message);
     const messagesState = this.store.get("messages");
@@ -238,6 +273,10 @@ export class ChatActions extends Actions<ChatState> {
       // For replies search find full threads not individual messages.
       this.clearAllFilters();
       selectedThreadKey = `${time_stamp.valueOf()}`;
+      if (pending) {
+        // The pending anchor has now become a real root message; clear it.
+        this.setPendingAnchorThread(null);
+      }
     } else {
       // when replying we make sure that the thread is expanded, since otherwise
       // our reply won't be visible
@@ -1416,21 +1455,71 @@ export class ChatActions extends Actions<ChatState> {
       id: this.frameId,
       selectedThreadKey: threadKey,
     });
+    if (threadKey != null) {
+      // Selecting an existing thread cancels any pending anchor — the next
+      // message will reply to this thread, not start a new anchored thread.
+      this.setPendingAnchorThread(null);
+    }
   };
 
-  // Find the most recent thread anchored to the given cell, or create one.
-  findOrCreateCellThread = (
-    cellId: string,
-    cellLabel?: string,
+  // Pending anchor thread: set by an editor (Jupyter "Chat" button, LaTeX
+  // marker insert, etc.) so the side chat knows the next root-message send
+  // should be anchored to this id/path. No chat message is written until the
+  // user actually sends one.
+  //
+  // set_frame_data runs the value through fromJS, so what we read back is an
+  // Immutable Map; convert to a plain object here.
+  getPendingAnchorThread = (): {
+    id: string;
+    label?: string;
+    path?: string;
+  } | null => {
+    const raw = this.frameTreeActions?._get_frame_data(
+      this.frameId,
+      "pendingAnchorThread",
+    );
+    if (raw == null) return null;
+    const value = raw?.toJS?.() ?? raw;
+    if (!value || typeof value.id !== "string") return null;
+    return {
+      id: value.id,
+      label: typeof value.label === "string" ? value.label : undefined,
+      path: typeof value.path === "string" ? value.path : undefined,
+    };
+  };
+
+  setPendingAnchorThread = (
+    pending: { id: string; label?: string; path?: string } | null,
+  ) => {
+    this.frameTreeActions?.set_frame_data({
+      id: this.frameId,
+      pendingAnchorThread: pending,
+    });
+  };
+
+  // Find the most recent thread anchored to the given id. If one exists,
+  // select it. Otherwise set a pending anchor so the next message sent will
+  // become that anchor's thread root.
+  findOrCreateAnchorThread = (
+    id: string,
+    label?: string,
+    path?: string,
   ): string | null => {
     if (!this.store) return null;
     const messages = this.store.get("messages");
-    if (!messages) return null;
+    if (!messages) {
+      // Messages haven't finished syncing yet — we can't tell whether a
+      // thread for this anchor already exists, so staging a pending anchor
+      // here could create a duplicate root on the first send. Bail out;
+      // the caller (e.g. `waitForChatActions`) now waits for messages
+      // before invoking us, so this path should rarely hit in practice.
+      return null;
+    }
 
     let bestKey: string | null = null;
     let bestTime = 0;
     for (const [key, msg] of messages) {
-      if (msg?.get("cell_id") === cellId && !msg.get("reply_to")) {
+      if (anchorIdOf(msg) === id && !msg.get("reply_to")) {
         const t = msg.get("date")?.valueOf() ?? 0;
         if (t > bestTime) {
           bestTime = t;
@@ -1444,19 +1533,23 @@ export class ChatActions extends Actions<ChatState> {
       return bestKey;
     }
 
-    return this.createCellThread(cellId, cellLabel);
+    // No existing thread — stage a pending anchor and clear selection so the
+    // chatroom renders a blank compose for this anchor.
+    this.setPendingAnchorThread({ id, label, path });
+    this.setSelectedThread(null);
+    return null;
   };
 
-  // Always create a new thread anchored to the given cell.
-  createCellThread = (cellId: string, cellLabel?: string): string | null => {
-    const name = cellLabel || "Cell discussion";
-    const timeStamp = this.sendChat({
-      input: "",
-      cell_id: cellId,
-      name,
-      noNotification: true,
-    });
-    return timeStamp || null;
+  // Always start a fresh thread anchored to the given id (no search for
+  // existing thread). Same deferred-creation semantics as above.
+  createAnchorThread = (
+    id: string,
+    label?: string,
+    path?: string,
+  ): string | null => {
+    this.setPendingAnchorThread({ id, label, path });
+    this.setSelectedThread(null);
+    return null;
   };
 }
 

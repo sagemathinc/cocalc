@@ -40,8 +40,12 @@ export interface ChatMessage {
   folding?: string[];
   feedback?: { [account_id: string]: Feedback };
   // When set on a root message (no reply_to), anchors this chat thread
-  // to a specific Jupyter notebook cell.
-  cell_id?: string;
+  // to a specific location in the source document. The interpretation is
+  // editor-specific: for a Jupyter notebook this is a cell UUID; for a
+  // LaTeX file this is an opaque marker hash. `path` (below) optionally
+  // identifies which sub-file the anchor lives in for multi-file editors.
+  id?: string;
+  path?: string;
 }
 
 // this type isn't explicitly used anywhere yet, but the actual structure is and I just
@@ -72,7 +76,12 @@ export type ChatMessageTyped = TypedMap<{
   }>;
   folding?: List<string>;
   feedback?: Map<string, Feedback>; // encoded as map of {[account_id]:Feedback}
+  id?: string;
+  // Legacy field name used by pre-existing notebook chats before the
+  // cell_id → id rename. Still honored on read (see `anchorIdOf` in
+  // utils.ts) so those threads remain discoverable.
   cell_id?: string;
+  path?: string;
 }>;
 
 export type ChatMessages = TypedMap<{

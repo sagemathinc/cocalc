@@ -634,6 +634,16 @@ function CodingAgentCore({
       setInputKey((k) => k + 1);
       return;
     }
+    if (seed.insert) {
+      // Append to existing input (e.g. a cell-style reference). Do not start
+      // a new session or submit.
+      setInput((prev) => {
+        const sep = prev && !prev.endsWith(" ") ? " " : "";
+        return `${prev}${sep}${seed.prompt} `;
+      });
+      setInputKey((k) => k + 1);
+      return;
+    }
     if (seed.forceNewTurn !== false) {
       session.handleNewSession();
     }

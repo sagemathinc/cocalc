@@ -49,6 +49,7 @@ import type { ChatState } from "./store";
 import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
 import {
   INPUT_HEIGHT,
+  anchorIdOf,
   getThreadRootDate,
   markChatAsReadIfUnseen,
 } from "./utils";
@@ -58,7 +59,7 @@ import {
   useThreadList,
 } from "./threads";
 import type { ThreadListItem, ThreadSection } from "./threads";
-import { CellAnchorButton } from "./cell-anchor-banner";
+import { ThreadAnchorButton } from "./thread-anchor-button";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -200,6 +201,22 @@ export function ChatPanel({
   const disableFilters = disableFiltersProp ?? isCompact;
   const storedThreadFromDesc =
     getDescValue(desc, "data-selectedThreadKey") ?? null;
+  // set_frame_data stores values via fromJS, so we get an Immutable Map back.
+  const pendingAnchorThread = useMemo<{
+    id: string;
+    label?: string;
+    path?: string;
+  } | null>(() => {
+    const raw = getDescValue(desc, "data-pendingAnchorThread");
+    if (raw == null) return null;
+    const v = raw?.toJS?.() ?? raw;
+    if (!v || typeof v.id !== "string") return null;
+    return {
+      id: v.id,
+      label: typeof v.label === "string" ? v.label : undefined,
+      path: typeof v.path === "string" ? v.path : undefined,
+    };
+  }, [desc]);
   const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
     storedThreadFromDesc,
   );
@@ -285,10 +302,10 @@ export function ChatPanel({
     }));
   }, [threads]);
 
-  const selectedThreadCellId = useMemo(() => {
+  const selectedThreadAnchorId = useMemo(() => {
     if (!singleThreadView || !selectedThreadKey) return undefined;
     const thread = threads.find((t) => t.key === selectedThreadKey);
-    return thread?.rootMessage?.get("cell_id") as string | undefined;
+    return anchorIdOf(thread?.rootMessage);
   }, [singleThreadView, selectedThreadKey, threads]);
 
   useEffect(() => {
@@ -301,6 +318,15 @@ export function ChatPanel({
     }
   }, [storedThreadFromDesc]);
 
+  // When a pending anchor thread is staged, clear any previously-selected
+  // thread so the compose placeholder is shown instead of the stale thread.
+  useEffect(() => {
+    if (pendingAnchorThread && selectedThreadKey !== null) {
+      setSelectedThreadKey(null);
+      setAllowAutoSelectThread(false);
+    }
+  }, [pendingAnchorThread]);
+
   useEffect(() => {
     if (threads.length === 0) {
       if (selectedThreadKey !== null) {
@@ -309,11 +335,14 @@ export function ChatPanel({
       setAllowAutoSelectThread(true);
       return;
     }
+    // When an editor staged a pending anchor thread, keep the compose view
+    // open instead of auto-jumping into some other thread.
+    if (pendingAnchorThread) return;
     const exists = threads.some((thread) => thread.key === selectedThreadKey);
     if (!exists && allowAutoSelectThread) {
       setSelectedThreadKey(threads[0].key);
     }
-  }, [threads, selectedThreadKey, allowAutoSelectThread]);
+  }, [threads, selectedThreadKey, allowAutoSelectThread, pendingAnchorThread]);
 
   useEffect(() => {
     if (selectedThreadKey != null && selectedThreadKey !== ALL_THREADS_KEY) {
@@ -508,15 +537,7 @@ export function ChatPanel({
           </Tooltip>
           <div style={THREAD_ITEM_LABEL_STYLE}>{plainLabel}</div>
           {unreadCount > 0 && !isHovered && (
-            <Badge
-              count={unreadCount}
-              size="small"
-              overflowCount={99}
-              style={{
-                backgroundColor: COLORS.GRAY_L0,
-                color: COLORS.GRAY_D,
-              }}
-            />
+            <Badge count={unreadCount} size="small" overflowCount={99} />
           )}
           {showMenu && (
             <Dropdown
@@ -550,16 +571,7 @@ export function ChatPanel({
     if (count <= 0) {
       return null;
     }
-    const badge = (
-      <Badge
-        count={count}
-        size="small"
-        style={{
-          backgroundColor: COLORS.GRAY_L0,
-          color: COLORS.GRAY_D,
-        }}
-      />
-    );
+    const badge = <Badge count={count} size="small" />;
     if (!actions?.updateLastRead) {
       return badge;
     }
@@ -910,6 +922,35 @@ export function ChatPanel({
             </Row>
           )}
         </div>
+      ) : pendingAnchorThread ? (
+        <div
+          className="smc-vfill"
+          style={{
+            ...CHAT_LOG_STYLE,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#888",
+            fontSize: "14px",
+          }}
+        >
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+              Start discussion for{" "}
+              {pendingAnchorThread.label ?? "this anchor"}
+            </div>
+            <div>Type your first message below to create the thread.</div>
+            <Button
+              size="small"
+              style={{ marginTop: "8px" }}
+              onClick={() => {
+                actions.setPendingAnchorThread?.(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
       ) : (
         <div
           className="smc-vfill"
@@ -1068,9 +1109,9 @@ export function ChatPanel({
           alignItems: "center",
         }}
       >
-        {selectedThreadCellId && (
-          <CellAnchorButton
-            cellId={selectedThreadCellId}
+        {selectedThreadAnchorId && (
+          <ThreadAnchorButton
+            anchorId={selectedThreadAnchorId}
             actions={actions}
           />
         )}
@@ -1080,14 +1121,7 @@ export function ChatPanel({
           onClick={() => setSidebarVisible(true)}
         >
           Chats
-          <Badge
-            count={totalUnread}
-            overflowCount={99}
-            style={{
-              backgroundColor: COLORS.GRAY_L0,
-              color: COLORS.GRAY_D,
-            }}
-          />
+          <Badge count={totalUnread} overflowCount={99} />
         </Button>
         <Button
           type={!selectedThreadKey ? "primary" : "default"}

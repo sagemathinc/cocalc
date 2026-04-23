@@ -7,7 +7,9 @@
  * Returns true if the given frame type is any Jupyter notebook frame
  * (standard or minimal).
  */
-export function isJupyterNotebookFrameType(type: string): boolean {
+export function isJupyterNotebookFrameType(
+  type: string | undefined,
+): boolean {
   return (
     type === "jupyter" ||
     type === "jupyter_cell_notebook" ||

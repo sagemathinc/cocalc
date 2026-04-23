@@ -122,6 +122,39 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     let current_job_info: ExecuteCodeOutputAsync | null = null;
     let pending_stdout = "";
     let pending_stderr = "";
+    let settled = false;
+
+    const settleResolve = (v: ExecOutput) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(watchdog);
+      resolve(v);
+    };
+    const settleReject = (e: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(watchdog);
+      reject(e);
+    };
+
+    // Watchdog: the backend enforces TIMEOUT_LATEX_JOB_S, but if the
+    // stream never delivers a "done" or "error" event (observed in the
+    // wild after a page refresh that joins a long-dead aggregate: the
+    // stream emits "end" but no "done"), the Promise would hang forever
+    // and the BuildCoordinator would never publish "finished", stranding
+    // every future late-joiner. Settle after a generous margin.
+    const watchdog = setTimeout(
+      () => {
+        settleReject(
+          new Error(
+            `Latex build did not produce a completion event within ${
+              TIMEOUT_LATEX_JOB_S + 60
+            }s — the stream likely disconnected silently.`,
+          ),
+        );
+      },
+      (TIMEOUT_LATEX_JOB_S + 60) * 1000,
+    );
 
     stream.on("job", (job_info: ExecuteCodeOutputAsync) => {
       current_job_info = {
@@ -178,13 +211,15 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
       if (result.type === "async") {
         set_job_info(result);
       }
-      resolve(result);
+      settleResolve(result);
     });
 
-    // Stream reconciliation: if the stream ends (e.g., connection drop),
-    // finalize the job info so build_logs reflect the actual output.
-    // The promise is resolved/rejected by "done"/"error" events above;
-    // this just ensures the UI shows the final output snapshot.
+    // Stream reconciliation: if the stream ends (e.g., connection drop,
+    // aggregate dedup to a backend job whose "done" notification was
+    // lost), finalize the job info AND settle the Promise. Before,
+    // "end" only updated the UI — if "done" had not arrived the Promise
+    // hung forever, which stranded the BuildCoordinator's joinBuild
+    // and left the DKV entry pinned to "running" indefinitely.
     stream.on("end", (output: ExecOutput) => {
       if (current_job_info && output) {
         const final_job_info: ExecuteCodeOutputAsync = {
@@ -192,13 +227,28 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
           stdout: (output.stdout || "").toString(),
           stderr: (output.stderr || "").toString(),
           exit_code: output.exit_code,
+          // If we had no prior "done", the underlying job-status is
+          // unknown from the stream's point of view. Mark it
+          // "completed" when exit_code is 0, otherwise "error", so the
+          // UI spinner stops instead of sitting at "running" forever.
+          status:
+            output.exit_code === 0
+              ? ("completed" as const)
+              : ("error" as const),
         };
         set_job_info(final_job_info);
+      }
+      if (output) {
+        settleResolve(output);
+      } else {
+        settleReject(
+          new Error("Latex build stream ended without producing output"),
+        );
       }
     });
 
     stream.on("error", (err) => {
-      reject(new Error(`Unable to run the compilation. ${err}`));
+      settleReject(new Error(`Unable to run the compilation. ${err}`));
     });
   });
 }

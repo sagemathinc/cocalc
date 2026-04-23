@@ -14,7 +14,7 @@ import React, {
 import { hash_string } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
-const MINIMAP_WIDTH = 40;
+const MINIMAP_WIDTH = 30;
 const VIEWPORT_MIN_HEIGHT = 12;
 const CELL_GAP = 2; // visible gap between cells
 const MIN_CELL_HEIGHT = 2;

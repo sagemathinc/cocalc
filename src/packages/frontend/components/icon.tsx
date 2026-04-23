@@ -276,6 +276,7 @@ const IconSpec = {
   bold: BoldOutlined,
   bolt: ThunderboltOutlined,
   book: BookOutlined,
+  bookmark: BookOutlined,
   briefcase: { IconFont: "briefcase" },
   brush: { IconFont: "brush" },
   bullhorn: { IconFont: "bullhorn" },
