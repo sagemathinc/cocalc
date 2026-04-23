@@ -2558,13 +2558,19 @@ export class Actions extends BaseActions<LatexEditorState> {
    * Font Awesome availability.
    */
   private _chatCursorInsertHosts: {
-    [path: string]: {
-      host: HTMLElement;
-      chatRoot: Root;
-      bookmarkRoot: Root;
-      currentHandle: CodeMirror.LineHandle | null;
-    };
+    [path: string]: Map<
+      CodeMirror.Editor,
+      {
+        host: HTMLElement;
+        chatRoot: Root;
+        bookmarkRoot: Root;
+        currentHandle: CodeMirror.LineHandle | null;
+      }
+    >;
   } = {};
+
+  /** CM instances that already have the cursorActivity listener bound. */
+  private _chatCursorInsertBound: WeakSet<CodeMirror.Editor> = new WeakSet();
 
   /**
    * CM instances that already have our chat mousedown handler installed.
@@ -2643,13 +2649,15 @@ export class Actions extends BaseActions<LatexEditorState> {
       delete this._chatBookmarkGutterHosts[path];
     }
     delete this._chatBookmarkLines[path];
-    const cursorHost = this._chatCursorInsertHosts[path];
-    if (cursorHost) {
-      for (const r of [cursorHost.chatRoot, cursorHost.bookmarkRoot]) {
-        try {
-          r.unmount();
-        } catch {
-          // ignored
+    const cursorHosts = this._chatCursorInsertHosts[path];
+    if (cursorHosts) {
+      for (const entry of cursorHosts.values()) {
+        for (const r of [entry.chatRoot, entry.bookmarkRoot]) {
+          try {
+            r.unmount();
+          } catch {
+            // ignored
+          }
         }
       }
       delete this._chatCursorInsertHosts[path];
@@ -2715,7 +2723,17 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._refreshChatMarkerGutters(path);
       this._refreshChatInlineStyles(path);
       this._refreshBookmarkGutters(path, scanBookmarks(text));
-      this._refreshChatCursorInsert(path);
+      // Re-evaluate cursor-insert visibility against the refreshed marker
+      // set for every CM showing this file (split panes each have their
+      // own host). `_ensureChatCursorInsert` also creates hosts for CMs
+      // that just mounted since the last scan.
+      this._ensureChatCursorInsert(path);
+      const cursorHosts = this._chatCursorInsertHosts[path];
+      if (cursorHosts) {
+        for (const cm of cursorHosts.keys()) {
+          this._refreshChatCursorInsert(path, cm);
+        }
+      }
       // If this sub-file is the one the user is currently focused on,
       // reparse so section/bookmark edits appear in the panel. Master
       // edits already drive `updateTableOfContents` via the master
@@ -3027,71 +3045,100 @@ export class Actions extends BaseActions<LatexEditorState> {
    * `_refreshChatCursorInsert` for every subsequent cursor move.
    */
   private _ensureChatCursorInsert(path: string): void {
-    if (this._chatCursorInsertHosts[path] != null) return;
     const fileActions = this.redux.getEditorActions(
       this.project_id,
       path_normalize(path),
     ) as BaseActions<CodeEditorState> | undefined;
     if (fileActions == null) return;
-    const cm = (fileActions as any)._get_cm?.() as
-      | CodeMirror.Editor
-      | undefined;
-    if (cm == null) return;
+    const cms = Object.values(
+      ((fileActions as any)._cm ?? {}) as {
+        [id: string]: CodeMirror.Editor;
+      },
+    );
+    if (cms.length === 0) return;
 
-    const host = document.createElement("span");
-    host.className = "cc-chat-cursor-insert";
-    // Swallow the outer mousedown so CM doesn't reposition the cursor
-    // when the user aims at one of our icons.
-    host.addEventListener("mousedown", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    });
+    const perCm =
+      this._chatCursorInsertHosts[path] ??
+      (this._chatCursorInsertHosts[path] = new Map());
+    const liveCms = new Set<CodeMirror.Editor>(cms);
 
-    const makeIconHost = (
-      title: string,
-      onClick: (line: number) => void,
-    ): { child: HTMLElement; root: Root } => {
-      const child = document.createElement("span");
-      child.title = title;
-      child.addEventListener("click", (e) => {
+    // Prune entries for CMs that have unmounted.
+    for (const staleCm of Array.from(perCm.keys())) {
+      if (liveCms.has(staleCm)) continue;
+      const stale = perCm.get(staleCm);
+      if (stale) {
+        for (const r of [stale.chatRoot, stale.bookmarkRoot]) {
+          try {
+            r.unmount();
+          } catch {
+            // ignored
+          }
+        }
+      }
+      perCm.delete(staleCm);
+    }
+
+    for (const cm of cms) {
+      if (perCm.has(cm)) continue;
+
+      const host = document.createElement("span");
+      host.className = "cc-chat-cursor-insert";
+      // Swallow the outer mousedown so CM doesn't reposition the cursor
+      // when the user aims at one of our icons.
+      host.addEventListener("mousedown", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const entry = this._chatCursorInsertHosts[path];
-        if (entry?.currentHandle == null) return;
-        const line = cm.getLineNumber(entry.currentHandle);
-        if (line == null) return;
-        onClick(line);
       });
-      const root = createRoot(child);
-      host.appendChild(child);
-      return { child, root };
-    };
 
-    const { root: chatRoot } = makeIconHost(
-      "Insert chat anchor before this line",
-      (line) => {
-        void this._insertChatMarkerBeforeLine(path, line);
-      },
-    );
-    chatRoot.render(React.createElement(Icon, { name: "comment" }));
+      const makeIconHost = (
+        title: string,
+        onClick: (line: number) => void,
+      ): { child: HTMLElement; root: Root } => {
+        const child = document.createElement("span");
+        child.title = title;
+        child.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const entry = this._chatCursorInsertHosts[path]?.get(cm);
+          if (entry?.currentHandle == null) return;
+          const line = cm.getLineNumber(entry.currentHandle);
+          if (line == null) return;
+          onClick(line);
+        });
+        const root = createRoot(child);
+        host.appendChild(child);
+        return { child, root };
+      };
 
-    const { root: bookmarkRoot } = makeIconHost(
-      "Insert bookmark before this line",
-      (line) => {
-        void this.insertBookmark({ targetPath: path, targetLine: line });
-      },
-    );
-    bookmarkRoot.render(React.createElement(Icon, { name: "bookmark" }));
+      const { root: chatRoot } = makeIconHost(
+        "Insert chat anchor before this line",
+        (line) => {
+          void this._insertChatMarkerBeforeLine(path, line, cm);
+        },
+      );
+      chatRoot.render(React.createElement(Icon, { name: "comment" }));
 
-    this._chatCursorInsertHosts[path] = {
-      host,
-      chatRoot,
-      bookmarkRoot,
-      currentHandle: null,
-    };
+      const { root: bookmarkRoot } = makeIconHost(
+        "Insert bookmark before this line",
+        (line) => {
+          void this.insertBookmark({ targetPath: path, targetLine: line, cm });
+        },
+      );
+      bookmarkRoot.render(React.createElement(Icon, { name: "bookmark" }));
 
-    cm.on("cursorActivity", () => this._refreshChatCursorInsert(path));
-    this._refreshChatCursorInsert(path);
+      perCm.set(cm, {
+        host,
+        chatRoot,
+        bookmarkRoot,
+        currentHandle: null,
+      });
+
+      if (!this._chatCursorInsertBound.has(cm)) {
+        this._chatCursorInsertBound.add(cm);
+        cm.on("cursorActivity", () => this._refreshChatCursorInsert(path, cm));
+      }
+      this._refreshChatCursorInsert(path, cm);
+    }
   }
 
   /**
@@ -3099,18 +3146,12 @@ export class Actions extends BaseActions<LatexEditorState> {
    * line — unless that line already has a marker, in which case the host
    * is detached from the gutter.
    */
-  private _refreshChatCursorInsert(path: string): void {
-    const entry = this._chatCursorInsertHosts[path];
+  private _refreshChatCursorInsert(
+    path: string,
+    cm: CodeMirror.Editor,
+  ): void {
+    const entry = this._chatCursorInsertHosts[path]?.get(cm);
     if (entry == null) return;
-    const fileActions = this.redux.getEditorActions(
-      this.project_id,
-      path_normalize(path),
-    ) as BaseActions<CodeEditorState> | undefined;
-    if (fileActions == null) return;
-    const cm = (fileActions as any)._get_cm?.() as
-      | CodeMirror.Editor
-      | undefined;
-    if (cm == null) return;
 
     const selections = cm.listSelections();
     const primary = selections[0];
@@ -3181,25 +3222,33 @@ export class Actions extends BaseActions<LatexEditorState> {
   private async _insertChatMarkerBeforeLine(
     path: string,
     line: number,
+    cm?: CodeMirror.Editor,
   ): Promise<void> {
     const fileActions = this.redux.getEditorActions(
       this.project_id,
       path_normalize(path),
     ) as BaseActions<CodeEditorState> | undefined;
     if (fileActions == null) return;
-    const cm = (fileActions as any)._get_cm?.() as
-      | CodeMirror.Editor
-      | undefined;
-    if (cm == null) return;
+    // Use the caller's CM (e.g. the split pane whose cursor-insert fired)
+    // so edits land in the pane the user is looking at.
+    const targetCm =
+      cm ??
+      ((fileActions as any)._get_cm?.() as CodeMirror.Editor | undefined);
+    if (targetCm == null) return;
 
     const hash = generateMarkerHash();
-    cm.replaceRange(
+    targetCm.replaceRange(
       buildMarkerLine(hash) + "\n\n",
       { line, ch: 0 },
       { line, ch: 0 },
     );
     fileActions.set_syncstring_to_codemirror();
     (fileActions as any)._syncstring?.commit?.();
+
+    // Flush the debounced marker scan so `getAnchorLabel(hash)` resolves
+    // to the real surrounding-section text rather than the raw hash —
+    // otherwise the hash becomes the permanent thread name.
+    this._chatMarkerScanners[path]?.flush?.();
 
     const chatActions = await this._waitForChatActions();
     if (chatActions == null) return;
@@ -3446,16 +3495,16 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._chatKeybindingInstalled.add(cm);
     cm.addKeyMap({
       "Shift-Ctrl-M": () => {
-        void this.insertChatMarker({ targetPath: path });
+        void this.insertChatMarker({ targetPath: path, cm });
       },
       "Shift-Cmd-M": () => {
-        void this.insertChatMarker({ targetPath: path });
+        void this.insertChatMarker({ targetPath: path, cm });
       },
       "Shift-Ctrl-B": () => {
-        void this.insertBookmark({ targetPath: path });
+        void this.insertBookmark({ targetPath: path, cm });
       },
       "Shift-Cmd-B": () => {
-        void this.insertBookmark({ targetPath: path });
+        void this.insertBookmark({ targetPath: path, cm });
       },
     });
   }
@@ -3977,6 +4026,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     targetPath?: string;
     targetLine?: number;
     mode?: "inline" | "block" | "auto";
+    cm?: CodeMirror.Editor;
   } = {}): Promise<void> {
     const targetPath = opts.targetPath ?? this._activeCmPath();
     const fileActions = this.redux.getEditorActions(
@@ -3984,9 +4034,11 @@ export class Actions extends BaseActions<LatexEditorState> {
       path_normalize(targetPath),
     ) as BaseActions<CodeEditorState> | undefined;
     if (fileActions == null) return;
-    const cm = (fileActions as any)._get_cm?.() as
-      | CodeMirror.Editor
-      | undefined;
+    // Prefer the CM that fired the trigger (e.g. a split-pane keymap)
+    // so inserts land in the pane the user is actually looking at.
+    const cm =
+      opts.cm ??
+      ((fileActions as any)._get_cm?.() as CodeMirror.Editor | undefined);
     if (cm == null) return;
 
     const cursor = cm.getCursor();
@@ -4073,6 +4125,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   public async insertBookmark(opts: {
     targetPath?: string;
     targetLine?: number;
+    cm?: CodeMirror.Editor;
   } = {}): Promise<void> {
     const targetPath = opts.targetPath ?? this._activeCmPath();
     const fileActions = this.redux.getEditorActions(
@@ -4080,9 +4133,11 @@ export class Actions extends BaseActions<LatexEditorState> {
       path_normalize(targetPath),
     ) as BaseActions<CodeEditorState> | undefined;
     if (fileActions == null) return;
-    const cm = (fileActions as any)._get_cm?.() as
-      | CodeMirror.Editor
-      | undefined;
+    // Prefer the CM that fired the trigger (e.g. a split-pane keymap)
+    // so inserts land in the pane the user is actually looking at.
+    const cm =
+      opts.cm ??
+      ((fileActions as any)._get_cm?.() as CodeMirror.Editor | undefined);
     if (cm == null) return;
 
     const cursor = cm.getCursor();

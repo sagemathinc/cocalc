@@ -180,7 +180,15 @@ export class BuildCoordinator {
       console.warn(
         `BuildCoordinator: ignoring stale "running" DKV entry for ${this.path} (age=${Math.round((now - startedAt) / 1000)}s, buildId=${buildId})`,
       );
-      this.dkv?.set(this.path, { ...state, status: "finished" });
+      // Re-read before writing: a newer build from another client may
+      // have overwritten the entry between our change event and this
+      // set(). Only publish the terminal state if the stale buildId is
+      // still the current one — otherwise we'd stomp a fresh "running"
+      // with "finished" and make peers skip joining the real build.
+      const current = this.dkv?.get(this.path);
+      if (current?.buildId === buildId && current.status === "running") {
+        this.dkv?.set(this.path, { ...current, status: "finished" });
+      }
       return;
     }
     this._remoteBuildId = buildId;
