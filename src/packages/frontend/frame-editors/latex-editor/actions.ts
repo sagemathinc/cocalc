@@ -24,7 +24,7 @@ const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build", "output"] as const;
 
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
-import { fromJS, List, Map } from "immutable";
+import { fromJS, List, Map as IMap } from "immutable";
 import { debounce, union } from "lodash";
 import { normalize as path_normalize } from "path";
 import * as React from "react";
@@ -168,7 +168,7 @@ interface LatexEditorState extends CodeEditorState {
   building?: boolean; // true while a build is actively running (mirrors is_building for redux consumers)
   // Chat anchor markers found in the master + open sub-files. Keyed by file
   // path, each value is a list of {hash, line, col} for every marker occurrence.
-  chat_markers?: Map<string, List<TypedMap<ChatMarker>>>;
+  chat_markers?: IMap<string, List<TypedMap<ChatMarker>>>;
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -309,6 +309,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       }, 200);
       let lastActiveTocPath: string | undefined;
       let lastOpenFilesKey: string | undefined;
+      let lastCmShape: string | undefined;
       this.store.on("change", () => {
         // switch_to_files is recomputed after each build; refresh scanners
         // only when the set of open files actually changed — otherwise
@@ -331,6 +332,29 @@ export class Actions extends BaseActions<LatexEditorState> {
         if (active !== lastActiveTocPath) {
           lastActiveTocPath = active;
           reparseTocOnActiveChange();
+        }
+        // Detect CM-shape changes — e.g. the user split a pane so the
+        // same file is now displayed in two CM instances. When that
+        // happens, run _ensureChatUI against every open path so the
+        // newly-mounted CM gets its click handler, keybindings, gutter
+        // icons, inline styling, and tail widgets. WeakSet dedup inside
+        // the installers makes this cheap when nothing actually changed.
+        const shape = this.all_actions()
+          .map((a) => {
+            const p = (a as any).path as string | undefined;
+            const cm = (a as any)._cm ?? {};
+            const ids = Object.keys(cm).sort().join(",");
+            return `${p ?? ""}:${ids}`;
+          })
+          .sort()
+          .join("|");
+        if (shape !== lastCmShape) {
+          lastCmShape = shape;
+          for (const actions of this.all_actions()) {
+            const p = (actions as any).path as string | undefined;
+            if (!p) continue;
+            this._ensureChatUI(p);
+          }
         }
       });
       // Watch chat messages so we can flip inline markers to read-only once
@@ -1194,7 +1218,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   private async run_build(time: number, force: boolean): Promise<void> {
     if (this.is_stopping) return;
     // reset state of build_logs, since it is a fresh start
-    this.setState({ build_logs: Map() });
+    this.setState({ build_logs: IMap() });
 
     if (this.bad_filename) {
       const err = `ERROR: It is not possible to compile this LaTeX file with the name '${this.path}'.
@@ -2034,7 +2058,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
-    let build_logs: BuildLogs = this.store.get("build_logs") ?? Map();
+    let build_logs: BuildLogs = this.store.get("build_logs") ?? IMap();
     let k: BuildSpecName;
     for (k in obj) {
       const v: BuildLog | undefined = obj[k];
@@ -2049,7 +2073,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async run_clean(): Promise<void> {
     let log: string = "";
-    this.setState({ build_logs: Map() });
+    this.setState({ build_logs: IMap() });
 
     const logger = (s: string): void => {
       log += s + "\n";
@@ -2456,52 +2480,64 @@ export class Actions extends BaseActions<LatexEditorState> {
   } = {};
 
   /**
-   * Active inline CM TextMarkers for each scanned file. Keyed by path; each
-   * TextMarker's `chatHash` field carries the hash so the click handler can
-   * recover it without re-scanning.
+   * Active inline CM TextMarkers for each scanned file. A file can be
+   * shown in multiple split panes — each pane has its own CM instance and
+   * its own TextMarkers (CM-owned), so we key by CM inside the path map.
+   * Each TextMarker's `chatHash` field carries the hash so the click
+   * handler can recover it without re-scanning.
    */
   private _chatTextMarkers: {
-    [path: string]: CodeMirror.TextMarker[];
+    [path: string]: Map<CodeMirror.Editor, CodeMirror.TextMarker[]>;
   } = {};
 
   /**
    * Bookmarks rendering the pill + delete widget at the end of each marker
-   * line. We track them separately from the markText ones because we
+   * line, per CM pane. Tracked separately from the TextMarkers because we
    * preserve their host DOM + React root across rescans (diffed by order
-   * within the path) to avoid flicker during rapid edits like typing a
-   * hash character-by-character.
+   * within the CM) to avoid flicker during rapid edits like typing a hash
+   * character-by-character.
    */
   private _chatDeleteBookmarks: {
-    [path: string]: Array<{
-      bookmark: CodeMirror.TextMarker;
-      host: HTMLElement;
-      root: Root;
-    }>;
+    [path: string]: Map<
+      CodeMirror.Editor,
+      Array<{
+        bookmark: CodeMirror.TextMarker;
+        host: HTMLElement;
+        root: Root;
+      }>
+    >;
   } = {};
 
   /**
-   * Gutter icon hosts (one per marker line, de-duped). We drive CM's native
-   * `setGutterMarker` directly rather than going through cocalc's
-   * `set_gutter_marker` (which would redux-rebuild the React tree on every
-   * scan). Hosts and their React roots persist across rescans; we just
-   * re-attach them to the new line.
+   * Gutter icon hosts (one per marker line, de-duped) per CM pane. We
+   * drive CM's native `setGutterMarker` directly rather than going
+   * through cocalc's `set_gutter_marker` (which would redux-rebuild the
+   * React tree on every scan). Hosts and their React roots persist
+   * across rescans; we just re-attach them to the new line. DOM hosts
+   * can only live in one CM's gutter at a time, so each split pane
+   * needs its own hosts.
    */
   private _chatGutterHosts: {
-    [path: string]: Array<{
-      host: HTMLElement;
-      root: Root;
-      line: number;
-    }>;
+    [path: string]: Map<
+      CodeMirror.Editor,
+      Array<{
+        host: HTMLElement;
+        root: Root;
+        line: number;
+      }>
+    >;
   } = {};
 
   /**
-   * Gray bookmark icon hosts (one per `% bookmark: <text>` line). Like
-   * the chat-marker gutter hosts: persistent React roots in vanilla DOM
-   * wrappers, paired old→new across rescans. Non-interactive — the
-   * tooltip just reminds users where to manage bookmarks.
+   * Gray bookmark icon hosts (one per `% bookmark: <text>` line) per CM
+   * pane. Same persistent-React-root + native-setGutterMarker scheme as
+   * the chat-marker gutter so there's no flicker on rescans.
    */
   private _chatBookmarkGutterHosts: {
-    [path: string]: Array<{ host: HTMLElement; root: Root; line: number }>;
+    [path: string]: Map<
+      CodeMirror.Editor,
+      Array<{ host: HTMLElement; root: Root; line: number }>
+    >;
   } = {};
 
   /**
@@ -2551,49 +2587,57 @@ export class Actions extends BaseActions<LatexEditorState> {
   private _disposeChatStateForPath(path: string): void {
     const marks = this._chatTextMarkers[path];
     if (marks) {
-      for (const m of marks) {
-        try {
-          m.clear();
-        } catch {
-          // already cleared
+      for (const list of marks.values()) {
+        for (const m of list) {
+          try {
+            m.clear();
+          } catch {
+            // already cleared
+          }
         }
       }
       delete this._chatTextMarkers[path];
     }
     const deleteBookmarks = this._chatDeleteBookmarks[path];
     if (deleteBookmarks) {
-      for (const { bookmark, root } of deleteBookmarks) {
-        try {
-          bookmark.clear();
-        } catch {
-          // already cleared
-        }
-        try {
-          root.unmount();
-        } catch {
-          // ignored
+      for (const list of deleteBookmarks.values()) {
+        for (const { bookmark, root } of list) {
+          try {
+            bookmark.clear();
+          } catch {
+            // already cleared
+          }
+          try {
+            root.unmount();
+          } catch {
+            // ignored
+          }
         }
       }
       delete this._chatDeleteBookmarks[path];
     }
     const gutterHosts = this._chatGutterHosts[path];
     if (gutterHosts) {
-      for (const { root } of gutterHosts) {
-        try {
-          root.unmount();
-        } catch {
-          // ignored
+      for (const list of gutterHosts.values()) {
+        for (const { root } of list) {
+          try {
+            root.unmount();
+          } catch {
+            // ignored
+          }
         }
       }
       delete this._chatGutterHosts[path];
     }
     const bmGutterHosts = this._chatBookmarkGutterHosts[path];
     if (bmGutterHosts) {
-      for (const { root } of bmGutterHosts) {
-        try {
-          root.unmount();
-        } catch {
-          // ignored
+      for (const list of bmGutterHosts.values()) {
+        for (const { root } of list) {
+          try {
+            root.unmount();
+          } catch {
+            // ignored
+          }
         }
       }
       delete this._chatBookmarkGutterHosts[path];
@@ -2645,7 +2689,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
       const markers = scanMarkers(text);
       const cur =
-        this.store.get("chat_markers") ?? Map<string, List<TypedMap<ChatMarker>>>();
+        this.store.get("chat_markers") ?? IMap<string, List<TypedMap<ChatMarker>>>();
       const prevForPath = cur.get(path);
       const next = cur.set(
         path,
@@ -2789,10 +2833,12 @@ export class Actions extends BaseActions<LatexEditorState> {
       path_normalize(path),
     ) as BaseActions<CodeEditorState> | undefined;
     if (fileActions == null) return;
-    const cm = (fileActions as any)._get_cm?.() as
-      | CodeMirror.Editor
-      | undefined;
-    if (cm == null) return;
+    const cms = Object.values(
+      ((fileActions as any)._cm ?? {}) as {
+        [id: string]: CodeMirror.Editor;
+      },
+    );
+    if (cms.length === 0) return;
 
     const list = this.store.get("chat_markers")?.get(path);
     // Dedup by line — only one gutter icon per line.
@@ -2807,56 +2853,77 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
     }
 
-    const existing = this._chatGutterHosts[path] ?? [];
-    const fresh: Array<{
-      host: HTMLElement;
-      root: Root;
-      line: number;
-    }> = [];
+    const perCm =
+      this._chatGutterHosts[path] ??
+      (this._chatGutterHosts[path] = new Map());
+    const liveCms = new Set<CodeMirror.Editor>(cms);
 
-    // Pair old[i] → new[i]. Reused hosts keep their React root alive.
-    for (let i = 0; i < targetLines.length; i++) {
-      const target = targetLines[i];
-      const reused = existing[i];
-      const host = reused?.host ?? document.createElement("span");
-      if (reused == null) {
-        host.className = "cc-chat-marker-gutter-host";
-      }
-      const root = reused?.root ?? createRoot(host);
-      root.render(
-        React.createElement(ChatMarkerGutter, {
-          hash: target.hash,
-          path,
-          masterPath: this.path,
-          project_id: this.project_id,
-          openAnchorChat: (h, p) => {
-            void this.openAnchorChat(h, p);
-          },
-          openAnchorChatThread: (k) => {
-            void this.openAnchorChatThread(k);
-          },
-        }),
-      );
-      if (reused != null && reused.line !== target.line) {
-        // Detach from the old line first.
-        cm.setGutterMarker(reused.line, "CodeMirror-latex-chat", null);
-      }
-      cm.setGutterMarker(target.line, "CodeMirror-latex-chat", host);
-      fresh.push({ host, root, line: target.line });
-    }
-
-    // Dispose any leftover old hosts beyond the new list.
-    for (let i = targetLines.length; i < existing.length; i++) {
-      const e = existing[i];
-      cm.setGutterMarker(e.line, "CodeMirror-latex-chat", null);
-      try {
-        e.root.unmount();
-      } catch {
-        // ignored
+    // Prune entries for CMs that no longer exist (pane unmounted).
+    for (const staleCm of Array.from(perCm.keys())) {
+      if (!liveCms.has(staleCm)) {
+        for (const e of perCm.get(staleCm) ?? []) {
+          try {
+            e.root.unmount();
+          } catch {
+            // ignored
+          }
+        }
+        perCm.delete(staleCm);
       }
     }
 
-    this._chatGutterHosts[path] = fresh;
+    for (const cm of cms) {
+      const existing = perCm.get(cm) ?? [];
+      const fresh: Array<{
+        host: HTMLElement;
+        root: Root;
+        line: number;
+      }> = [];
+
+      // Pair old[i] → new[i]. Reused hosts keep their React root alive.
+      for (let i = 0; i < targetLines.length; i++) {
+        const target = targetLines[i];
+        const reused = existing[i];
+        const host = reused?.host ?? document.createElement("span");
+        if (reused == null) {
+          host.className = "cc-chat-marker-gutter-host";
+        }
+        const root = reused?.root ?? createRoot(host);
+        root.render(
+          React.createElement(ChatMarkerGutter, {
+            hash: target.hash,
+            path,
+            masterPath: this.path,
+            project_id: this.project_id,
+            openAnchorChat: (h, p) => {
+              void this.openAnchorChat(h, p);
+            },
+            openAnchorChatThread: (k) => {
+              void this.openAnchorChatThread(k);
+            },
+          }),
+        );
+        if (reused != null && reused.line !== target.line) {
+          // Detach from the old line first.
+          cm.setGutterMarker(reused.line, "CodeMirror-latex-chat", null);
+        }
+        cm.setGutterMarker(target.line, "CodeMirror-latex-chat", host);
+        fresh.push({ host, root, line: target.line });
+      }
+
+      // Dispose any leftover old hosts beyond the new list.
+      for (let i = targetLines.length; i < existing.length; i++) {
+        const e = existing[i];
+        cm.setGutterMarker(e.line, "CodeMirror-latex-chat", null);
+        try {
+          e.root.unmount();
+        } catch {
+          // ignored
+        }
+      }
+
+      perCm.set(cm, fresh);
+    }
   }
 
   /**
@@ -2875,10 +2942,12 @@ export class Actions extends BaseActions<LatexEditorState> {
       path_normalize(path),
     ) as BaseActions<CodeEditorState> | undefined;
     if (fileActions == null) return;
-    const cm = (fileActions as any)._get_cm?.() as
-      | CodeMirror.Editor
-      | undefined;
-    if (cm == null) return;
+    const cms = Object.values(
+      ((fileActions as any)._cm ?? {}) as {
+        [id: string]: CodeMirror.Editor;
+      },
+    );
+    if (cms.length === 0) return;
 
     const seen = new Set<number>();
     const targetLines: number[] = [];
@@ -2889,47 +2958,67 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     this._chatBookmarkLines[path] = seen;
 
-    const existing = this._chatBookmarkGutterHosts[path] ?? [];
-    const fresh: Array<{ host: HTMLElement; root: Root; line: number }> = [];
+    const perCm =
+      this._chatBookmarkGutterHosts[path] ??
+      (this._chatBookmarkGutterHosts[path] = new Map());
+    const liveCms = new Set<CodeMirror.Editor>(cms);
 
-    for (let i = 0; i < targetLines.length; i++) {
-      const targetLine = targetLines[i];
-      const reused = existing[i];
-      const host = reused?.host ?? document.createElement("span");
-      if (reused == null) {
-        host.className = "cc-chat-bookmark-gutter-host";
-        host.title =
-          "Bookmark \u2014 open the Contents tab in the Output frame to navigate bookmarks";
-        // Swallow clicks so CM doesn't reposition the cursor.
-        host.addEventListener("mousedown", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        });
-        host.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        });
-      }
-      const root = reused?.root ?? createRoot(host);
-      root.render(React.createElement(Icon, { name: "bookmark" }));
-      if (reused != null && reused.line !== targetLine) {
-        cm.setGutterMarker(reused.line, "CodeMirror-latex-chat", null);
-      }
-      cm.setGutterMarker(targetLine, "CodeMirror-latex-chat", host);
-      fresh.push({ host, root, line: targetLine });
-    }
-
-    for (let i = targetLines.length; i < existing.length; i++) {
-      const e = existing[i];
-      cm.setGutterMarker(e.line, "CodeMirror-latex-chat", null);
-      try {
-        e.root.unmount();
-      } catch {
-        // ignored
+    for (const staleCm of Array.from(perCm.keys())) {
+      if (!liveCms.has(staleCm)) {
+        for (const e of perCm.get(staleCm) ?? []) {
+          try {
+            e.root.unmount();
+          } catch {
+            // ignored
+          }
+        }
+        perCm.delete(staleCm);
       }
     }
 
-    this._chatBookmarkGutterHosts[path] = fresh;
+    for (const cm of cms) {
+      const existing = perCm.get(cm) ?? [];
+      const fresh: Array<{ host: HTMLElement; root: Root; line: number }> = [];
+
+      for (let i = 0; i < targetLines.length; i++) {
+        const targetLine = targetLines[i];
+        const reused = existing[i];
+        const host = reused?.host ?? document.createElement("span");
+        if (reused == null) {
+          host.className = "cc-chat-bookmark-gutter-host";
+          host.title =
+            "Bookmark \u2014 open the Contents tab in the Output frame to navigate bookmarks";
+          // Swallow clicks so CM doesn't reposition the cursor.
+          host.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          });
+          host.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          });
+        }
+        const root = reused?.root ?? createRoot(host);
+        root.render(React.createElement(Icon, { name: "bookmark" }));
+        if (reused != null && reused.line !== targetLine) {
+          cm.setGutterMarker(reused.line, "CodeMirror-latex-chat", null);
+        }
+        cm.setGutterMarker(targetLine, "CodeMirror-latex-chat", host);
+        fresh.push({ host, root, line: targetLine });
+      }
+
+      for (let i = targetLines.length; i < existing.length; i++) {
+        const e = existing[i];
+        cm.setGutterMarker(e.line, "CodeMirror-latex-chat", null);
+        try {
+          e.root.unmount();
+        } catch {
+          // ignored
+        }
+      }
+
+      perCm.set(cm, fresh);
+    }
   }
 
   /**
@@ -3134,150 +3223,185 @@ export class Actions extends BaseActions<LatexEditorState> {
       path_normalize(path),
     ) as BaseActions<CodeEditorState> | undefined;
     if (fileActions == null) return;
-    const cm = (fileActions as any)._get_cm?.() as
-      | CodeMirror.Editor
-      | undefined;
-    if (cm == null) return;
+    const cms = Object.values(
+      ((fileActions as any)._cm ?? {}) as {
+        [id: string]: CodeMirror.Editor;
+      },
+    );
+    if (cms.length === 0) return;
 
-    // Clear stale TextMarkers (cheap — CSS-only spans, no React).
-    const staleTms = this._chatTextMarkers[path] ?? [];
-    for (const m of staleTms) {
-      try {
-        m.clear();
-      } catch {
-        // already cleared
-      }
+    const tmMap =
+      this._chatTextMarkers[path] ??
+      (this._chatTextMarkers[path] = new Map());
+    const bmMap =
+      this._chatDeleteBookmarks[path] ??
+      (this._chatDeleteBookmarks[path] = new Map());
+    const liveCms = new Set<CodeMirror.Editor>(cms);
+
+    // Prune entries for CMs that no longer exist (pane unmounted). The
+    // TextMarkers and bookmarks are CM-owned — they're already gone, but
+    // we still need to unmount the React roots for the tail widgets.
+    for (const staleCm of Array.from(tmMap.keys())) {
+      if (liveCms.has(staleCm)) continue;
+      tmMap.delete(staleCm);
     }
-    // For delete/pill bookmarks we REUSE old entries by order — pairing
-    // old[i] with new[i] — so the bookmark's host DOM + React root stay
-    // alive across rescans. This is what prevents the pill/× flicker when
-    // the user is typing a marker's hash or pressing Enter above a marker.
-    const oldBookmarks = this._chatDeleteBookmarks[path] ?? [];
-    let oldIdx = 0;
-    const fresh: CodeMirror.TextMarker[] = [];
-    const freshBookmarks: Array<{
-      bookmark: CodeMirror.TextMarker;
-      host: HTMLElement;
-      root: Root;
-    }> = [];
+    for (const staleCm of Array.from(bmMap.keys())) {
+      if (liveCms.has(staleCm)) continue;
+      for (const e of bmMap.get(staleCm) ?? []) {
+        try {
+          e.root.unmount();
+        } catch {
+          // ignored
+        }
+      }
+      bmMap.delete(staleCm);
+    }
 
     const list = this.store.get("chat_markers")?.get(path);
-    if (list) {
-      for (const entry of list) {
-        const marker = entry.toJS() as ChatMarker;
-        const lineText = cm.getLine(marker.line) ?? "";
-        // Lock the marker range once a real thread exists for this hash,
-        // so the user can't accidentally break the ties by editing the id.
-        // They can still delete the whole range (CM allows selection+delete
-        // around a read-only span).
-        const locked = this._anchorHasMessages(marker.hash);
-        const tm = cm.markText(
-          { line: marker.line, ch: marker.col },
-          { line: marker.line, ch: lineText.length },
-          {
-            className: locked ? "cc-chat-marker cc-chat-marker-locked" : "cc-chat-marker",
-            // Let our click handler see mousedown; don't let CM swallow it.
-            handleMouseEvents: false,
-            clearOnEnter: false,
-            inclusiveLeft: false,
-            inclusiveRight: false,
-            readOnly: locked,
-            atomic: locked,
-            attributes: {
-              title: locked
-                ? `Open chat thread (locked — remove the marker to edit)`
-                : `Open chat thread`,
-            },
-          },
-        );
-        // Stash the hash on the TextMarker so click handler can recover it.
-        // `chatLocked` lets the narrow lock-only refresh detect state flips.
-        (tm as any).chatHash = marker.hash;
-        (tm as any).chatPath = path;
-        (tm as any).chatLocked = locked;
-        fresh.push(tm);
 
-        // Inline tail widget: reuse an existing host+root from the old
-        // bookmark list when available (same path, same ordinal). This
-        // keeps the pill/× DOM attached to CM without unmount/remount.
-        const reused = oldBookmarks[oldIdx];
-        oldIdx += 1;
-        const host = reused?.host ?? document.createElement("span");
-        if (reused == null) {
-          host.className = "cc-chat-marker-tail-host";
+    for (const cm of cms) {
+      // Clear stale TextMarkers (cheap — CSS-only spans, no React).
+      const staleTms = tmMap.get(cm) ?? [];
+      for (const m of staleTms) {
+        try {
+          m.clear();
+        } catch {
+          // already cleared
         }
-        const root = reused?.root ?? createRoot(host);
-        const lineForBookmark = marker.line;
-        const colForBookmark = marker.col;
-        const hashForBookmark = marker.hash;
-        root.render(
-          React.createElement(ChatMarkerInlineTail, {
-            hash: hashForBookmark,
-            masterPath: this.path,
-            project_id: this.project_id,
-            onOpen: () => {
-              void this.openAnchorChat(hashForBookmark, path);
+      }
+      // For delete/pill bookmarks we REUSE old entries by order — pairing
+      // old[i] with new[i] — so the bookmark's host DOM + React root stay
+      // alive across rescans. This is what prevents the pill/× flicker when
+      // the user is typing a marker's hash or pressing Enter above a marker.
+      const oldBookmarks = bmMap.get(cm) ?? [];
+      let oldIdx = 0;
+      const fresh: CodeMirror.TextMarker[] = [];
+      const freshBookmarks: Array<{
+        bookmark: CodeMirror.TextMarker;
+        host: HTMLElement;
+        root: Root;
+      }> = [];
+
+      if (list) {
+        for (const entry of list) {
+          const marker = entry.toJS() as ChatMarker;
+          const lineText = cm.getLine(marker.line) ?? "";
+          // Lock the marker range once a real thread exists for this hash,
+          // so the user can't accidentally break the ties by editing the id.
+          // They can still delete the whole range (CM allows selection+delete
+          // around a read-only span).
+          const locked = this._anchorHasMessages(marker.hash);
+          const tm = cm.markText(
+            { line: marker.line, ch: marker.col },
+            { line: marker.line, ch: lineText.length },
+            {
+              className: locked
+                ? "cc-chat-marker cc-chat-marker-locked"
+                : "cc-chat-marker",
+              // Let our click handler see mousedown; don't let CM swallow it.
+              handleMouseEvents: false,
+              clearOnEnter: false,
+              inclusiveLeft: false,
+              inclusiveRight: false,
+              readOnly: locked,
+              atomic: locked,
+              attributes: {
+                title: locked
+                  ? `Open chat thread (locked — remove the marker to edit)`
+                  : `Open chat thread`,
+              },
             },
-            onConfirmDelete: () =>
-              this.deleteChatMarker(path, lineForBookmark, colForBookmark),
-          }),
-        );
-        if (reused?.bookmark) {
-          try {
-            reused.bookmark.clear();
-          } catch {
-            // already cleared
+          );
+          // Stash the hash on the TextMarker so click handler can recover it.
+          // `chatLocked` lets the narrow lock-only refresh detect state flips.
+          (tm as any).chatHash = marker.hash;
+          (tm as any).chatPath = path;
+          (tm as any).chatLocked = locked;
+          fresh.push(tm);
+
+          // Inline tail widget: reuse an existing host+root from the old
+          // bookmark list when available (same CM, same ordinal). This
+          // keeps the pill/× DOM attached to CM without unmount/remount.
+          const reused = oldBookmarks[oldIdx];
+          oldIdx += 1;
+          const host = reused?.host ?? document.createElement("span");
+          if (reused == null) {
+            host.className = "cc-chat-marker-tail-host";
           }
+          const root = reused?.root ?? createRoot(host);
+          const lineForBookmark = marker.line;
+          const colForBookmark = marker.col;
+          const hashForBookmark = marker.hash;
+          root.render(
+            React.createElement(ChatMarkerInlineTail, {
+              hash: hashForBookmark,
+              masterPath: this.path,
+              project_id: this.project_id,
+              onOpen: () => {
+                void this.openAnchorChat(hashForBookmark, path);
+              },
+              onConfirmDelete: () =>
+                this.deleteChatMarker(path, lineForBookmark, colForBookmark),
+            }),
+          );
+          if (reused?.bookmark) {
+            try {
+              reused.bookmark.clear();
+            } catch {
+              // already cleared
+            }
+          }
+          // Defensive: if the host element is still attached anywhere
+          // (stale CM wrapper from a clear() that didn't fully detach, a
+          // concurrent rescan that re-attached, etc.), pull it out before
+          // CM places it again. Without this, we can end up with the host
+          // visible in two CM positions ("ghost" delete `×` next to the
+          // real one) until the next full editor mount.
+          if (host.parentNode != null) {
+            host.parentNode.removeChild(host);
+          }
+          const bookmark = cm.setBookmark(
+            { line: marker.line, ch: lineText.length },
+            { widget: host, insertLeft: false, handleMouseEvents: true },
+          );
+          freshBookmarks.push({ bookmark, host, root });
         }
-        // Defensive: if the host element is still attached anywhere
-        // (stale CM wrapper from a clear() that didn't fully detach, a
-        // concurrent rescan that re-attached, etc.), pull it out before
-        // CM places it again. Without this, we can end up with the host
-        // visible in two CM positions ("ghost" delete `×` next to the
-        // real one) until the next full editor mount.
-        if (host.parentNode != null) {
-          host.parentNode.removeChild(host);
+      }
+      // Any old bookmarks not consumed by a new marker get fully disposed.
+      for (let i = oldIdx; i < oldBookmarks.length; i++) {
+        try {
+          oldBookmarks[i].bookmark.clear();
+        } catch {
+          // already cleared
         }
-        const bookmark = cm.setBookmark(
-          { line: marker.line, ch: lineText.length },
-          { widget: host, insertLeft: false, handleMouseEvents: true },
+        try {
+          oldBookmarks[i].root.unmount();
+        } catch {
+          // ignored
+        }
+      }
+      tmMap.set(cm, fresh);
+      bmMap.set(cm, freshBookmarks);
+
+      // Belt-and-braces sweep: if any `cc-chat-marker-tail-host` element
+      // remains in THIS CM's wrapper that is NOT one of the hosts we just
+      // placed, it's a stranded duplicate from an earlier render — detach
+      // it. Scoped per CM so we don't disturb the other pane's hosts.
+      const wrapper = cm.getWrapperElement?.();
+      if (wrapper) {
+        const live = new Set<HTMLElement>(freshBookmarks.map((b) => b.host));
+        const stragglers = wrapper.querySelectorAll<HTMLElement>(
+          ".cc-chat-marker-tail-host",
         );
-        freshBookmarks.push({ bookmark, host, root });
+        stragglers.forEach((el) => {
+          if (!live.has(el)) {
+            el.parentNode?.removeChild(el);
+          }
+        });
       }
-    }
-    // Any old bookmarks not consumed by a new marker get fully disposed.
-    for (let i = oldIdx; i < oldBookmarks.length; i++) {
-      try {
-        oldBookmarks[i].bookmark.clear();
-      } catch {
-        // already cleared
-      }
-      try {
-        oldBookmarks[i].root.unmount();
-      } catch {
-        // ignored
-      }
-    }
-    this._chatTextMarkers[path] = fresh;
-    this._chatDeleteBookmarks[path] = freshBookmarks;
 
-    // Belt-and-braces sweep: if any `cc-chat-marker-tail-host` element
-    // remains in the editor that is NOT one of the hosts we just placed,
-    // it's a stranded duplicate from an earlier render — detach it.
-    const wrapper = cm.getWrapperElement?.();
-    if (wrapper) {
-      const live = new Set<HTMLElement>(freshBookmarks.map((b) => b.host));
-      const stragglers = wrapper.querySelectorAll<HTMLElement>(
-        ".cc-chat-marker-tail-host",
-      );
-      stragglers.forEach((el) => {
-        if (!live.has(el)) {
-          el.parentNode?.removeChild(el);
-        }
-      });
+      this._ensureChatClickHandler(cm, path);
     }
-
-    this._ensureChatClickHandler(cm, path);
   }
 
   /**
@@ -3497,76 +3621,82 @@ export class Actions extends BaseActions<LatexEditorState> {
    * React roots) alone, so the pill/× don't blink on chat activity.
    */
   private _refreshChatMarkerLocks(path: string): void {
+    const tmMap = this._chatTextMarkers[path];
+    if (tmMap == null) return;
     const fileActions = this.redux.getEditorActions(
       this.project_id,
       path_normalize(path),
     ) as BaseActions<CodeEditorState> | undefined;
     if (fileActions == null) return;
-    const cm = (fileActions as any)._get_cm?.() as
-      | CodeMirror.Editor
-      | undefined;
-    if (cm == null) return;
+    const cms = Object.values(
+      ((fileActions as any)._cm ?? {}) as {
+        [id: string]: CodeMirror.Editor;
+      },
+    );
+    if (cms.length === 0) return;
 
-    const existing = this._chatTextMarkers[path] ?? [];
-    const fresh: CodeMirror.TextMarker[] = [];
-    let changed = false;
+    for (const cm of cms) {
+      const existing = tmMap.get(cm) ?? [];
+      const fresh: CodeMirror.TextMarker[] = [];
+      let changed = false;
 
-    for (const tm of existing) {
-      const range = tm.find?.();
-      const hash = (tm as any).chatHash as string | undefined;
-      if (!range || !hash || !("from" in range)) {
+      for (const tm of existing) {
+        const range = tm.find?.();
+        const hash = (tm as any).chatHash as string | undefined;
+        if (!range || !hash || !("from" in range)) {
+          try {
+            tm.clear();
+          } catch {
+            // already cleared
+          }
+          changed = true;
+          continue;
+        }
+        const wasLocked = (tm as any).chatLocked === true;
+        const nowLocked = this._anchorHasMessages(hash);
+        if (wasLocked === nowLocked) {
+          fresh.push(tm);
+          continue;
+        }
+        // Lock flipped — re-create just this TextMarker (CM5 can't toggle
+        // atomic / readOnly on an existing mark).
+        const fromLine = range.from.line;
+        const fromCh = range.from.ch;
         try {
           tm.clear();
         } catch {
           // already cleared
         }
-        changed = true;
-        continue;
-      }
-      const wasLocked = (tm as any).chatLocked === true;
-      const nowLocked = this._anchorHasMessages(hash);
-      if (wasLocked === nowLocked) {
-        fresh.push(tm);
-        continue;
-      }
-      // Lock flipped — re-create just this TextMarker (CM5 can't toggle
-      // atomic / readOnly on an existing mark).
-      const fromLine = range.from.line;
-      const fromCh = range.from.ch;
-      try {
-        tm.clear();
-      } catch {
-        // already cleared
-      }
-      const lineText = cm.getLine(fromLine) ?? "";
-      const newTm = cm.markText(
-        { line: fromLine, ch: fromCh },
-        { line: fromLine, ch: lineText.length },
-        {
-          className: nowLocked
-            ? "cc-chat-marker cc-chat-marker-locked"
-            : "cc-chat-marker",
-          handleMouseEvents: false,
-          clearOnEnter: false,
-          inclusiveLeft: false,
-          inclusiveRight: false,
-          readOnly: nowLocked,
-          atomic: nowLocked,
-          attributes: {
-            title: nowLocked
-              ? `Open chat thread (locked — remove the marker to edit)`
-              : `Open chat thread`,
+        const lineText = cm.getLine(fromLine) ?? "";
+        const newTm = cm.markText(
+          { line: fromLine, ch: fromCh },
+          { line: fromLine, ch: lineText.length },
+          {
+            className: nowLocked
+              ? "cc-chat-marker cc-chat-marker-locked"
+              : "cc-chat-marker",
+            handleMouseEvents: false,
+            clearOnEnter: false,
+            inclusiveLeft: false,
+            inclusiveRight: false,
+            readOnly: nowLocked,
+            atomic: nowLocked,
+            attributes: {
+              title: nowLocked
+                ? `Open chat thread (locked — remove the marker to edit)`
+                : `Open chat thread`,
+            },
           },
-        },
-      );
-      (newTm as any).chatHash = hash;
-      (newTm as any).chatPath = path;
-      (newTm as any).chatLocked = nowLocked;
-      fresh.push(newTm);
-      changed = true;
-    }
-    if (changed) {
-      this._chatTextMarkers[path] = fresh;
+        );
+        (newTm as any).chatHash = hash;
+        (newTm as any).chatPath = path;
+        (newTm as any).chatLocked = nowLocked;
+        fresh.push(newTm);
+        changed = true;
+      }
+      if (changed) {
+        tmMap.set(cm, fresh);
+      }
     }
   }
 
@@ -3777,20 +3907,25 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (lineText == null) return;
 
     // Clear any inline TextMarker covering this range first so CM's readOnly
-    // span doesn't block the delete.
-    const stale = this._chatTextMarkers[targetPath] ?? [];
-    for (const tm of stale) {
-      const range = tm.find?.();
-      if (
-        range &&
-        "from" in range &&
-        range.from.line === line &&
-        range.from.ch === col
-      ) {
-        try {
-          tm.clear();
-        } catch {
-          // already cleared
+    // span doesn't block the delete. Walk every CM pane that has markers —
+    // TextMarkers are CM-owned, so split panes each carry their own set.
+    const stale = this._chatTextMarkers[targetPath];
+    if (stale) {
+      for (const list of stale.values()) {
+        for (const tm of list) {
+          const range = tm.find?.();
+          if (
+            range &&
+            "from" in range &&
+            range.from.line === line &&
+            range.from.ch === col
+          ) {
+            try {
+              tm.clear();
+            } catch {
+              // already cleared
+            }
+          }
         }
       }
     }
