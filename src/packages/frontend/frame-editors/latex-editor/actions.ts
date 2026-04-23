@@ -308,9 +308,21 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.updateTableOfContents();
       }, 200);
       let lastActiveTocPath: string | undefined;
+      let lastOpenFilesKey: string | undefined;
       this.store.on("change", () => {
-        // switch_to_files is recomputed after each build; refresh scanners.
-        this._refreshChatMarkerScanners();
+        // switch_to_files is recomputed after each build; refresh scanners
+        // only when the set of open files actually changed — otherwise
+        // every unrelated store mutation (focus, cursor, chat, build
+        // state) would trigger O(n) work across every open sub-file.
+        const openKey = this.all_actions()
+          .map((a) => (a as any).path as string | undefined)
+          .filter((p): p is string => !!p)
+          .sort()
+          .join("\n");
+        if (openKey !== lastOpenFilesKey) {
+          lastOpenFilesKey = openKey;
+          this._refreshChatMarkerScanners();
+        }
         // Detect focus changes between CM frames and re-parse the TOC
         // against the newly-active file. Using `_activeCmPath` here (not
         // `active_id`) means splits and focus-only changes within the
@@ -976,8 +988,6 @@ export class Actions extends BaseActions<LatexEditorState> {
       ...Object.keys(this._chatGutterHosts),
       ...Object.keys(this._chatBookmarkGutterHosts),
       ...Object.keys(this._chatCursorInsertHosts),
-      ...this._chatClickHandlerInstalled,
-      ...this._chatKeybindingInstalled,
     ]);
     for (const path of chatPaths) {
       this._disposeChatStateForPath(path);
@@ -2438,7 +2448,11 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   /** Per-path marker scanner handles. Cleared on `close()`. */
   private _chatMarkerScanners: {
-    [path: string]: { dispose: () => void; rescan: () => void };
+    [path: string]: {
+      dispose: () => void;
+      rescan: () => void;
+      flush: () => void;
+    };
   } = {};
 
   /**
@@ -2516,8 +2530,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     };
   } = {};
 
-  /** Paths whose CM mousedown handler has been installed. */
-  private _chatClickHandlerInstalled: Set<string> = new Set();
+  /**
+   * CM instances that already have our chat mousedown handler installed.
+   * Keyed by the CM editor itself so the same file shown in two split
+   * panes (two distinct CM instances) each get their own handler.
+   */
+  private _chatClickHandlerInstalled: WeakSet<CodeMirror.Editor> =
+    new WeakSet();
 
   /** Dispose the chat-syncdb subscription that drives lock refresh. */
   private _chatStoreDispose?: () => void;
@@ -2591,8 +2610,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
       delete this._chatCursorInsertHosts[path];
     }
-    this._chatClickHandlerInstalled.delete(path);
-    this._chatKeybindingInstalled.delete(path);
+    // `_chatClickHandlerInstalled` / `_chatKeybindingInstalled` are WeakSets
+    // keyed by CM; those CMs are released when their panes unmount.
   }
 
   /** Monotonic generation so a slow openAnchorChat can detect supersede. */
@@ -2703,6 +2722,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       },
       rescan: () => {
         rescan();
+      },
+      flush: () => {
+        rescan.flush();
       },
     };
 
@@ -3258,8 +3280,8 @@ export class Actions extends BaseActions<LatexEditorState> {
    */
   private _ensureChatClickHandler(cm: CodeMirror.Editor, path: string): void {
     this._ensureChatKeybindings(cm, path);
-    if (this._chatClickHandlerInstalled.has(path)) return;
-    this._chatClickHandlerInstalled.add(path);
+    if (this._chatClickHandlerInstalled.has(cm)) return;
+    this._chatClickHandlerInstalled.add(cm);
 
     cm.on("mousedown", (_cm, event) => {
       // Plain left-click only; leave right-click / modifier clicks for
@@ -3282,15 +3304,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
-  /** Paths whose Ctrl-Shift-M CM keybinding is already installed. */
-  private _chatKeybindingInstalled: Set<string> = new Set();
+  /** CM instances that already have the Shift-Ctrl-M keymap bound. */
+  private _chatKeybindingInstalled: WeakSet<CodeMirror.Editor> = new WeakSet();
 
   private _ensureChatKeybindings(
     cm: CodeMirror.Editor,
     path: string,
   ): void {
-    if (this._chatKeybindingInstalled.has(path)) return;
-    this._chatKeybindingInstalled.add(path);
+    if (this._chatKeybindingInstalled.has(cm)) return;
+    this._chatKeybindingInstalled.add(cm);
     cm.addKeyMap({
       "Shift-Ctrl-M": () => {
         void this.insertChatMarker({ targetPath: path });
@@ -3314,12 +3336,6 @@ export class Actions extends BaseActions<LatexEditorState> {
    */
   private _ensureChatUI(path: string, retries: number = 6): void {
     if (this._state === "closed") return;
-    if (
-      this._chatClickHandlerInstalled.has(path) &&
-      this._chatKeybindingInstalled.has(path)
-    ) {
-      return;
-    }
     const fileActions = this.redux.getEditorActions(
       this.project_id,
       path_normalize(path),
@@ -3327,22 +3343,45 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (fileActions == null) {
       return;
     }
-    const cm = (fileActions as any)._get_cm?.() as
-      | CodeMirror.Editor
-      | undefined;
-    if (cm == null) {
+    // Every split pane showing this file has its own CM instance; install
+    // the click handler + keybinding on each. WeakSet de-duping handles
+    // repeat calls.
+    const cms = Object.values(
+      ((fileActions as any)._cm ?? {}) as {
+        [id: string]: CodeMirror.Editor;
+      },
+    );
+    if (cms.length === 0) {
       if (retries > 0) {
         setTimeout(() => this._ensureChatUI(path, retries - 1), 250);
       }
       return;
     }
-    this._ensureChatClickHandler(cm, path);
+    for (const cm of cms) {
+      this._ensureChatClickHandler(cm, path);
+    }
     this._ensureChatCursorInsert(path);
     // If a scan already completed while the CM was still mounting, the
     // refresh calls silently no-op'd. Run them again now that CM is ready
     // so the inline styling + gutter icon + tail widget show up.
     this._refreshChatMarkerGutters(path);
     this._refreshChatInlineStyles(path);
+    // Replay bookmark gutter icons too. The scanner runs `scanBookmarks`
+    // and calls `_refreshBookmarkGutters`, but a scan that completed
+    // before this CM mounted never rendered anything. Re-derive the
+    // bookmark set from the current syncstring and re-render.
+    const ss = (fileActions as any)._syncstring;
+    if (ss?.get_state?.() === "ready") {
+      let text: string | undefined;
+      try {
+        text = ss.to_str?.();
+      } catch {
+        text = undefined;
+      }
+      if (typeof text === "string") {
+        this._refreshBookmarkGutters(path, scanBookmarks(text));
+      }
+    }
   }
 
   /**
@@ -3847,6 +3886,12 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (mode === "block") {
       cm.setCursor({ line: cursor.line + 2, ch: cursor.ch });
     }
+
+    // The marker scanner is debounced (300ms), so `getAnchorLabel(hash)`
+    // would otherwise fall through to `hash` and get saved as the thread
+    // name. Flush the pending scan now so the label resolves to the real
+    // surrounding-section text before we stage the pending anchor.
+    this._chatMarkerScanners[targetPath]?.flush?.();
 
     // Stage pending anchor and open the side chat.
     const chatActions = await this._waitForChatActions();
