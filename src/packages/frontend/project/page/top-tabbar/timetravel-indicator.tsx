@@ -48,7 +48,7 @@ export function TopBarTimetravelButton({
             "color-mix(in srgb, #5bc0de 35%, var(--cocalc-border-light, #d9d9d9))",
         }}
         onClick={() => {
-          track("time-travel");
+          track("time-travel", { source: "top-tabbar", path });
           // Prefer opening as a frame inside this editor when the editor
           // has a time_travel frame type registered. Otherwise fall back
           // to opening history as a tab — matches the title-bar button.
