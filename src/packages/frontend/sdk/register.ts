@@ -230,8 +230,16 @@ async function toEditorSpec(
     }
     native[type] = spec;
   }
+  const frameExtensions: EditorSpec = {};
+  for (const candidate of extensionRegistry.getFrameCandidatesForEditor(
+    definition.id,
+  )) {
+    const frame = candidate.definition.frame;
+    frameExtensions[frame.type] = toEditorDescription(frame);
+  }
   return {
     ...native,
+    ...frameExtensions,
     ...Object.fromEntries(
       Object.entries(definition.frames).map(([type, frame]) => [
         type,
