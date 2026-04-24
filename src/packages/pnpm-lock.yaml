@@ -499,9 +499,6 @@ importers:
       create-react-class:
         specifier: ^15.7.0
         version: 15.7.0
-      csv-parse:
-        specifier: ^5.3.6
-        version: 5.6.0
       csv-stringify:
         specifier: ^6.3.0
         version: 6.6.0

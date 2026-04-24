@@ -7,7 +7,6 @@ import { Alert } from "antd";
 import { parse } from "csv-parse/sync";
 import { TableVirtuoso } from "react-virtuoso";
 import { ColumnHeading } from "@cocalc/frontend/components/data-grid/headings";
-import { rowBackground } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 function trim(x) {
@@ -65,7 +64,7 @@ export default function CSV({
     if (isSelectedRow || isSelectedColumn || hoveredRow === row) {
       return COLORS.BLUE_LLLL;
     }
-    return rowBackground({ index: row });
+    return "white";
   }
 
   function cellStyle(row: number, column: number): CSSProperties {
