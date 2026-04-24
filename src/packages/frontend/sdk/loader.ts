@@ -12,6 +12,9 @@ import {
   listExtensionImports,
 } from "./import-map";
 
+declare const DEBUG: boolean;
+const SKIP_BUILTIN_ARCHIVE_CACHE = typeof DEBUG !== "undefined" && DEBUG;
+
 export interface LoadedExtensionBundle {
   bundleUrl: string;
   extension: ExtensionDefinition;
@@ -485,7 +488,14 @@ async function loadArchiveBundle(
       .listRegistered()
       .map(({ definition, registeredAt }) => [definition.id, registeredAt]),
   );
-  const cachedArchive = await getStoredArchiveByBundleUrl(bundleUrl);
+  // In development, builtins ship with the host and are rebuilt frequently;
+  // reading from the IDB cache would keep stale bytes alive across rebuilds.
+  // In production, builtins are stable per release, so caching is desirable
+  // (faster startup, no network round-trip).
+  const cachedArchive =
+    options.trust === "builtin" && SKIP_BUILTIN_ARCHIVE_CACHE
+      ? undefined
+      : await getStoredArchiveByBundleUrl(bundleUrl);
   const archive =
     extracted ??
     (cachedArchive != null

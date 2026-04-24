@@ -6,7 +6,7 @@ import { CSSProperties, ReactNode, useMemo, useState } from "react";
 import { Alert } from "antd";
 import { parse } from "csv-parse/sync";
 import { TableVirtuoso } from "react-virtuoso";
-import { ColumnHeading } from "./headings";
+import { ColumnHeading } from "@cocalc/frontend/components/data-grid/headings";
 import { rowBackground } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -33,34 +33,6 @@ interface SelectedCell {
   column: number;
 }
 
-function cellBoxShadow({
-  isSelectedRow,
-  isSelectedCell,
-  isFirstColumn,
-  isLastColumn,
-}: {
-  isSelectedRow: boolean;
-  isSelectedCell: boolean;
-  isFirstColumn: boolean;
-  isLastColumn: boolean;
-}): string | undefined {
-  const shadows: string[] = [];
-  if (isSelectedRow) {
-    shadows.push(`inset 0 2px 0 ${COLORS.BLUE_LL}`);
-    shadows.push(`inset 0 -2px 0 ${COLORS.BLUE_LL}`);
-    if (isFirstColumn) {
-      shadows.push(`inset 2px 0 0 ${COLORS.BLUE_LL}`);
-    }
-    if (isLastColumn) {
-      shadows.push(`inset -2px 0 0 ${COLORS.BLUE_LL}`);
-    }
-  }
-  if (isSelectedCell) {
-    shadows.push(`inset 0 0 0 2px ${COLORS.BLUE_D}`);
-  }
-  return shadows.length > 0 ? shadows.join(", ") : undefined;
-}
-
 export default function CSV({
   overscan = 500,
   value = "",
@@ -81,22 +53,22 @@ export default function CSV({
       return [];
     }
   }, [value]);
-  const totalColumns = data[0]?.length ?? 0;
   const selectedRow = selectedCell?.row;
   const selectedColumn = selectedCell?.column;
 
   function backgroundColor(row: number, column: number): string {
-    if (selectedRow === row && selectedColumn === column) {
+    const isSelectedRow = selectedRow === row;
+    const isSelectedColumn = selectedColumn === column;
+    if (isSelectedRow && isSelectedColumn) {
       return COLORS.BLUE_LLL;
     }
-    if (selectedRow === row || hoveredRow === row) {
+    if (isSelectedRow || isSelectedColumn || hoveredRow === row) {
       return COLORS.BLUE_LLLL;
     }
     return rowBackground({ index: row });
   }
 
   function cellStyle(row: number, column: number): CSSProperties {
-    const isSelectedRow = selectedRow === row;
     const isSelectedCell = selectedRow === row && selectedColumn === column;
     return {
       border: `1px solid ${COLORS.GRAY_LL}`,
@@ -104,12 +76,9 @@ export default function CSV({
       height: "30px",
       background: backgroundColor(row, column),
       cursor: "pointer",
-      boxShadow: cellBoxShadow({
-        isSelectedRow,
-        isSelectedCell,
-        isFirstColumn: column === 0,
-        isLastColumn: column === totalColumns - 1,
-      }),
+      boxShadow: isSelectedCell
+        ? `inset 0 0 0 2px ${COLORS.BLUE_D}`
+        : undefined,
     };
   }
 
@@ -143,10 +112,7 @@ export default function CSV({
               width={200}
               style={
                 selectedColumn === column
-                  ? {
-                      background: COLORS.BLUE_LLLL,
-                      boxShadow: `inset 0 -2px 0 ${COLORS.BLUE_D}`,
-                    }
+                  ? { background: COLORS.BLUE_LLLL }
                   : undefined
               }
             />

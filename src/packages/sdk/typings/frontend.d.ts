@@ -10,9 +10,9 @@ declare module "@cocalc/frontend/frame-editors/code-editor/codemirror-editor" {
   export default CodemirrorEditor;
 }
 
-declare module "@cocalc/frontend/components/data-grid/csv" {
-  const CSV: any;
-  export default CSV;
+declare module "@cocalc/frontend/components/data-grid/headings" {
+  export type SortDirection = "ascending" | "descending";
+  export const ColumnHeading: any;
 }
 
 declare module "@cocalc/frontend/frame-editors/frame-tree/frame-context" {

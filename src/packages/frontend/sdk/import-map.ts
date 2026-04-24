@@ -64,14 +64,16 @@ export type ExtensionImportValue = ExtensionImportProvider;
 const BUILTIN_EXTENSION_IMPORTS: Record<string, ExtensionImportValue> = {
   react: React,
   "react/jsx-runtime": () => import("react/jsx-runtime"),
+  "react-dom": () => import("react-dom"),
+  antd: () => import("antd"),
   "@cocalc/conat": () => import("./host-conat"),
   "@cocalc/sdk": () => import("@cocalc/sdk"),
   "@cocalc/frontend/app-framework": () =>
     import("@cocalc/frontend/app-framework"),
   "@cocalc/frontend/app-framework/syncdb": () =>
     import("@cocalc/frontend/app-framework/syncdb"),
-  "@cocalc/frontend/components/data-grid/csv": () =>
-    import("@cocalc/frontend/components/data-grid/csv"),
+  "@cocalc/frontend/components/data-grid/headings": () =>
+    import("@cocalc/frontend/components/data-grid/headings"),
   "@cocalc/frontend/sdk/hooks": () => import("./hooks"),
   "@cocalc/frontend/frame-editors/code-editor/actions": () =>
     import("@cocalc/frontend/frame-editors/code-editor/actions"),
@@ -80,6 +82,8 @@ const BUILTIN_EXTENSION_IMPORTS: Record<string, ExtensionImportValue> = {
   "@cocalc/frontend/frame-editors/frame-tree/frame-context": () =>
     import("@cocalc/frontend/frame-editors/frame-tree/frame-context"),
   "@cocalc/util": () => import("./host-util"),
+  "@cocalc/util/misc": () => import("@cocalc/util/misc"),
+  "@cocalc/util/theme": () => import("@cocalc/util/theme"),
 };
 
 export function setupExtensionImportMap(

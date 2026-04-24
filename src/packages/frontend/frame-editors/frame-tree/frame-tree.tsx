@@ -161,6 +161,12 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     const cols_container_ref = React.useRef<HTMLDivElement>(null as any);
     const rows_container_ref = React.useRef<HTMLDivElement>(null as any);
 
+    // Track reset-frame-tree attempts so a broken default layout doesn't
+    // cause an infinite render -> reset -> render loop. Keyed by error
+    // message so different errors each get their own retry budget.
+    const resetAttemptsRef = React.useRef<Map<string, number>>(new Map());
+    const lastResetAtRef = React.useRef<number>(0);
+
     const [forceReload, setForceReload] = useState<number>(0);
 
     useEffect(() => {
@@ -358,8 +364,22 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       );
     }
 
-    async function reset_frame_tree(): Promise<void> {
-      await delay(100);
+    // Reset the frame tree with exponential backoff per distinct error.
+    // Without this, a reset that produces the same invalid tree triggers
+    // a render that throws the same error, which schedules another reset,
+    // etc. -- a tight loop that floods the console. Matches the defaults
+    // used by misc.retry_until_success (start 1s, factor 1.4, max 20s).
+    async function reset_frame_tree(errorKey: string): Promise<void> {
+      const attempts = resetAttemptsRef.current.get(errorKey) ?? 0;
+      const delayMs = Math.min(1_000 * Math.pow(1.4, attempts), 20_000);
+      const scheduledAt = Date.now();
+      lastResetAtRef.current = scheduledAt;
+      resetAttemptsRef.current.set(errorKey, attempts + 1);
+      await delay(delayMs);
+      // Abandon if another reset was scheduled after us (newer error wins).
+      if (lastResetAtRef.current !== scheduledAt) {
+        return;
+      }
       if (actions) {
         actions.reset_frame_tree();
       }
@@ -402,9 +422,11 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
         }
       } catch (err) {
         const mesg = `Invalid frame tree ${JSON.stringify(desc)} -- ${err}`;
-        console.log(mesg);
-        // reset -- fix this disaster next time around.
-        reset_frame_tree();
+        const errorKey = `${desc.get("type")}:${err}`;
+        if (!resetAttemptsRef.current.has(errorKey)) {
+          console.log(mesg);
+        }
+        reset_frame_tree(errorKey);
         return <div>{mesg}</div>;
       }
       return (

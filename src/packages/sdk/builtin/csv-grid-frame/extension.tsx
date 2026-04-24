@@ -1,6 +1,7 @@
 import { defineFrame, registerExtension } from "@cocalc/sdk";
-import CSV from "@cocalc/frontend/components/data-grid/csv";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+
+import CSV from "./csv";
 
 function Grid({ value }: { value: string }) {
   const { actions, desc } = useFrameContext();

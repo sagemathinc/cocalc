@@ -11,7 +11,25 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import ts from "typescript";
+import esbuild from "esbuild";
+
+// Modules provided by the CoCalc host at runtime (via the SDK import-map).
+// Must be kept in sync with frontend/sdk/import-map.ts BUILTIN_EXTENSION_IMPORTS.
+// Extensions must not bundle these; the host shims them in at load time.
+const HOST_PROVIDED_MODULES = [
+  "react",
+  "react/jsx-runtime",
+  "react-dom",
+  "react-dom/*",
+  "antd",
+  "antd/*",
+  "@cocalc/sdk",
+  "@cocalc/sdk/*",
+  "@cocalc/conat",
+  "@cocalc/util",
+  "@cocalc/util/*",
+  "@cocalc/frontend/*",
+];
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(__dirname, "..");
@@ -171,40 +189,32 @@ function resolveExtensionEntry(sourceDir) {
   );
 }
 
-function compileExtensionEntry(extensionPath) {
-  const source = readFileSync(extensionPath, "utf8");
-  const ext = path.extname(extensionPath).toLowerCase();
-  if (ext === ".mjs" || ext === ".js") {
-    return source;
-  }
-  const { outputText, diagnostics } = ts.transpileModule(source, {
-    compilerOptions: {
-      target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.ESNext,
-      moduleResolution: ts.ModuleResolutionKind.NodeJs,
-      jsx: ts.JsxEmit.ReactJSX,
-      esModuleInterop: true,
-      isolatedModules: true,
-      allowSyntheticDefaultImports: true,
-      resolveJsonModule: true,
-    },
-    fileName: extensionPath,
-    reportDiagnostics: true,
+async function bundleExtensionEntry(extensionPath) {
+  const result = await esbuild.build({
+    entryPoints: [extensionPath],
+    bundle: true,
+    write: false,
+    format: "esm",
+    target: "es2020",
+    platform: "browser",
+    jsx: "automatic",
+    external: HOST_PROVIDED_MODULES,
+    logLevel: "silent",
+    sourcemap: false,
+    minify: false,
   });
-  if ((diagnostics?.length ?? 0) > 0) {
-    const message = ts.formatDiagnosticsWithColorAndContext(diagnostics, {
-      getCurrentDirectory: () => process.cwd(),
-      getCanonicalFileName: (name) => name,
-      getNewLine: () => "\n",
-    });
+  if (result.errors.length > 0) {
+    const message = result.errors
+      .map((err) => esbuild.formatMessagesSync([err], { kind: "error" }).join(""))
+      .join("\n");
     throw new Error(
-      `Failed to compile builtin extension entry "${extensionPath}":\n${message}`,
+      `Failed to bundle builtin extension entry "${extensionPath}":\n${message}`,
     );
   }
-  return outputText;
+  return result.outputFiles[0].text;
 }
 
-function buildBuiltin(builtinName) {
+async function buildBuiltin(builtinName) {
   const sourceDir = path.join(builtinRoot, builtinName);
   const manifestPath = path.join(sourceDir, "manifest.json");
   if (!existsSync(manifestPath)) {
@@ -233,7 +243,7 @@ function buildBuiltin(builtinName) {
       2,
     ) + "\n",
   );
-  writeFileSync(extensionOut, compileExtensionEntry(extensionPath));
+  writeFileSync(extensionOut, await bundleExtensionEntry(extensionPath));
 
   const archiveFiles = [
     {
@@ -275,7 +285,10 @@ function buildBuiltin(builtinName) {
 rmSync(outputRoot, { force: true, recursive: true });
 ensureDir(outputRoot);
 
-const builtins = listBuiltinDirs().map(buildBuiltin);
+const builtins = [];
+for (const builtinName of listBuiltinDirs()) {
+  builtins.push(await buildBuiltin(builtinName));
+}
 
 writeFileSync(
   path.join(outputRoot, "index.json"),
