@@ -188,14 +188,14 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
         dependOn: "load",
       },
     },
-    /* Why chunkhash below, rather than contenthash? This says contenthash is a special
-     thing for css and other text files only (??):
-        https://medium.com/@sahilkkrazy/hash-vs-chunkhash-vs-contenthash-e94d38a32208
-  */
+    // [contenthash] (together with optimization.realContentHash, default-on
+    // in production) hashes the final emitted bytes; [chunkhash] is computed
+    // before module-id assignment and can collide across builds whose only
+    // difference is module-id order.
     output: {
       path: OUTPUT,
-      filename: PRODMODE ? "[name]-[chunkhash].js" : "[id]-[chunkhash].js",
-      chunkFilename: PRODMODE ? "[chunkhash].js" : "[id]-[chunkhash].js",
+      filename: PRODMODE ? "[name]-[contenthash].js" : "[id]-[contenthash].js",
+      chunkFilename: PRODMODE ? "[contenthash].js" : "[id]-[contenthash].js",
     },
     module: moduleRules(RSPACK_DEV_SERVER),
     resolve: {
