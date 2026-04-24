@@ -23,6 +23,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { useAppContext } from "@cocalc/frontend/app/context";
+import { useProjectSdkBundles } from "@cocalc/frontend/sdk/project-config";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import {
   FrameContext,
@@ -98,6 +99,8 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     is_active,
     mainWidthPx,
   });
+
+  useProjectSdkBundles(project_id);
 
   // Sort persistence via DKV — must be in an always-mounted component so
   // flyout sort changes are saved even when the Explorer tab isn't active.

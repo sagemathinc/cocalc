@@ -27,10 +27,10 @@ export class CodeEditor {
   async init(): Promise<void> {
     try {
       const ext = filename_extension(this.path);
-      let editor = get_file_editor(ext, false);
+      let editor = get_file_editor(ext);
       if (editor == null) {
         // fallback to text
-        editor = get_file_editor("txt", false);
+        editor = get_file_editor("txt");
       }
       let name: string;
       if (editor.init != null) {
@@ -47,7 +47,7 @@ export class CodeEditor {
   }
 
   close(): void {
-    const editor = get_file_editor("txt", false);
+    const editor = get_file_editor("txt");
     if (editor == null) throw Error("bug -- editor must exist");
     editor.remove(this.path, redux, this.project_id);
   }

@@ -54,6 +54,8 @@ import { init as initLast } from "./last";
 import { render } from "./app/render";
 
 export async function init() {
+  const { initExtensionImportMap } = await import("./sdk/import-map");
+  initExtensionImportMap();
   initJqueryPlugins();
   initAccount(redux);
   initApp();
@@ -78,5 +80,21 @@ export async function init() {
     // don't insert the crash banner until the main app has rendered,
     // or user would see the banner for a moment.
     initCrashBanner();
+  }
+  // Initialize extension registration after the app has rendered to avoid
+  // startup module-evaluation cycles. File-open paths that truly depend on a
+  // builtin extension explicitly await readiness on demand.
+  const [
+    { initBuiltinExtensionBundles },
+    { initExtensionManifestRegistration },
+  ] = await Promise.all([
+    import("./sdk/builtin"),
+    import("./sdk/register"),
+  ]);
+  initExtensionManifestRegistration();
+  try {
+    await initBuiltinExtensionBundles();
+  } catch (err) {
+    console.warn(`Failed to initialize builtin extension bundles: ${err}`);
   }
 }

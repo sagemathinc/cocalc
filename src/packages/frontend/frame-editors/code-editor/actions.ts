@@ -91,12 +91,14 @@ import {
 import { print_code } from "../frame-tree/print-code";
 import * as tree_ops from "../frame-tree/tree-ops";
 import {
+  canonicalFrameType,
   ConnectionStatus,
   ErrorStyles,
   FrameDirection,
   FrameTree,
   ImmutableFrameTree,
   SetMap,
+  migrateLegacyFrameTreeTypes,
 } from "../frame-tree/types";
 import {
   formatter,
@@ -146,7 +148,6 @@ type LocalViewState = TypedMap<LocalViewParams>;
 export interface CodeEditorState {
   project_id: string;
   path: string;
-  is_public: boolean;
   local_view_state: any; // Generic use of Actions below makes this entirely befuddling...
   reload: Map<string, any>;
   resize: number;
@@ -207,10 +208,39 @@ export class Actions<
   };
   ////////
 
+  protected canonical_frame_type(type: string): string {
+    return canonicalFrameType(type);
+  }
+
+  private migrate_frame_tree_types<U>(tree: U): U {
+    if (tree == null || typeof tree !== "object") {
+      return tree;
+    }
+    if (Array.isArray(tree)) {
+      return tree.map((child) => this.migrate_frame_tree_types(child)) as U;
+    }
+    const value = tree as Record<string, unknown>;
+    const next: Record<string, unknown> = { ...value };
+    if (typeof value.type === "string") {
+      next.type = this.canonical_frame_type(value.type);
+    }
+    if (value.first != null) {
+      next.first = this.migrate_frame_tree_types(value.first);
+    }
+    if (value.second != null) {
+      next.second = this.migrate_frame_tree_types(value.second);
+    }
+    if (Array.isArray(value.children)) {
+      next.children = value.children.map((child) =>
+        this.migrate_frame_tree_types(child),
+      );
+    }
+    return next as U;
+  }
+
   public project_id: string;
   public path: string;
   public store: Store<T>;
-  public is_public: boolean;
 
   private _save_local_view_state: () => void;
   private _cm_selections: any;
@@ -228,12 +258,7 @@ export class Actions<
   // multifile support. this will be set to the path of the parent file (master)
   protected parent_file: string | undefined = undefined;
 
-  _init(
-    project_id: string,
-    path: string,
-    is_public: boolean,
-    store: any,
-  ): void {
+  _init(project_id: string, path: string, store: any): void {
     this._save_local_view_state = debounce(
       () => this.__save_local_view_state(),
       1500,
@@ -243,7 +268,6 @@ export class Actions<
     this.path = path;
     this.videoChat = new VideoChat({ project_id, path });
     this.store = store;
-    this.is_public = is_public;
     this.terminals = new TerminalManager<CodeEditorState>(
       this as unknown as Actions<CodeEditorState>,
     );
@@ -258,15 +282,10 @@ export class Actions<
       trailing: true,
     });
 
-    if (is_public) {
-      this._init_value();
-    } else {
-      this._init_syncstring();
-    }
+    this._init_syncstring();
 
     this.setState({
       value: "Loading...",
-      is_public,
       local_view_state: this._load_local_view_state(),
       reload: Map(),
       resize: 0,
@@ -508,9 +527,6 @@ export class Actions<
     return this._syncstring == null || this._syncstring.get_state() != "ready";
   }
 
-  // could be overloaded...
-  async _init_value(): Promise<void> {}
-
   // Reload the document.
   reload(id: string): void {
     if (this._terminal_command(id, "reload")) {
@@ -520,8 +536,6 @@ export class Actions<
       // currently in the process of loading
       return;
     }
-    // this sets is_loaded to false... loads, then sets is_loaded to true.
-    this._init_value();
   }
 
   // Update the reload key in the store, which may *trigger* UI to
@@ -654,16 +668,12 @@ export class Actions<
     let frame_tree = local_view_state.get("frame_tree");
     if (frame_tree == null) {
       frame_tree = this._default_frame_tree();
-      if (!this.is_public) {
-        // No saved local view — try to apply custom layout asynchronously.
-        this._apply_custom_layout_if_available();
-      }
+      // No saved local view — try to apply custom layout asynchronously.
+      this._apply_custom_layout_if_available();
     } else {
-      if (!this.is_public) {
-        // Still check whether a custom layout exists (for the menu).
-        this._check_custom_layout_exists();
-      }
-      frame_tree = tree_ops.normalize(frame_tree);
+      // Still check whether a custom layout exists (for the menu).
+      this._check_custom_layout_exists();
+      frame_tree = this._process_frame_tree(frame_tree as any);
       try {
         tree_ops.get_some_leaf_id(frame_tree);
       } catch {
@@ -837,7 +847,15 @@ export class Actions<
 
   // Process a raw frame tree: convert to immutable, assign IDs, ensure uniqueness
   private _process_frame_tree(rawTree: FrameTree): Map<string, any> {
-    return tree_ops.normalize(fromJS(rawTree) as Map<string, any>);
+    const treeJS =
+      typeof (rawTree as any)?.toJS === "function"
+        ? (rawTree as any).toJS()
+        : rawTree;
+    return tree_ops.normalize(
+      fromJS(
+        this.migrate_frame_tree_types(migrateLegacyFrameTreeTypes(treeJS)),
+      ) as Map<string, any>,
+    );
   }
 
   _default_frame_tree(): Map<string, any> {
@@ -1026,15 +1044,14 @@ export class Actions<
   }
 
   // Set the type of the given node, e.g., 'cm', 'markdown', etc.
-  // IMPORTANT: `type` must be the KEY of the editor's EDITOR_SPEC object,
-  // NOT the `type:` field inside an EditorDescription.  The two can differ —
-  // for example the RMD/QMD editor has key "pdfjs_canvas" but EditorDescription
-  // type "pdfjs-canvas".  frame-tree.tsx dispatches via `editor_spec[type]`
-  // (key lookup), so passing the EditorDescription type value will fail at runtime.
+  // New code should pass the canonical EditorDescription.type string here.
+  // A small alias layer keeps older stored layouts and callers working while
+  // built-in editors migrate away from object-key identifiers.
   set_frame_type(id: string, type: string): void {
+    type = this.canonical_frame_type(type);
     const node = this._get_frame_node(id);
     if (node == null) return; // no such node
-    const old_type = node.get("type");
+    const old_type = this.canonical_frame_type(node.get("type"));
     if (old_type == type) return; // no need to change type
     // save what is currently the most recent frame of this type.
     const prev_id = this._get_most_recent_active_frame_id_of_type(type);
@@ -1096,7 +1113,7 @@ export class Actions<
     if (node == null) {
       return;
     }
-    return node.get("type");
+    return this.canonical_frame_type(node.get("type"));
   }
 
   _tree_is_single_leaf(): boolean {
@@ -1409,7 +1426,6 @@ export class Actions<
 
   async save(explicit: boolean): Promise<void> {
     if (
-      this.is_public ||
       !this.store.get("is_loaded") ||
       this._syncstring == null ||
       this._syncstring.get_state() != "ready"
@@ -1506,7 +1522,7 @@ export class Actions<
     }
 
     if (opts.frame) {
-      this.show_focused_frame_of_type("time_travel");
+      this.show_focused_frame_of_type("timetravel");
     } else {
       this._get_project_actions().open_file({
         path: history_path(path),
@@ -1520,6 +1536,7 @@ export class Actions<
       switch (type) {
         case "terminal":
           return "https://doc.cocalc.com/terminal.html";
+        case "timetravel":
         case "time_travel":
           return "https://doc.cocalc.com/time-travel.html";
         default:
@@ -2541,8 +2558,9 @@ export class Actions<
   }
 
   _get_most_recent_active_frame_id_of_type(type: string): string | undefined {
+    type = this.canonical_frame_type(type);
     return this._get_most_recent_active_frame_id(
-      (node) => node.get("type") == type,
+      (node) => this.canonical_frame_type(node.get("type")) == type,
     );
   }
 
@@ -2957,6 +2975,7 @@ export class Actions<
     first?: boolean,
     pos?: number,
   ): string {
+    type = this.canonical_frame_type(type);
     let id: string | undefined =
       this._get_most_recent_active_frame_id_of_type(type);
     if (id == null) {
@@ -2994,7 +3013,12 @@ export class Actions<
   }
 
   public async show_pages(_id: string | undefined = undefined): Promise<void> {
-    const id = this.show_focused_frame_of_type("pages", "col", true, 0.15);
+    const id = this.show_focused_frame_of_type(
+      "whiteboard-pages",
+      "col",
+      true,
+      0.15,
+    );
     await delay(0);
     if (this._state === "closed") return;
     this.set_active_id(id, true);
@@ -3003,7 +3027,12 @@ export class Actions<
   public async show_overview(
     _id: string | undefined = undefined,
   ): Promise<void> {
-    const id = this.show_focused_frame_of_type("overview", "col", true, 0.3);
+    const id = this.show_focused_frame_of_type(
+      "whiteboard-overview",
+      "col",
+      true,
+      0.3,
+    );
     await delay(0);
     if (this._state === "closed") return;
     this.set_active_id(id, true);
@@ -3012,7 +3041,12 @@ export class Actions<
   public async show_slideshow(
     _id: string | undefined = undefined,
   ): Promise<void> {
-    const id = this.show_focused_frame_of_type("slideshow", "col", true, 0.3);
+    const id = this.show_focused_frame_of_type(
+      "slides-slideshow",
+      "col",
+      true,
+      0.3,
+    );
     await delay(0);
     if (this._state === "closed") return;
     this.set_active_id(id, true);
@@ -3022,7 +3056,7 @@ export class Actions<
     _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
-      "speaker_notes",
+      "slides-notes",
       "row",
       false,
       0.8,
@@ -3198,7 +3232,15 @@ export class Actions<
       if (node == null) continue;
       let match = true;
       for (let key in obj) {
-        if (node.get(key) != obj[key]) {
+        const expected =
+          key === "type" && typeof obj[key] === "string"
+            ? this.canonical_frame_type(obj[key])
+            : obj[key];
+        const actual =
+          key === "type"
+            ? this.canonical_frame_type(node.get(key))
+            : node.get(key);
+        if (actual != expected) {
           match = false;
           break;
         }

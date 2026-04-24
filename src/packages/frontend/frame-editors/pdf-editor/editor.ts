@@ -55,10 +55,10 @@ const pdf_embed: EditorDescription = {
 } as const;
 
 export const EDITOR_SPEC = {
-  pdfjs_canvas,
+  "pdfjs-canvas": pdfjs_canvas,
   // NOTE: the native viewer is epically bad on ipad/ios:
   //      https://github.com/sagemathinc/cocalc/issues/5114
-  ...(!IS_IPAD && !IS_IOS ? { pdf_embed } : undefined),
+  ...(!IS_IPAD && !IS_IOS ? { "preview-pdf-native": pdf_embed } : undefined),
 } as const;
 
 export const Editor = createEditor({

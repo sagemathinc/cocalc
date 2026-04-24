@@ -38,18 +38,20 @@ export class Actions extends MarkdownConverterActions {
     return MINIMAL;
   }
 
+  protected get build_frame_type(): string {
+    return "qmd-log";
+  }
+
   _init2(): void {
     super._init2(); // that's the one in markdown-editor/actions.ts
-    if (!this.is_public) {
-      // one extra thing after markdown.
-      this._syncstring.once("ready", this._init_converter.bind(this));
-      this._check_produced_files();
-      this.setState({ custom_pdf_error_message });
-      this._syncstring.on(
-        "change",
-        debounce(this.ensureNonempty.bind(this), 1500),
-      );
-    }
+    // one extra thing after markdown.
+    this._syncstring.once("ready", this._init_converter.bind(this));
+    this._check_produced_files();
+    this.setState({ custom_pdf_error_message });
+    this._syncstring.on(
+      "change",
+      debounce(this.ensureNonempty.bind(this), 1500),
+    );
   }
 
   protected async _run_converter(hash?): Promise<void> {

@@ -1,0 +1,5 @@
+{
+  "id": "cocalc/csv-editor",
+  "version": "0.0.1",
+  "main": "extension.js"
+}

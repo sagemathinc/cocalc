@@ -6,6 +6,7 @@
 declare var DEBUG: boolean; // comes from static webpack; not defined in other contexts.
 
 import React from "react";
+import type { IconRef as ExtensionIconRef } from "@cocalc/sdk";
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import useOnFrontend from "./use-on-frontend";
@@ -702,6 +703,22 @@ try {
 // This used to exceed TypeScript limits, but apparently it is ok now…
 export type IconName = keyof typeof IconSpec;
 export const IconName = undefined; // Javascript needs this, though we are only using IconName for the type
+type NonBuiltinIconRef = Exclude<ExtensionIconRef, string>;
+export type IconRef = IconName | NonBuiltinIconRef;
+
+type ExtensionAssetResolver = (uri: string) => Promise<string>;
+
+const EXTENSION_ASSET_RESOLVER_KEY = Symbol.for(
+  "cocalc.sdk.asset-resolver",
+);
+
+function getExtensionAssetResolver(): ExtensionAssetResolver | undefined {
+  const root = globalThis as Record<PropertyKey, unknown>;
+  const resolver = root[EXTENSION_ASSET_RESOLVER_KEY];
+  return typeof resolver === "function"
+    ? (resolver as ExtensionAssetResolver)
+    : undefined;
+}
 
 // Typeguard so can tell if a string is name of an icon and also
 // make typescript happy.
@@ -711,12 +728,27 @@ export function isIconName(name?: unknown): name is IconName {
   return IconSpec[name] != null;
 }
 
+export function isIconRefObject(icon?: unknown): icon is NonBuiltinIconRef {
+  if (icon == null || typeof icon !== "object") return false;
+  if (Array.isArray(icon)) return false;
+  const type = (icon as { type?: unknown }).type;
+  return (
+    (type === "bundle" &&
+      typeof (icon as { uri?: unknown }).uri === "string") ||
+    (type === "external" && typeof (icon as { url?: unknown }).url === "string")
+  );
+}
+
+export function isIconRef(icon?: unknown): icon is IconRef {
+  return isIconName(icon) || isIconRefObject(icon);
+}
+
 export const iconNames: IconName[] = Object.keys(IconSpec) as any;
 
 export type IconRotation = "45" | "90" | "135" | "180" | "225" | "270" | "315";
 
 interface Props {
-  name?: IconName;
+  name?: IconRef;
   unicode?: number; // (optional) set a hex 16 bit charcode to render a unicode char, e.g. 0x2620
   className?: string;
   size?: "lg" | "2x" | "3x" | "4x" | "5x";
@@ -741,6 +773,82 @@ const UNICODE_STYLE = {
   verticalAlign: "middle",
 } as React.CSSProperties;
 
+const SIZE_TO_SCALE = {
+  lg: "1.333333em",
+  "2x": "2em",
+  "3x": "3em",
+  "4x": "4em",
+  "5x": "5em",
+} as const;
+
+function iconImageStyle(props: Props): React.CSSProperties {
+  const size = props.size == null ? "1em" : SIZE_TO_SCALE[props.size];
+  const style: React.CSSProperties = {
+    display: "inline-block",
+    verticalAlign: "middle",
+    objectFit: "contain",
+    width: size,
+    height: size,
+    ...props.style,
+  };
+  if (props.rotate) {
+    style.transform = `rotate(${props.rotate}deg)`;
+  }
+  if (props.flip) {
+    const flipTransform =
+      props.flip === "horizontal" ? "scaleX(-1)" : "scaleY(-1)";
+    style.transform = style.transform
+      ? `${style.transform} ${flipTransform}`
+      : flipTransform;
+  }
+  return style;
+}
+
+function useResolvedIconSrc(icon?: NonBuiltinIconRef): string | undefined {
+  const [src, setSrc] = React.useState<string | undefined>(
+    icon?.type === "external" ? icon.url : undefined,
+  );
+
+  React.useEffect(() => {
+    let active = true;
+    if (icon == null) {
+      setSrc(undefined);
+      return () => {
+        active = false;
+      };
+    }
+    if (icon.type === "external") {
+      setSrc(icon.url);
+      return () => {
+        active = false;
+      };
+    }
+    setSrc(undefined);
+    const resolveExtensionAssetUrl = getExtensionAssetResolver();
+    if (resolveExtensionAssetUrl == null) {
+      return () => {
+        active = false;
+      };
+    }
+    resolveExtensionAssetUrl(icon.uri)
+      .then((resolved) => {
+        if (active) {
+          setSrc(resolved);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setSrc(undefined);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [icon]);
+
+  return src;
+}
+
 const missing: any = {};
 // Converted from https://github.com/andreypopp/react-fa
 
@@ -748,6 +856,9 @@ export const Icon: React.FC<Props> = (props: Props) => {
   // IMPORTANT: This hook is needed for next.js to support server side rendering.
   // Otherwise, at least with next 13, it crashes when rendering icons.
   const onFrontend = useOnFrontend();
+  const resolvedIconSrc = useResolvedIconSrc(
+    isIconRefObject(props.name) ? props.name : undefined,
+  );
   if (!onFrontend) return null;
 
   if (props.unicode != null) {
@@ -767,10 +878,25 @@ export const Icon: React.FC<Props> = (props: Props) => {
         : flipTransform;
     }
 
+    return <span style={style}>{String.fromCharCode(props.unicode!)}</span>;
+  }
+
+  if (isIconRefObject(props.name)) {
+    if (resolvedIconSrc == null) {
+      return null;
+    }
     return (
-      <span style={style}>
-        {String.fromCharCode(props.unicode!)}
-      </span>
+      <img
+        src={resolvedIconSrc}
+        alt={resolvedIconSrc}
+        className={props.className}
+        style={iconImageStyle(props)}
+        onClick={props.onClick}
+        onMouseOver={props.onMouseOver}
+        onMouseOut={props.onMouseOut}
+        onMouseEnter={props.onMouseEnter}
+        onMouseLeave={props.onMouseLeave}
+      />
     );
   }
 

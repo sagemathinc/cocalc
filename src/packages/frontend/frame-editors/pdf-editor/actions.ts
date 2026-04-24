@@ -32,18 +32,27 @@ export class Actions extends BaseActions<PDFEditorState> {
   // at all right now; might somebody for annotation though.
   protected doctype: string = "none";
 
+  protected canonical_frame_type(type: string): string {
+    switch (type) {
+      case "pdfjs_canvas":
+        return "pdfjs-canvas";
+      case "pdf_embed":
+        return "preview-pdf-native";
+      default:
+        return super.canonical_frame_type(type);
+    }
+  }
+
   // PDF file watcher - watches directory for PDF file changes
   private pdf_watcher?: PDFWatcher;
 
   _raw_default_frame_tree(): FrameTree {
-    return { type: "pdfjs_canvas" };
+    return { type: "pdfjs-canvas" };
   }
 
   _init2(): void {
-    if (!this.is_public) {
-      this.reload("");
-      this._init_pdf_directory_watcher();
-    }
+    this.reload("");
+    this._init_pdf_directory_watcher();
   }
 
   // Watch the directory containing the PDF file for changes

@@ -30,6 +30,7 @@
     { "path": "../comm" },
     { "path": "../jupyter" },
     { "path": "../conat" },
+    { "path": "../sdk" },
     { "path": "../sync" },
     { "path": "../util" }
   ],

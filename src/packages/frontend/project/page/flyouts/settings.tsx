@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -34,6 +34,7 @@ import {
 import { HideDeleteBox } from "@cocalc/frontend/project/settings/hide-delete-box";
 import { ProjectCapabilities } from "@cocalc/frontend/project/settings/project-capabilites";
 import { ProjectControl } from "@cocalc/frontend/project/settings/project-control";
+import { ProjectApplications } from "@cocalc/frontend/project/settings/applications";
 import { RestartProject } from "@cocalc/frontend/project/settings/restart-project";
 import { SSHPanel } from "@cocalc/frontend/project/settings/ssh";
 import { StopProject } from "@cocalc/frontend/project/settings/stop-project";
@@ -326,6 +327,19 @@ export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
         ),
       });
     }
+
+    items.push({
+      key: "applications",
+      label: (
+        <>
+          <Icon name="wrench" /> Applications
+        </>
+      ),
+      className: "cc-project-flyout-settings-panel",
+      children: (
+        <ProjectApplications project_id={project_id} mode="flyout" />
+      ),
+    });
 
     items.push({
       key: "features",

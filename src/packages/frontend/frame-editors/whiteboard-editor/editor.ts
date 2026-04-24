@@ -110,13 +110,13 @@ const table_of_contents: EditorDescription = {
 
 export const EDITOR_SPEC = {
   whiteboard,
-  search,
-  pages,
-  overview,
+  "whiteboard-search": search,
+  "whiteboard-pages": pages,
+  "whiteboard-overview": overview,
   terminal,
-  time_travel,
-  introspect,
-  table_of_contents,
+  timetravel: time_travel,
+  "jupyter-introspect": introspect,
+  "markdown-toc": table_of_contents,
 } as const;
 
 export const Editor = createEditor({

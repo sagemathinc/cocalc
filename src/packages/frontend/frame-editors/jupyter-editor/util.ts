@@ -10,5 +10,10 @@
 export function isJupyterNotebookFrameType(
   type: string | undefined,
 ): boolean {
-  return type === "jupyter_cell_notebook" || type === "jupyter_minimal";
+  return (
+    type === "jupyter" ||
+    type === "jupyter_cell_notebook" ||
+    type === "jupyter-minimal" ||
+    type === "jupyter_minimal"
+  );
 }

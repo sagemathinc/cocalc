@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -11,6 +11,7 @@ import { register_file_editor } from "../frame-tree/register";
 
 for (const ext of KNITR_EXTS.concat(["tex"])) {
   register_file_editor({
+    id: "cocalc/latex-editor",
     ext: ext,
     editor: async () => await import("./editor"),
     actions: async () => {

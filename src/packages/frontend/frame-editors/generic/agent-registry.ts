@@ -18,17 +18,14 @@
 import { lazy, type ComponentType } from "react";
 
 import {
-  file_associations,
+  canonical_extension,
+  get_file_association,
   type FileSpec,
 } from "@cocalc/frontend/file-associations";
-import { filename_extension, path_split } from "@cocalc/util/misc";
+import { filename_extension } from "@cocalc/util/misc";
 
 function getFileAssociation(path: string): FileSpec | undefined {
-  const ext = filename_extension(path).toLowerCase();
-  if (ext) {
-    return file_associations[ext];
-  }
-  return file_associations[`noext-${path_split(path).tail.toLowerCase()}`];
+  return get_file_association(path);
 }
 
 export function hasCodingAgent(path: string): boolean {
@@ -74,7 +71,7 @@ export interface NoAgentSpec {
 }
 
 export function getAgentSpec(path: string): AgentSpec | NoAgentSpec {
-  if (filename_extension(path).toLowerCase() === "ipynb") {
+  if (canonical_extension(filename_extension(path)) === "ipynb") {
     return { hasAgent: true, component: LazyNotebookAgent };
   }
   if (!hasCodingAgent(path)) {

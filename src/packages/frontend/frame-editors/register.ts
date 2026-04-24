@@ -4,6 +4,7 @@
  */
 
 import "./generic/jquery-plugins";
+import "../sdk/registry";
 import "./code-editor/register"; // should be first.
 import "./wiki-editor/register";
 import "./rmd-editor/register";
@@ -22,7 +23,6 @@ import "./x11-editor/register";
 import "./jupyter-editor/register";
 import "./time-travel-editor/register";
 import "./course-editor/register";
-import "./csv-editor/register";
 import "./slides-editor/register";
 import "./whiteboard-editor/register";
 

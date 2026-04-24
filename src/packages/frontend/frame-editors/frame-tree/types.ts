@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import type { IconName } from "@cocalc/frontend/components/icon";
+import type { IconRef } from "@cocalc/frontend/components/icon";
 
 import { Map, Set } from "immutable";
 import { ReactNode } from "react";
@@ -85,80 +85,16 @@ export type ErrorStyles = undefined | "monospace";
 
 export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 
-// Each editor gets its own unique type. This is useful to check which editor it is.
-// e.g. #7787 was caused by merely checking on the name, which had changed.
-type EditorType =
-  | "agent"
-  | "app_preview"
-  | "chat"
-  | "chatroom"
-  | "cm-lean"
-  | "coding-agent"
-  | "cm"
-  | "course-assignments"
-  | "course-actions"
-  | "course-configuration"
-  | "course-handouts"
-  | "course-shared_project"
-  | "course-students"
-  | "crm-account"
-  | "crm-tables"
-  | "csv-grid"
-  | "errors"
-  | "iframe"
-  | "jupyter_json_edit"
-  | "jupyter_json_view"
-  | "jupyter-introspect"
-  | "jupyter-toc"
-  | "jupyter"
-  | "jupyter-minimal"
-  | "latex-build"
-  | "latex-output"
-  | "latex-toc"
-  | "latex-word_count"
-  | "latex"
-  | "lean-help"
-  | "lean-info"
-  | "lean-messages"
-  | "markdown-rendered"
-  | "markdown-toc"
-  | "markdown"
-  | "pdfjs-canvas"
-  | "preview-html"
-  | "preview-pdf-canvas"
-  | "preview-pdf-native"
-  | "qmd-log"
-  | "rmd-build"
-  | "rst-view"
-  | "sagews-cells"
-  | "sagews-document"
-  | "search"
-  | "settings"
-  | "shell"
-  | "slate"
-  | "slides-notes"
-  | "slides-slideshow"
-  | "slides"
-  | "slideshow-revealjs"
-  | "snippets"
-  | "tasks"
-  | "terminal-guide"
-  | "terminal"
-  | "timetravel"
-  | "whiteboard-overview"
-  | "whiteboard-pages"
-  | "whiteboard-search"
-  | "whiteboard"
-  | "wiki"
-  | "x11-apps"
-  | "x11";
+// Frame types are runtime-extensible. Built-in editors should still use stable,
+// specific string ids, but the type system can no longer be a closed union.
+export type EditorType = string;
 
 // Editor spec
 export interface EditorDescription {
   type: EditorType;
   short: string | IntlMessage; // short description of the editor
   name: string | IntlMessage; // slightly longer description
-  icon: IconName;
+  icon: IconRef;
   component: (props: EditorComponentProps) => ReactNode | Promise<ReactNode>;
 
   // commands that will be displayed in the menu (if they exist)
@@ -193,6 +129,91 @@ export interface EditorSpec {
   [editor_name: string]: EditorDescription;
 }
 
+const LEGACY_FRAME_TYPE_ALIASES: Readonly<Record<string, string>> = {
+  commands_guide: "snippets",
+  course_actions: "course-actions",
+  course_assignments: "course-assignments",
+  course_configuration: "course-configuration",
+  course_handouts: "course-handouts",
+  course_shared_project: "course-shared_project",
+  course_students: "course-students",
+  grid: "cocalc/csv-grid",
+  introspect: "jupyter-introspect",
+  jupyter_cell_notebook: "jupyter",
+  jupyter_json: "jupyter_json_view",
+  jupyter_minimal: "jupyter-minimal",
+  jupyter_raw: "jupyter_json_edit",
+  jupyter_slideshow_revealjs: "slideshow-revealjs",
+  jupyter_table_of_contents: "jupyter-toc",
+  latex_table_of_contents: "latex-toc",
+  markdown_table_of_contents: "markdown-toc",
+  overview: "whiteboard-overview",
+  pages: "whiteboard-pages",
+  pdf_embed: "preview-pdf-native",
+  slideshow: "slides-slideshow",
+  speaker_notes: "slides-notes",
+  table_of_contents: "markdown-toc",
+  time_travel: "timetravel",
+  whiteboard_table_of_contents: "markdown-toc",
+  word_count: "latex-word_count",
+} as const;
+
+export function canonicalFrameType(type: string): string {
+  return LEGACY_FRAME_TYPE_ALIASES[type] ?? type;
+}
+
+export function getEditorDescription(
+  editor_spec: EditorSpec,
+  type: string,
+): EditorDescription | undefined {
+  const canonicalType = canonicalFrameType(type);
+  for (const spec of Object.values(editor_spec)) {
+    if (spec?.type === canonicalType) {
+      return spec;
+    }
+  }
+  return editor_spec[type];
+}
+
+export function getEditorDescriptions(
+  editor_spec: EditorSpec,
+): EditorDescription[] {
+  const seen = new globalThis.Set<string>();
+  const descriptions: EditorDescription[] = [];
+  for (const spec of Object.values(editor_spec)) {
+    if (spec == null || seen.has(spec.type)) continue;
+    seen.add(spec.type);
+    descriptions.push(spec);
+  }
+  return descriptions;
+}
+
+export function migrateLegacyFrameTreeTypes<T>(tree: T): T {
+  if (tree == null || typeof tree !== "object") {
+    return tree;
+  }
+  if (Array.isArray(tree)) {
+    return tree.map((child) => migrateLegacyFrameTreeTypes(child)) as T;
+  }
+  const value = tree as Record<string, unknown>;
+  const next: Record<string, unknown> = { ...value };
+  if (typeof value.type === "string") {
+    next.type = canonicalFrameType(value.type);
+  }
+  if (value.first != null) {
+    next.first = migrateLegacyFrameTreeTypes(value.first);
+  }
+  if (value.second != null) {
+    next.second = migrateLegacyFrameTreeTypes(value.second);
+  }
+  if (Array.isArray(value.children)) {
+    next.children = value.children.map((child) =>
+      migrateLegacyFrameTreeTypes(child),
+    );
+  }
+  return next as T;
+}
+
 export type EditorState = Map<string, any>; // TODO: use TypeMap and do this right.
 
 export interface EditorComponentProps {
@@ -212,7 +233,6 @@ export interface EditorComponentProps {
   gutters?: EditorDescription["gutters"];
   is_current: boolean;
   is_fullscreen: boolean;
-  is_public: boolean;
   is_subframe: boolean;
   is_visible: boolean;
   local_view_state: Map<string, any>;

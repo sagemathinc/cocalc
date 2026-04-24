@@ -49,7 +49,6 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
   private slateEditors: { [id: string]: SlateEditor } = {};
 
   _init2(): void {
-    if (this.is_public) return;
     this._init_syncstring_value();
     this._init_spellcheck();
 
@@ -66,20 +65,16 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
   }
 
   _raw_default_frame_tree(): FrameTree {
-    if (this.is_public) {
-      return { type: "markdown" };
-    } else {
-      return {
-        direction: "col",
-        type: "node",
-        first: {
-          type: "cm",
-        },
-        second: {
-          type: "slate", // if hit issues, switch to "markdown"
-        },
-      };
-    }
+    return {
+      direction: "col",
+      type: "node",
+      first: {
+        type: "cm",
+      },
+      second: {
+        type: "slate", // if hit issues, switch to "markdown"
+      },
+    };
   }
 
   toggle_markdown_checkbox(id: string, index: number, checked: boolean): void {
@@ -178,7 +173,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
-      "markdown_table_of_contents",
+      "markdown-toc",
       "col",
       true,
       1 / 3,
@@ -194,10 +189,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       // no need since not initialized yet or already closed.
       return;
     }
-    if (
-      !force &&
-      !this.get_matching_frame({ type: "markdown_table_of_contents" })
-    ) {
+    if (!force && !this.get_matching_frame({ type: "markdown-toc" })) {
       // There is no table of contents frame so don't update that info.
       return;
     }
@@ -231,7 +223,6 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
   // for rendered markdown, switch frame type so that this rendered view
   // is instead editable.
   public edit(id: string): void {
-    if (this.is_public) return;
     this.set_frame_type(id, "slate");
   }
 

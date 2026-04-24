@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -12,18 +12,23 @@ Basically, this is like register_file_editor, but much more specialized.
 import type { IconName } from "@cocalc/frontend/components/icon";
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { register_file_editor as general_register_file_editor } from "@cocalc/frontend/file-editors";
 import { redux_name } from "@cocalc/frontend/app-framework";
+import { extensionRegistry } from "@cocalc/frontend/sdk/registry";
+import {
+  builtin_default_editor_id_for_ext,
+  register_file_editor as general_register_file_editor,
+} from "@cocalc/frontend/file-editors";
 
 interface AsyncRegister {
+  id: string;
   icon?: IconName;
   ext: string | string[];
   editor: () => Promise<any>;
   actions: () => Promise<any>;
-  is_public?: boolean;
 }
 
 interface Register {
+  id: string;
   icon?: IconName;
   ext:
     | string
@@ -34,7 +39,6 @@ interface Register {
     component: any;
     Actions: any;
   }> /* async function that returns the component and Actions instead. */;
-  is_public?: boolean /* if given, only register public or not public editors (not both) */;
 }
 
 function isAsyncRegister(
@@ -47,6 +51,7 @@ export function register_file_editor(opts: Register | AsyncRegister) {
   if (isAsyncRegister(opts)) {
     // AsyncRegister
     register_file_editor({
+      id: opts.id,
       icon: opts.icon,
       ext: opts.ext,
       asyncData: async () => {
@@ -54,30 +59,22 @@ export function register_file_editor(opts: Register | AsyncRegister) {
         const Actions = (await opts.actions()).Actions;
         return { component, Actions };
       },
-      is_public: opts.is_public,
     });
     return;
   }
-  const v: boolean[] = [];
-  if (opts.is_public != undefined) {
-    v.push(!!opts.is_public);
-  } else {
-    v.push(true);
-    v.push(false);
-  }
-  for (const is_public of v) {
-    register(
-      opts.icon,
-      opts.ext,
-      opts.component,
-      opts.Actions,
-      opts.asyncData,
-      is_public,
-    );
-  }
+  register(
+    opts.id,
+    opts.icon,
+    opts.ext,
+    opts.component,
+    opts.Actions,
+    opts.asyncData,
+  );
 }
 
 const reference_count: { [name: string]: number } = {};
+const REGISTRY: { [key: string]: any[] } = {};
+const REGISTRY_BY_ID: { [id: string]: any } = {};
 
 declare const DEBUG; // webpack.
 if (DEBUG) {
@@ -174,6 +171,7 @@ function withTimeoutAndRetry<T>(
 }
 
 function register(
+  id: string,
   icon: IconName | undefined,
   ext: string | string[],
   component: any,
@@ -184,12 +182,11 @@ function register(
         component: any;
         Actions: any;
       }>),
-  is_public: boolean,
 ) {
   let data: any = {
+    id,
     icon,
     ext,
-    is_public,
 
     remove(path: string, redux, project_id: string): string {
       const name = redux_name(project_id, path);
@@ -231,7 +228,6 @@ function register(
     },
 
     save(path: string, redux, project_id: string): void {
-      if (is_public) return;
       const name = redux_name(project_id, path);
       const actions = redux.getActions(name);
       actions?.save?.();
@@ -255,7 +251,7 @@ function register(
       const actions = redux.createActions(name, Actions);
 
       // Call the base class init.  (NOTE: it also calls _init2 if defined.)
-      actions._init(project_id, path, is_public, store);
+      actions._init(project_id, path, store);
 
       return name;
     };
@@ -316,16 +312,51 @@ function register(
     ext = [ext];
   }
   for (const e of ext) {
-    REGISTRY[key(e, is_public)] = data;
+    REGISTRY[e] = [
+      ...(REGISTRY[e] ?? []).filter((editor) => editor.id !== id),
+      data,
+    ];
   }
+  REGISTRY_BY_ID[id] = data;
 }
 
-const REGISTRY: { [key: string]: any } = {};
-
-export function get_file_editor(ext: string, is_public: boolean = false) {
-  return REGISTRY[key(ext, is_public)];
+function resolveCandidate(ext: string, editorId?: string): any | undefined {
+  const builtinEditorId = builtin_default_editor_id_for_ext(ext);
+  const extensionResolution = extensionRegistry.resolveEditor(
+    extensionRegistry.getEditorCandidatesForFileKey(ext),
+    {
+      editorId,
+      builtinEditorId,
+    },
+  );
+  if (extensionResolution != null && extensionResolution.reason !== "latest") {
+    const extensionCandidate =
+      REGISTRY_BY_ID[extensionResolution.extension.definition.id];
+    if (extensionCandidate != null) {
+      return extensionCandidate;
+    }
+  }
+  if (editorId != null) {
+    const remembered = REGISTRY_BY_ID[editorId];
+    if (remembered != null) {
+      return remembered;
+    }
+  }
+  const candidates = REGISTRY[ext];
+  if (candidates == null || candidates.length === 0) {
+    return;
+  }
+  if (builtinEditorId != null) {
+    const builtin = candidates.find(
+      (candidate) => candidate.id === builtinEditorId,
+    );
+    if (builtin != null) {
+      return builtin;
+    }
+  }
+  return candidates[candidates.length - 1];
 }
 
-function key(ext: string, is_public: boolean): string {
-  return `${is_public}-${ext}`;
+export function get_file_editor(ext: string, editorId?: string) {
+  return resolveCandidate(ext, editorId);
 }

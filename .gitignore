@@ -117,6 +117,7 @@ src/smc-build/prometheus/alertmanager.yml
 **/octave-workspace
 **/.cache/
 .gitignore
+!src/packages/editor-extensions/.gitignore
 postgres-env
 
 # related to testing
@@ -180,3 +181,4 @@ junit.xml
 **/cocalc-api/site/**
 
 !src/packages/next/public/documents/*.pdf
+.claude/scheduled_tasks.lock

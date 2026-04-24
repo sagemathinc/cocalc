@@ -1,11 +1,9 @@
+import { defineFrame, registerExtension } from "@cocalc/sdk";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import CSV from "@cocalc/frontend/components/data-grid/csv";
 
-export interface GridProps {
-  value: string;
-}
+import CSV from "./csv";
 
-export default function Grid({ value }: GridProps) {
+function Grid({ value }: { value: string }) {
   const { actions, desc } = useFrameContext();
   return (
     <div
@@ -33,3 +31,21 @@ export default function Grid({ value }: GridProps) {
     </div>
   );
 }
+
+registerExtension(
+  defineFrame({
+    id: "cocalc/csv-grid-frame",
+    name: "CSV Grid Frame",
+    version: "0.0.1",
+    source: "builtin",
+    targetEditors: ["cocalc/csv-editor"],
+    frame: {
+      type: "cocalc/csv-grid",
+      short: "Grid",
+      name: "Grid",
+      icon: "table",
+      component: Grid,
+      commands: ["decrease_font_size", "increase_font_size", "chatgpt"],
+    },
+  }),
+);

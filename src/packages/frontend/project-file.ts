@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -13,18 +13,20 @@ import { defineMessage } from "react-intl";
 import type { IconName } from "@cocalc/frontend/components/icon";
 import { IntlMessage } from "@cocalc/frontend/i18n";
 
-import { file_associations } from "./file-associations";
+import { file_associations, NO_EXT_PREFIX } from "./file-associations";
 export {
+  builtin_default_editor_id,
   icon,
   register_file_editor,
+  has_registered_editor,
   initialize,
   initializeAsync,
   generateAsync,
   remove,
+  resolve_editor_id,
   save,
 } from "./file-editors";
 
-const NO_EXT_PREFIX = "noext-";
 export function special_filenames_with_no_extension(): string[] {
   const v: string[] = [];
   for (const name in file_associations) {

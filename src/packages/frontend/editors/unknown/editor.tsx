@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -125,6 +125,7 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
         if (ext) {
           // automatically register the code editor
           register_file_editor({
+            id: "cocalc/code-editor",
             ext: [ext],
             component: CodeEditor,
             Actions: CodeEditorActions,
@@ -177,6 +178,7 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
     switch (editor) {
       case "code":
         register_file_editor({
+          id: "cocalc/code-editor",
           ext: [ext],
           component: CodeEditor,
           Actions: CodeEditorActions,

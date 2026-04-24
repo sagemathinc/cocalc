@@ -42,7 +42,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   private closeJupyterStoreWatchers: (() => void) | undefined;
 
   _raw_default_frame_tree(): FrameTree {
-    return { type: "jupyter_cell_notebook" };
+    return { type: "jupyter" };
   }
 
   _init2(): void {
@@ -520,14 +520,14 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   public async build(id: string): Promise<void> {
     switch (this._get_frame_type(id)) {
-      case "jupyter_slideshow_revealjs":
+      case "slideshow-revealjs":
         this.build_revealjs_slideshow();
         break;
     }
   }
 
   public show_revealjs_slideshow(): void {
-    this.show_focused_frame_of_type("jupyter_slideshow_revealjs");
+    this.show_focused_frame_of_type("slideshow-revealjs");
     this.build_revealjs_slideshow();
   }
 
@@ -538,8 +538,9 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     // Open or focus a notebook viewer and scroll to the given cell.
     // Prefer an existing minimal frame over creating a new standard one.
     if (this._state === "closed") return;
-    const existingMinimal = this._get_most_recent_active_frame_id_of_type("jupyter_minimal");
-    const frameType = existingMinimal ? "jupyter_minimal" : "jupyter_cell_notebook";
+    const existingMinimal =
+      this._get_most_recent_active_frame_id_of_type("jupyter-minimal");
+    const frameType = existingMinimal ? "jupyter-minimal" : "jupyter";
     const id = this.show_focused_frame_of_type(frameType);
     const actions = this.get_frame_actions(id);
     if (actions == null) return;
@@ -673,7 +674,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
-      "jupyter_table_of_contents",
+      "jupyter-toc",
       "col",
       true,
       1 / 3,
@@ -685,12 +686,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   }
 
   public async guide(): Promise<void> {
-    const id = this.show_focused_frame_of_type(
-      "commands_guide",
-      "col",
-      false,
-      3 / 4,
-    );
+    const id = this.show_focused_frame_of_type("snippets", "col", false, 3 / 4);
     // the click to select focuses the active id back on the notebook
     await delay(0);
     if (this._state === "closed") return;
@@ -699,12 +695,17 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   // Either show the most recently focused introspect frame, or ceate one.
   public async show_introspect(): Promise<void> {
-    this.show_recently_focused_frame_of_type("introspect", "col", false, 2 / 3);
+    this.show_recently_focused_frame_of_type(
+      "jupyter-introspect",
+      "col",
+      false,
+      2 / 3,
+    );
   }
 
   // Close the most recently focused introspect frame, if there is one.
   public async close_introspect(): Promise<void> {
-    this.close_recently_focused_frame_of_type("introspect");
+    this.close_recently_focused_frame_of_type("jupyter-introspect");
   }
 
   async gotoFragment(fragmentId: FragmentId) {
@@ -714,8 +715,9 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     }
     // Prefer an existing notebook frame (minimal or default) rather than
     // always creating a jupyter_cell_notebook which overrides the saved layout.
-    const existingMinimal = this._get_most_recent_active_frame_id_of_type("jupyter_minimal");
-    const frameType = existingMinimal ? "jupyter_minimal" : "jupyter_cell_notebook";
+    const existingMinimal =
+      this._get_most_recent_active_frame_id_of_type("jupyter-minimal");
+    const frameType = existingMinimal ? "jupyter-minimal" : "jupyter";
     const frameId = await this.waitUntilFrameReady({
       type: frameType,
       syncdoc: this.jupyter_actions.syncdb,
