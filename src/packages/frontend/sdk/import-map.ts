@@ -6,16 +6,16 @@ type ExtensionImportProvider =
   | (() => unknown | Promise<unknown>);
 
 const EXTENSION_IMPORT_MAP_KEY = Symbol.for(
-  "cocalc.editor-extensions.import-map",
+  "cocalc.sdk.import-map",
 );
 const EXTENSION_IMPORT_CACHE_KEY = Symbol.for(
-  "cocalc.editor-extensions.import-cache",
+  "cocalc.sdk.import-cache",
 );
 const EXTENSION_IMPORT_MODULE_URL_CACHE_KEY = Symbol.for(
-  "cocalc.editor-extensions.import-module-url-cache",
+  "cocalc.sdk.import-module-url-cache",
 );
 const EXTENSION_IMPORT_MODULE_VALUES_KEY = Symbol.for(
-  "cocalc.editor-extensions.import-module-values",
+  "cocalc.sdk.import-module-values",
 );
 
 function getExtensionImportMapStore(): Map<string, ExtensionImportProvider> {
@@ -65,14 +65,14 @@ const BUILTIN_EXTENSION_IMPORTS: Record<string, ExtensionImportValue> = {
   react: React,
   "react/jsx-runtime": () => import("react/jsx-runtime"),
   "@cocalc/conat": () => import("./host-conat"),
-  "@cocalc/editor-extensions": () => import("@cocalc/editor-extensions"),
+  "@cocalc/sdk": () => import("@cocalc/sdk"),
   "@cocalc/frontend/app-framework": () =>
     import("@cocalc/frontend/app-framework"),
   "@cocalc/frontend/app-framework/syncdb": () =>
     import("@cocalc/frontend/app-framework/syncdb"),
   "@cocalc/frontend/components/data-grid/csv": () =>
     import("@cocalc/frontend/components/data-grid/csv"),
-  "@cocalc/frontend/extensions/hooks": () => import("./hooks"),
+  "@cocalc/frontend/sdk/hooks": () => import("./hooks"),
   "@cocalc/frontend/frame-editors/code-editor/actions": () =>
     import("@cocalc/frontend/frame-editors/code-editor/actions"),
   "@cocalc/frontend/frame-editors/code-editor/codemirror-editor": () =>
@@ -138,7 +138,7 @@ export async function loadExtensionImport(specifier: string): Promise<unknown> {
 function toExportStatements(storeKey: string, moduleValue: unknown): string {
   const lines = [
     `const mod = globalThis[Symbol.for(${JSON.stringify(
-      "cocalc.editor-extensions.import-module-values",
+      "cocalc.sdk.import-module-values",
     )})][${JSON.stringify(storeKey)}];`,
     `export default mod?.default ?? mod;`,
   ];

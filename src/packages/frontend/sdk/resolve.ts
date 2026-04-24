@@ -1,4 +1,4 @@
-import type { EditorExtensionDefinition } from "@cocalc/editor-extensions";
+import type { EditorExtensionDefinition } from "@cocalc/sdk";
 
 import {
   NO_EXT_PREFIX,

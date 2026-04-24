@@ -1,4 +1,4 @@
-import { defineEditor, registerExtension } from "@cocalc/editor-extensions";
+import { defineEditor, registerExtension } from "@cocalc/sdk";
 import CSV from "@cocalc/frontend/components/data-grid/csv";
 import { CodemirrorEditor } from "@cocalc/frontend/frame-editors/code-editor/codemirror-editor";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";

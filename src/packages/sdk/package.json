@@ -1,7 +1,7 @@
 {
-  "name": "@cocalc/editor-extensions",
+  "name": "@cocalc/sdk",
   "version": "0.0.1",
-  "description": "Thin SDK for CoCalc editor extensions",
+  "description": "SDK for building CoCalc applications and extensions",
   "exports": {
     ".": "./dist/index.js",
     "./*": "./dist/*.js"

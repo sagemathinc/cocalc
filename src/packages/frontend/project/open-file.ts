@@ -10,7 +10,7 @@ import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
 import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
-import { ensureBuiltinExtensionBundles } from "@cocalc/frontend/extensions/builtin";
+import { ensureBuiltinExtensionBundles } from "@cocalc/frontend/sdk/builtin";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import {
   builtin_default_editor_id,
@@ -184,7 +184,7 @@ export async function open_file(
   if (editorId != null && !has_registered_editor(editorId)) {
     try {
       const { initExtensionManifestRegistration } =
-        await import("@cocalc/frontend/extensions/register");
+        await import("@cocalc/frontend/sdk/register");
       initExtensionManifestRegistration();
       await ensureBuiltinExtensionBundles();
     } catch (err) {

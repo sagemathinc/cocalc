@@ -11,56 +11,56 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { retry_until_success, withTimeout } from "@cocalc/util/async-utils";
 import { loadExtensionBundle } from "./loader";
 
-const PROJECT_EDITOR_EXTENSIONS_DKV = "editor-extensions";
-const PROJECT_EDITOR_EXTENSIONS_CONFIG_KEY = "config";
+const PROJECT_SDK_DKV = "sdk-bundles";
+const PROJECT_SDK_CONFIG_KEY = "config";
 
-export interface InstalledProjectEditorExtension {
+export interface InstalledSdkBundle {
   id: string;
   bundleUrl: string;
   enabled?: boolean;
 }
 
-export interface ProjectEditorExtensionSettings {
+export interface SdkBundleSettings {
   extra_frames?: string[];
   options?: Record<string, unknown>;
 }
 
-export interface ProjectEditorExtensionsConfig {
+export interface ProjectSdkConfig {
   file_mappings?: Record<string, string>;
-  installed?: InstalledProjectEditorExtension[];
-  editor_settings?: Record<string, ProjectEditorExtensionSettings>;
+  installed?: InstalledSdkBundle[];
+  editor_settings?: Record<string, SdkBundleSettings>;
 }
 
-interface ProjectEditorExtensionsChange {
+interface ProjectSdkConfigChange {
   key?: string;
-  value?: ProjectEditorExtensionsConfig;
+  value?: ProjectSdkConfig;
 }
 
-interface ProjectEditorExtensionsDKV {
+interface ProjectSdkDKV {
   get(key: string): unknown;
   set(key: string, value: unknown): void;
   on(
     event: "change",
-    listener: (event: ProjectEditorExtensionsChange) => void,
+    listener: (event: ProjectSdkConfigChange) => void,
   ): void;
   removeListener?(
     event: "change",
-    listener: (event: ProjectEditorExtensionsChange) => void,
+    listener: (event: ProjectSdkConfigChange) => void,
   ): void;
   close?(): void;
 }
 
-type ProjectEditorConfigListener = (
-  config: ProjectEditorExtensionsConfig,
+type ProjectSdkConfigListener = (
+  config: ProjectSdkConfig,
 ) => void;
 
 function normalizeInstalled(
   value: unknown,
-): InstalledProjectEditorExtension[] | undefined {
+): InstalledSdkBundle[] | undefined {
   if (!Array.isArray(value)) {
     return;
   }
-  const installed: InstalledProjectEditorExtension[] = [];
+  const installed: InstalledSdkBundle[] = [];
   for (const item of value) {
     if (item == null || typeof item !== "object" || Array.isArray(item)) {
       continue;
@@ -102,11 +102,11 @@ function normalizeFileMappings(
 
 function normalizeEditorSettings(
   value: unknown,
-): Record<string, ProjectEditorExtensionSettings> | undefined {
+): Record<string, SdkBundleSettings> | undefined {
   if (value == null || typeof value !== "object" || Array.isArray(value)) {
     return;
   }
-  const normalized: Record<string, ProjectEditorExtensionSettings> = {};
+  const normalized: Record<string, SdkBundleSettings> = {};
   for (const [editorId, settings] of Object.entries(
     value as Record<string, unknown>,
   )) {
@@ -142,9 +142,9 @@ function normalizeEditorSettings(
   return normalized;
 }
 
-export function normalizeProjectEditorExtensionsConfig(
+export function normalizeProjectSdkConfig(
   value: unknown,
-): ProjectEditorExtensionsConfig {
+): ProjectSdkConfig {
   if (value == null || typeof value !== "object" || Array.isArray(value)) {
     return {};
   }
@@ -160,15 +160,15 @@ export function normalizeProjectEditorExtensionsConfig(
   };
 }
 
-export function getProjectEditorConfig(
+export function getProjectSdkConfig(
   project_id: string,
-): ProjectEditorExtensionsConfig {
+): ProjectSdkConfig {
   const storeConfig = redux
     .getProjectStore(project_id)
-    ?.get("extension_config");
+    ?.get("sdk_config");
   const storeValue =
     typeof storeConfig?.toJS === "function" ? storeConfig.toJS() : storeConfig;
-  return normalizeProjectEditorExtensionsConfig(storeValue);
+  return normalizeProjectSdkConfig(storeValue);
 }
 
 export function getProjectEditorId(
@@ -178,33 +178,33 @@ export function getProjectEditorId(
   if (project_id == null || fileKey == null) {
     return;
   }
-  return getProjectEditorConfig(project_id).file_mappings?.[
+  return getProjectSdkConfig(project_id).file_mappings?.[
     canonical_extension(fileKey)
   ];
 }
 
-export async function saveProjectEditorConfig(
+export async function saveProjectSdkConfig(
   project_id: string,
-  config: ProjectEditorExtensionsConfig,
+  config: ProjectSdkConfig,
 ): Promise<void> {
   const dkv =
-    (await webapp_client.conat_client.dkv<ProjectEditorExtensionsConfig>({
+    (await webapp_client.conat_client.dkv<ProjectSdkConfig>({
       project_id,
-      name: PROJECT_EDITOR_EXTENSIONS_DKV,
-    })) as unknown as ProjectEditorExtensionsDKV;
+      name: PROJECT_SDK_DKV,
+    })) as unknown as ProjectSdkDKV;
   try {
     dkv.set(
-      PROJECT_EDITOR_EXTENSIONS_CONFIG_KEY,
-      normalizeProjectEditorExtensionsConfig(config),
+      PROJECT_SDK_CONFIG_KEY,
+      normalizeProjectSdkConfig(config),
     );
   } finally {
     dkv.close?.();
   }
 }
 
-export async function openProjectEditorConfig(
+export async function openProjectSdkConfig(
   project_id: string,
-  onChange: ProjectEditorConfigListener,
+  onChange: ProjectSdkConfigListener,
 ): Promise<() => void> {
   const account = redux.getStore("account");
   const ready = await account?.waitUntilReady?.();
@@ -214,22 +214,22 @@ export async function openProjectEditorConfig(
   const dkv = (await retry_until_success({
     f: async () =>
       (await withTimeout(
-        webapp_client.conat_client.dkv<ProjectEditorExtensionsConfig>({
+        webapp_client.conat_client.dkv<ProjectSdkConfig>({
           project_id,
-          name: PROJECT_EDITOR_EXTENSIONS_DKV,
+          name: PROJECT_SDK_DKV,
         }),
         15000,
-      )) as unknown as ProjectEditorExtensionsDKV,
+      )) as unknown as ProjectSdkDKV,
     max_time: 60000,
     max_delay: 5000,
     desc: `open project editor extensions dkv for ${project_id}`,
-  })) as ProjectEditorExtensionsDKV;
+  })) as ProjectSdkDKV;
   const emit = (value: unknown) => {
-    onChange(normalizeProjectEditorExtensionsConfig(value));
+    onChange(normalizeProjectSdkConfig(value));
   };
-  emit(dkv.get(PROJECT_EDITOR_EXTENSIONS_CONFIG_KEY));
-  const listener = (event: ProjectEditorExtensionsChange) => {
-    if (event.key !== PROJECT_EDITOR_EXTENSIONS_CONFIG_KEY) {
+  emit(dkv.get(PROJECT_SDK_CONFIG_KEY));
+  const listener = (event: ProjectSdkConfigChange) => {
+    if (event.key !== PROJECT_SDK_CONFIG_KEY) {
       return;
     }
     emit(event.value);
@@ -241,14 +241,14 @@ export async function openProjectEditorConfig(
   };
 }
 
-export function useProjectEditorConfig(
+export function useProjectSdkConfig(
   project_id: string,
-): ProjectEditorExtensionsConfig | undefined {
-  return useTypedRedux({ project_id }, "extension_config");
+): ProjectSdkConfig | undefined {
+  return useTypedRedux({ project_id }, "sdk_config");
 }
 
-export function useProjectEditorExtensions(project_id: string): void {
-  const config = useProjectEditorConfig(project_id);
+export function useProjectSdkBundles(project_id: string): void {
+  const config = useProjectSdkConfig(project_id);
 
   useEffect(() => {
     let active = true;

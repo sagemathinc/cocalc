@@ -13,7 +13,7 @@ import type { IconName } from "@cocalc/frontend/components/icon";
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { redux_name } from "@cocalc/frontend/app-framework";
-import { extensionRegistry } from "@cocalc/frontend/extensions/registry";
+import { extensionRegistry } from "@cocalc/frontend/sdk/registry";
 import {
   builtin_default_editor_id_for_ext,
   register_file_editor as general_register_file_editor,

@@ -17,8 +17,8 @@ import {
 import { React } from "@cocalc/frontend/app-framework";
 
 import { alert_message } from "./alerts";
-import { getProjectEditorId } from "./extensions/project-config";
-import { extensionRegistry } from "./extensions/registry";
+import { getProjectEditorId } from "./sdk/project-config";
+import { extensionRegistry } from "./sdk/registry";
 import { file_associations, resolve_file_type } from "./file-associations";
 import { EditorLoadError } from "./file-editors-error";
 

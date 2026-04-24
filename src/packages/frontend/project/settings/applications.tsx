@@ -12,17 +12,17 @@ import {
   canonical_extension,
   exact_filename_key,
 } from "@cocalc/frontend/file-associations";
-import { loadExtensionBundle } from "@cocalc/frontend/extensions/loader";
+import { loadExtensionBundle } from "@cocalc/frontend/sdk/loader";
 import {
-  saveProjectEditorConfig,
-  useProjectEditorConfig,
-  type InstalledProjectEditorExtension,
-  type ProjectEditorExtensionsConfig,
-} from "@cocalc/frontend/extensions/project-config";
+  saveProjectSdkConfig,
+  useProjectSdkConfig,
+  type InstalledSdkBundle,
+  type ProjectSdkConfig,
+} from "@cocalc/frontend/sdk/project-config";
 import { COLORS } from "@cocalc/util/theme";
 
 const { Text } = Typography;
-const EXTENSIONS_ICON = "wrench";
+const APPLICATIONS_ICON = "wrench";
 
 interface Props {
   project_id: string;
@@ -63,11 +63,11 @@ function renderMappingKey(fileKey: string): string {
   return `Extension: ${fileKey}`;
 }
 
-export const ProjectEditorExtensions: React.FC<Props> = ({
+export const ProjectApplications: React.FC<Props> = ({
   project_id,
   mode = "project",
 }: Props) => {
-  const config = useProjectEditorConfig(project_id) ?? {};
+  const config = useProjectSdkConfig(project_id) ?? {};
   const isFlyout = mode === "flyout";
   const [bundleUrl, setBundleUrl] = useState("");
   const [mappingType, setMappingType] = useState<MappingType>("extension");
@@ -115,11 +115,11 @@ export const ProjectEditorExtensions: React.FC<Props> = ({
     return [...ids].sort();
   }, [installed, fileMappings]);
 
-  async function save(next: ProjectEditorExtensionsConfig): Promise<void> {
+  async function save(next: ProjectSdkConfig): Promise<void> {
     setSaving(true);
     setError("");
     try {
-      await saveProjectEditorConfig(project_id, next);
+      await saveProjectSdkConfig(project_id, next);
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -137,7 +137,7 @@ export const ProjectEditorExtensions: React.FC<Props> = ({
     setError("");
     try {
       const loaded = await loadExtensionBundle(trimmed);
-      const nextInstalled: InstalledProjectEditorExtension[] = [
+      const nextInstalled: InstalledSdkBundle[] = [
         ...installed.filter((extension) => extension.bundleUrl !== trimmed),
         {
           id: loaded.extension.id,
@@ -145,7 +145,7 @@ export const ProjectEditorExtensions: React.FC<Props> = ({
           enabled: true,
         },
       ];
-      await saveProjectEditorConfig(project_id, {
+      await saveProjectSdkConfig(project_id, {
         ...config,
         installed: nextInstalled,
       });
@@ -235,7 +235,7 @@ export const ProjectEditorExtensions: React.FC<Props> = ({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {installed.length === 0 ? (
-          <Text type="secondary">No project extensions configured yet.</Text>
+          <Text type="secondary">No applications installed yet.</Text>
         ) : (
           installed.map((extension) => (
             <div
@@ -357,13 +357,13 @@ export const ProjectEditorExtensions: React.FC<Props> = ({
             value={mappingEditorId}
             onChange={(event) => setMappingEditorId(event.target.value)}
             placeholder="my-org/csv-viewer"
-            list={`editor-extensions-${project_id}`}
+            list={`applications-${project_id}`}
           />
           <Button loading={saving} onClick={() => void addMapping()}>
             Map
           </Button>
         </Space.Compact>
-        <datalist id={`editor-extensions-${project_id}`}>
+        <datalist id={`applications-${project_id}`}>
           {knownEditors.map((editorId) => (
             <option key={editorId} value={editorId} />
           ))}
@@ -378,10 +378,10 @@ export const ProjectEditorExtensions: React.FC<Props> = ({
       <Alert
         type="info"
         showIcon={false}
-        message="Project-scoped extension configuration is stored in a shared conat DKV and applies to all collaborators."
+        message="Installed applications and extensions are stored in a shared conat DKV and apply to all collaborators."
       />
       <div>
-        <Text strong>Installed Extensions</Text>
+        <Text strong>Installed Applications &amp; Extensions</Text>
         <div style={{ marginTop: "8px" }}>{renderInstalled()}</div>
       </div>
       <div>
@@ -396,7 +396,7 @@ export const ProjectEditorExtensions: React.FC<Props> = ({
   }
 
   return (
-    <SettingBox title="Editor Extensions" icon={EXTENSIONS_ICON as any}>
+    <SettingBox title="Applications" icon={APPLICATIONS_ICON as any}>
       {content}
     </SettingBox>
   );

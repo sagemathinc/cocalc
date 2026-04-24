@@ -6,7 +6,7 @@
 declare var DEBUG: boolean; // comes from static webpack; not defined in other contexts.
 
 import React from "react";
-import type { IconRef as ExtensionIconRef } from "@cocalc/editor-extensions";
+import type { IconRef as ExtensionIconRef } from "@cocalc/sdk";
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import useOnFrontend from "./use-on-frontend";
@@ -709,7 +709,7 @@ export type IconRef = IconName | NonBuiltinIconRef;
 type ExtensionAssetResolver = (uri: string) => Promise<string>;
 
 const EXTENSION_ASSET_RESOLVER_KEY = Symbol.for(
-  "cocalc.editor-extensions.asset-resolver",
+  "cocalc.sdk.asset-resolver",
 );
 
 function getExtensionAssetResolver(): ExtensionAssetResolver | undefined {

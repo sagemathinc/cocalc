@@ -3,7 +3,7 @@ import type {
   EditorExtensionDefinition,
   ExtensionFrameDefinition,
   ExtensionFrameTree,
-} from "@cocalc/editor-extensions";
+} from "@cocalc/sdk";
 
 import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
 import {

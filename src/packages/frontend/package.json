@@ -43,7 +43,7 @@
     "@cocalc/cdn": "workspace:*",
     "@cocalc/comm": "workspace:*",
     "@cocalc/conat": "workspace:*",
-    "@cocalc/editor-extensions": "workspace:*",
+    "@cocalc/sdk": "workspace:*",
     "@cocalc/frontend": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/local-storage-lru": "^2.4.3",

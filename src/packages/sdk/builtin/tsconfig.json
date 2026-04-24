@@ -6,8 +6,8 @@
     "jsx": "react-jsx",
     "noEmit": true,
     "paths": {
-      "@cocalc/editor-extensions": ["./index.ts"],
-      "@cocalc/editor-extensions/*": ["./*"]
+      "@cocalc/sdk": ["./index.ts"],
+      "@cocalc/sdk/*": ["./*"]
     }
   },
   "include": ["./**/*.ts", "./**/*.tsx", "../typings/**/*.d.ts"],

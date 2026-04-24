@@ -30,7 +30,7 @@
     { "path": "../comm" },
     { "path": "../jupyter" },
     { "path": "../conat" },
-    { "path": "../editor-extensions" },
+    { "path": "../sdk" },
     { "path": "../sync" },
     { "path": "../util" }
   ],

@@ -27,9 +27,9 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Listings, listings } from "@cocalc/frontend/conat/listings";
 import {
-  openProjectEditorConfig,
-  type ProjectEditorExtensionsConfig,
-} from "@cocalc/frontend/extensions/project-config";
+  openProjectSdkConfig,
+  type ProjectSdkConfig,
+} from "@cocalc/frontend/sdk/project-config";
 import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
 import { get_local_storage } from "@cocalc/frontend/misc";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
@@ -164,7 +164,7 @@ export interface ProjectStoreState {
   // Project Settings
   get_public_path_id?: (path: string) => any;
   stripped_public_paths: any; //computed(immutable.List)
-  extension_config?: ProjectEditorExtensionsConfig;
+  sdk_config?: ProjectSdkConfig;
 
   // Project Info
   show_project_info_explanation?: boolean;
@@ -224,12 +224,12 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
   _init = (): void => {
     this.projectEditorConfigDestroyed = false;
-    void openProjectEditorConfig(this.project_id, (extension_config) => {
+    void openProjectSdkConfig(this.project_id, (sdk_config) => {
       if (this.projectEditorConfigDestroyed) {
         return;
       }
       this.redux.getProjectActions(this.project_id)?.setState({
-        extension_config,
+        sdk_config,
       } as any);
     })
       .then((close) => {
@@ -385,7 +385,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Settings
       stripped_public_paths: this.selectors.stripped_public_paths.fn,
-      extension_config: undefined,
+      sdk_config: undefined,
 
       other_settings: undefined,
 

@@ -54,7 +54,7 @@ import { init as initLast } from "./last";
 import { render } from "./app/render";
 
 export async function init() {
-  const { initExtensionImportMap } = await import("./extensions/import-map");
+  const { initExtensionImportMap } = await import("./sdk/import-map");
   initExtensionImportMap();
   initJqueryPlugins();
   initAccount(redux);
@@ -88,8 +88,8 @@ export async function init() {
     { initBuiltinExtensionBundles },
     { initExtensionManifestRegistration },
   ] = await Promise.all([
-    import("./extensions/builtin"),
-    import("./extensions/register"),
+    import("./sdk/builtin"),
+    import("./sdk/register"),
   ]);
   initExtensionManifestRegistration();
   try {

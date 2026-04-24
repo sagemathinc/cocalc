@@ -1,10 +1,10 @@
 import type { ExtensionDefinition, ExtensionRegistrationApi } from "./types";
 
 const REGISTRATION_API_KEY = Symbol.for(
-  "cocalc.editor-extensions.registration-api",
+  "cocalc.sdk.registration-api",
 );
 const PENDING_EXTENSIONS_KEY = Symbol.for(
-  "cocalc.editor-extensions.pending-extensions",
+  "cocalc.sdk.pending-extensions",
 );
 
 function getPendingExtensions(): ExtensionDefinition[] {

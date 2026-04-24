@@ -331,15 +331,6 @@ importers:
         specifier: ^2.5.1
         version: 2.7.0
 
-  editor-extensions:
-    devDependencies:
-      '@types/react':
-        specifier: ^19.1.10
-        version: 19.1.10
-      react:
-        specifier: ^19.1.1
-        version: 19.1.1
-
   file-server:
     dependencies:
       '@cocalc/backend':
@@ -388,9 +379,6 @@ importers:
       '@cocalc/conat':
         specifier: workspace:*
         version: link:../conat
-      '@cocalc/editor-extensions':
-        specifier: workspace:*
-        version: link:../editor-extensions
       '@cocalc/frontend':
         specifier: workspace:*
         version: 'link:'
@@ -400,6 +388,9 @@ importers:
       '@cocalc/local-storage-lru':
         specifier: ^2.4.3
         version: 2.5.0
+      '@cocalc/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@cocalc/sync':
         specifier: workspace:*
         version: link:../sync
@@ -1233,6 +1224,15 @@ importers:
       '@types/uuid':
         specifier: ^8.3.1
         version: 8.3.4
+
+  sdk:
+    devDependencies:
+      '@types/react':
+        specifier: ^19.1.10
+        version: 19.1.10
+      react:
+        specifier: ^19.1.1
+        version: 19.1.1
 
   server:
     dependencies:

@@ -2,11 +2,11 @@ import type {
   EditorExtensionDefinition,
   ExtensionDefinition,
   FrameExtensionDefinition,
-} from "@cocalc/editor-extensions";
+} from "@cocalc/sdk";
 import {
   consumePendingExtensions,
   setExtensionRegistrationApi,
-} from "@cocalc/editor-extensions";
+} from "@cocalc/sdk";
 
 import { resolve_file_type } from "@cocalc/frontend/file-associations";
 

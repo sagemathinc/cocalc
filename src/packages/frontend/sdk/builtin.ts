@@ -20,7 +20,7 @@ function builtinBasePath(): string {
 }
 
 function builtinIndexUrl(): string {
-  return `${builtinBasePath()}/static/editor-extensions/index.json`;
+  return `${builtinBasePath()}/static/sdk/index.json`;
 }
 
 function builtinArchiveUrl(path: string): string {

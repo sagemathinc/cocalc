@@ -1,11 +1,11 @@
 declare var DEBUG: boolean;
 
-import type { TrustedExtensionSupplier } from "@cocalc/editor-extensions";
+import type { TrustedExtensionSupplier } from "@cocalc/sdk";
 
 import { redux } from "@cocalc/frontend/app-framework";
 
 const EXTENSION_TRUST_CONFIG_KEY = Symbol.for(
-  "cocalc.editor-extensions.trust-config",
+  "cocalc.sdk.trust-config",
 );
 
 interface ExtensionTrustConfig {
@@ -63,7 +63,7 @@ function getConfiguredTrustedSuppliers(): TrustedExtensionSupplier[] {
   }
   return (
     normalizeTrustedSuppliers(
-      redux.getStore("customize")?.get?.("trusted_extension_suppliers"),
+      redux.getStore("customize")?.get?.("trusted_sdk_suppliers"),
     ) ?? []
   );
 }
@@ -71,7 +71,7 @@ function getConfiguredTrustedSuppliers(): TrustedExtensionSupplier[] {
 function getDeveloperModeFlag(): boolean {
   const accountStore = redux.getStore("account");
   return (
-    accountStore?.getIn?.(["customize", "editor_extensions_developer_mode"]) ===
+    accountStore?.getIn?.(["customize", "sdk_developer_mode"]) ===
       true || accountStore?.getIn?.(["customize", "developer_mode"]) === true
   );
 }

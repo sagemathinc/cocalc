@@ -2,7 +2,7 @@ import {
   verifyExtensionArchiveSignature,
   type ExtensionDefinition,
   type VerifiedExtensionArchiveSignature,
-} from "@cocalc/editor-extensions";
+} from "@cocalc/sdk";
 
 import { extensionRegistry } from "./registry";
 import {
@@ -30,10 +30,10 @@ const bundleLoadCache = new Map<string, Promise<LoadedExtensionBundle>>();
 const assetUrlCache = new Map<string, Promise<string>>();
 
 const EXTENSION_ASSET_RESOLVER_KEY = Symbol.for(
-  "cocalc.editor-extensions.asset-resolver",
+  "cocalc.sdk.asset-resolver",
 );
 
-const EXTENSION_ARCHIVE_DB = "cocalc-editor-extensions";
+const EXTENSION_ARCHIVE_DB = "cocalc-sdk-bundles";
 const EXTENSION_ARCHIVE_DB_VERSION = 1;
 const EXTENSION_ARCHIVE_STORE = "archives";
 const EXTENSION_ARCHIVE_BUNDLE_URL_INDEX = "bundleUrl";

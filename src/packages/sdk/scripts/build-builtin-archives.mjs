@@ -268,7 +268,7 @@ function buildBuiltin(builtinName) {
     id: manifest.id,
     version: manifest.version,
     filename,
-    path: `editor-extensions/${filename}`,
+    path: `sdk/${filename}`,
   };
 }
 

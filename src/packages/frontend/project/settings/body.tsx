@@ -21,7 +21,7 @@ import { AboutBox } from "./about-box";
 import { ApiKeys } from "./api-keys";
 import { Datastore } from "./datastore";
 import { Environment } from "./environment";
-import { ProjectEditorExtensions } from "./editor-extensions";
+import { ProjectApplications } from "./applications";
 import { HideDeleteBox } from "./hide-delete-box";
 import { ProjectCapabilities } from "./project-capabilites";
 import { ProjectControl } from "./project-control";
@@ -122,7 +122,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
               />
             )}
           <ApiKeys project_id={project_id} />
-          <ProjectEditorExtensions project_id={project_id} />
+          <ProjectApplications project_id={project_id} />
         </Col>
       </Row>
     </div>

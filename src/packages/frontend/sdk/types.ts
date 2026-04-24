@@ -3,7 +3,7 @@ import type {
   ExtensionDefinition,
   ExtensionRegistrationApi,
   FrameExtensionDefinition,
-} from "@cocalc/editor-extensions";
+} from "@cocalc/sdk";
 
 export interface RegisteredExtension<
   T extends ExtensionDefinition = ExtensionDefinition,

@@ -1,4 +1,4 @@
-declare module "@cocalc/frontend/extensions/hooks" {
+declare module "@cocalc/frontend/sdk/hooks" {
   export function useEditorState<T = unknown>(...args: any[]): T;
   export function useSyncDB<T = unknown>(...args: any[]): T;
   export function useSyncValue<T = unknown>(...args: any[]): T;

@@ -4,7 +4,7 @@
  */
 
 import "./generic/jquery-plugins";
-import "../extensions/registry";
+import "../sdk/registry";
 import "./code-editor/register"; // should be first.
 import "./wiki-editor/register";
 import "./rmd-editor/register";

@@ -121,7 +121,7 @@ import {
   defineEditor,
   registerExtension,
   CodemirrorEditor,
-} from "@cocalc/editor-extensions";
+} from "@cocalc/sdk";
 
 const extension = defineEditor({
   id: "my-org/csv-viewer",
@@ -172,7 +172,7 @@ The `frames` object keys **are** the frame type identifiers (matching `EditorDes
 Frame extensions target editors by their **stable manifest ID**, not by file extension. This avoids ambiguity when multiple extensions map the same file type, or when an editor handles multiple extensions (e.g., `md` and `markdown`).
 
 ```typescript
-import { defineFrame, registerExtension } from "@cocalc/editor-extensions";
+import { defineFrame, registerExtension } from "@cocalc/sdk";
 
 const frame = defineFrame({
   id: "my-org/custom-preview",
@@ -241,10 +241,10 @@ type IconRef =
 
 ## Extension Registry
 
-New directory: `frontend/extensions/`
+New directory: `frontend/sdk/`
 
 ```
-frontend/extensions/
+frontend/sdk/
   types.ts          -- EditorExtensionManifest, related types
   registry.ts       -- ExtensionRegistry singleton
   loader.ts         -- bundle loading (wraps existing withTimeoutAndRetry)
@@ -262,7 +262,7 @@ frontend/extensions/
 ### Resolution order (highest priority first)
 
 1. Per-user DKV override (`account_id` scoped, key: `ext-override:{ext}`)
-2. Per-project configuration (project-scoped DKV, key: `editor-extensions`)
+2. Per-project configuration (project-scoped DKV, key: `sdk-bundles`)
 3. Extension with highest `priority` in manifest
 4. Built-in default (current `file_associations`)
 
@@ -277,7 +277,7 @@ Project settings get a new section: **Editor Extensions**. This is where file ex
 ```typescript
 const dkv = await webapp_client.conat_client.dkv({
   project_id,
-  name: "editor-extensions",
+  name: "sdk-bundles",
 });
 
 dkv.set("config", {
@@ -313,7 +313,7 @@ Uses DKV pattern (like `frame-editor-settings.ts`):
 ```typescript
 const dkv = await webapp_client.conat_client.dkv({
   account_id,
-  name: "editor-extensions",
+  name: "sdk-bundles",
 });
 dkv.set("ext-override:csv", {
   extensionId: "my-org/csv-viewer",
@@ -336,10 +336,10 @@ The end goal is that an editor extension is a **signed archive** (`.zip`) contai
 ### Extension author workflow
 
 1. **Source repo** -- The extension lives in a GitHub repo (or any public git host). It's a normal JS/TS project.
-2. **SDK dependency** -- The repo depends on a published npm package `@cocalc/editor-extensions` (the SDK). This provides types, `defineEditor()`, `defineFrame()`, `registerExtension()`, common components (CodemirrorEditor, sync hooks, etc.), and any helpers the bundle needs at runtime.
+2. **SDK dependency** -- The repo depends on a published npm package `@cocalc/sdk` (the SDK). This provides types, `defineEditor()`, `defineFrame()`, `registerExtension()`, common components (CodemirrorEditor, sync hooks, etc.), and any helpers the bundle needs at runtime.
 3. **Build pipeline** -- The repo has a standard build step that:
    - Bundles all extension code, React components, styles into `extension.js`
-   - Marks `@cocalc/editor-extensions` as an **external** (provided by CoCalc at runtime, not bundled)
+   - Marks `@cocalc/sdk` as an **external** (provided by CoCalc at runtime, not bundled)
    - Packages icons/assets as separate files in `assets/`
    - Generates `manifest.json` from the `defineEditor()` metadata
    - **Signs the archive** with the supplier's private key -> `signature.json`
@@ -377,7 +377,7 @@ import {
   defineEditor,
   registerExtension,
   CodemirrorEditor,
-} from "@cocalc/editor-extensions";
+} from "@cocalc/sdk";
 
 const extension = defineEditor({
   id: "org.example/csv-pro",
@@ -431,17 +431,17 @@ The SDK ships a CLI for rapid local development with a watch-build-serve-reload 
 
 ```bash
 # Start the dev server (watches + rebuilds + serves + notifies CoCalc)
-npx @cocalc/editor-extensions dev
+npx @cocalc/sdk dev
 
 # Or manual trigger mode (no file watching)
-npx @cocalc/editor-extensions dev --no-watch
+npx @cocalc/sdk dev --no-watch
 
 # Production build + package + sign
 npm run build        # compile extension.js
 npm run package      # create signed .zip archive
 ```
 
-**What `npx @cocalc/editor-extensions dev` does:**
+**What `npx @cocalc/sdk dev` does:**
 
 1. **Watch** -- Monitors `src/` and `assets/` for changes (via chokidar or similar)
 2. **Rebuild** -- On change (or manual trigger with `--no-watch`), runs esbuild to produce `extension.js`, regenerates `manifest.json`
@@ -464,7 +464,7 @@ npm run package      # create signed .zip archive
 
 # Terminal 2: Extension dev server
 cd ~/p/my-extension
-npx @cocalc/editor-extensions dev               # serves on localhost:4100
+npx @cocalc/sdk dev               # serves on localhost:4100
 
 # In CoCalc (localhost:5002) project settings → Editor Extensions:
 #   Add extension: http://localhost:4100/my-extension.zip
@@ -494,7 +494,7 @@ To make it easy to get started, we provide a template repository:
 
 ```
 cocalc-extension-template/
-  package.json            -- depends on @cocalc/editor-extensions; scripts: dev, build, package
+  package.json            -- depends on @cocalc/sdk; scripts: dev, build, package
   tsconfig.json
   src/
     index.ts              -- defineEditor() call + registerExtension()
@@ -516,7 +516,7 @@ cocalc-extension-template/
 
 ---
 
-## Published SDK Package: `@cocalc/editor-extensions`
+## Published SDK Package: `@cocalc/sdk`
 
 Published to npm. This is what extension authors `import` from. The SDK is **thin** -- it provides types, the `defineEditor`/`defineFrame`/`registerExtension` API, and CLI tooling. It does **not** re-export `@cocalc/frontend` or other heavy packages.
 
@@ -533,17 +533,17 @@ Instead, heavy host packages (`@cocalc/frontend`, `@cocalc/util`, `@cocalc/conat
 │    "@cocalc/util"       → @cocalc/util package      │
 │    "@cocalc/frontend"   → frontend components/hooks │
 │    "@cocalc/conat"      → conat client              │
-│    "@cocalc/editor-extensions" → SDK runtime API    │
+│    "@cocalc/sdk" → SDK runtime API    │
 │                                                     │
 │  ┌───────────────────────────────────────────┐      │
 │  │ Extension bundle (tiny)                    │      │
 │  │                                            │      │
 │  │  import { defineEditor } from              │      │
-│  │    "@cocalc/editor-extensions";            │      │
+│  │    "@cocalc/sdk";            │      │
 │  │  import { CodemirrorEditor } from          │      │
 │  │    "@cocalc/frontend/frame-editors/...";   │      │
 │  │  import { useSync } from                   │      │
-│  │    "@cocalc/frontend/extensions/hooks";    │      │
+│  │    "@cocalc/frontend/sdk/hooks";    │      │
 │  │                                            │      │
 │  │  // All imports resolve to host packages   │      │
 │  │  // at runtime -- nothing bundled          │      │
@@ -575,10 +575,10 @@ Instead, heavy host packages (`@cocalc/frontend`, `@cocalc/util`, `@cocalc/conat
 
 ### SDK package structure
 
-Source lives in-tree at `packages/editor-extensions/`:
+Source lives in-tree at `packages/sdk/`:
 
 ```
-packages/editor-extensions/
+packages/sdk/
   package.json
   tsconfig.json
   index.ts              -- public exports: defineEditor, defineFrame, registerExtension
@@ -603,9 +603,9 @@ packages/editor-extensions/
     sign.ts             -- sign archive contents
     verify.ts           -- verify signature against public key
   cli/
-    dev.ts              -- `npx @cocalc/editor-extensions dev` entry point
-    build.ts            -- `npx @cocalc/editor-extensions build` entry point
-    package.ts          -- `npx @cocalc/editor-extensions package` (archive + sign)
+    dev.ts              -- `npx @cocalc/sdk dev` entry point
+    build.ts            -- `npx @cocalc/sdk build` entry point
+    package.ts          -- `npx @cocalc/sdk package` (archive + sign)
     dev-server.ts       -- HTTP server for .zip + WebSocket for reload notifications
 ```
 
@@ -615,7 +615,7 @@ CoCalc's frontend (in `packages/static` webpack/esbuild config or at app startup
 
 ```typescript
 // In CoCalc's frontend initialization:
-import { setupExtensionImportMap } from "@cocalc/frontend/extensions/import-map";
+import { setupExtensionImportMap } from "@cocalc/frontend/sdk/import-map";
 
 setupExtensionImportMap({
   react: React,
@@ -623,8 +623,8 @@ setupExtensionImportMap({
   "@cocalc/conat": () => import("@cocalc/conat"),
   "@cocalc/frontend/frame-editors/code-editor/codemirror-editor": () =>
     import("./frame-editors/code-editor/codemirror-editor"),
-  "@cocalc/frontend/extensions/hooks": () => import("./extensions/hooks"),
-  "@cocalc/editor-extensions": () => import("@cocalc/editor-extensions"),
+  "@cocalc/frontend/sdk/hooks": () => import("./extensions/hooks"),
+  "@cocalc/sdk": () => import("@cocalc/sdk"),
   // ... more as needed
 });
 ```
@@ -842,14 +842,14 @@ Admin settings include:
 
 ### Phase 1: SDK Package + Registry
 
-**Goal**: Create the `@cocalc/editor-extensions` SDK package (thin: types + API + CLI) and the extension registry with host-side runtime injection.
+**Goal**: Create the `@cocalc/sdk` SDK package (thin: types + API + CLI) and the extension registry with host-side runtime injection.
 
-- [ ] Create `packages/editor-extensions/` with thin SDK:
+- [ ] Create `packages/sdk/` with thin SDK:
   - `defineEditor()`, `defineFrame()`, `registerExtension()` -- API functions
   - Contract type declarations (`.d.ts`) for host APIs: `@cocalc/frontend`, `@cocalc/util`, `@cocalc/conat`
   - Actions factory: synthesize Actions subclass from declarative config
   - Validation logic for manifest shape
-- [ ] Create `frontend/extensions/` registry infrastructure:
+- [ ] Create `frontend/sdk/` registry infrastructure:
   - `registry.ts` -- ExtensionRegistry singleton
   - `loader.ts` -- bundle loading with timeout/retry
   - `resolve.ts` -- priority-based resolution
@@ -863,9 +863,9 @@ Admin settings include:
     - Frame-type picker and application menu (`frame-tree/commands/manage.tsx`)
     - Any other code that passes `EditorDescription.icon` to `<Icon name={...}>`
 - [ ] Set up host-side import map / module registry for runtime injection
-  - `frontend/extensions/import-map.ts`: expose `react`, `@cocalc/util`, `@cocalc/frontend/*`, etc.
+  - `frontend/sdk/import-map.ts`: expose `react`, `@cocalc/util`, `@cocalc/frontend/*`, etc.
   - Configure webpack/esbuild in `packages/static` to expose these as externals
-- [ ] Set up `@cocalc/editor-extensions` as externally resolvable at runtime (global or import map)
+- [ ] Set up `@cocalc/sdk` as externally resolvable at runtime (global or import map)
 - [ ] Implement `registerExtension()` self-registration entry point
 - [ ] Implement archive loading in `loader.ts`:
   - Download `.zip`, extract, verify signature
@@ -881,23 +881,23 @@ Admin settings include:
 
 **Files to create**:
 
-- `src/packages/editor-extensions/package.json` (publishable as `@cocalc/editor-extensions`)
-- `src/packages/editor-extensions/tsconfig.json`
-- `src/packages/editor-extensions/index.ts`
-- `src/packages/editor-extensions/define-editor.ts`
-- `src/packages/editor-extensions/define-frame.ts`
-- `src/packages/editor-extensions/register.ts`
-- `src/packages/editor-extensions/types.ts`
-- `src/packages/editor-extensions/validate.ts`
-- `src/packages/editor-extensions/typings/` (type-only declarations for host APIs)
-- `src/packages/editor-extensions/signing/` (key generation, signing, verification)
-- `src/packages/editor-extensions/cli/` (dev server, build, package commands)
-- `src/packages/frontend/extensions/types.ts`
-- `src/packages/frontend/extensions/registry.ts`
-- `src/packages/frontend/extensions/loader.ts` (archive download, verify, extract, cache)
-- `src/packages/frontend/extensions/resolve.ts`
-- `src/packages/frontend/extensions/import-map.ts` (host-side module injection for extensions)
-- `src/packages/frontend/extensions/hooks.ts` (useSyncValue, useSyncDB, useEditorState -- for extensions)
+- `src/packages/sdk/package.json` (publishable as `@cocalc/sdk`)
+- `src/packages/sdk/tsconfig.json`
+- `src/packages/sdk/index.ts`
+- `src/packages/sdk/define-editor.ts`
+- `src/packages/sdk/define-frame.ts`
+- `src/packages/sdk/register.ts`
+- `src/packages/sdk/types.ts`
+- `src/packages/sdk/validate.ts`
+- `src/packages/sdk/typings/` (type-only declarations for host APIs)
+- `src/packages/sdk/signing/` (key generation, signing, verification)
+- `src/packages/sdk/cli/` (dev server, build, package commands)
+- `src/packages/frontend/sdk/types.ts`
+- `src/packages/frontend/sdk/registry.ts`
+- `src/packages/frontend/sdk/loader.ts` (archive download, verify, extract, cache)
+- `src/packages/frontend/sdk/resolve.ts`
+- `src/packages/frontend/sdk/import-map.ts` (host-side module injection for extensions)
+- `src/packages/frontend/sdk/hooks.ts` (useSyncValue, useSyncDB, useEditorState -- for extensions)
 - `src/packages/frontend/admin/trusted-suppliers.tsx` (admin UI for supplier keys)
 
 ### Phase 2: First Extension Conversion + Dynamic Loading
@@ -908,14 +908,14 @@ Admin settings include:
   - No separate actions.ts -- SDK synthesizes Actions from `sync` + `defaultLayout`
   - Verify frame tree, sync, reference counting all work
 - [ ] Add dynamic extension loading path after static imports
-- [ ] Implement dev server CLI (`npx @cocalc/editor-extensions dev`)
+- [ ] Implement dev server CLI (`npx @cocalc/sdk dev`)
   - File watching + rebuild + serve + WebSocket reload notification
   - `--no-watch` mode for manual trigger
 - [ ] CoCalc frontend: listen for dev server WebSocket reload signals
   - Skip signature verification only when: localhost URL AND (dev build OR user has developer-mode flag)
   - Re-fetch, re-extract, re-register on reload signal
 - [ ] Add project settings UI: "Editor Extensions" section (per-project, shared by all project users)
-  - Backed by project-scoped conat DKV (`project_id`, name: `editor-extensions`), not `projects.settings`
+  - Backed by project-scoped conat DKV (`project_id`, name: `sdk-bundles`), not `projects.settings`
   - Install/enable/disable extensions by archive URL
   - Map file extensions to editors
   - Shows verification status (signed by which supplier, or "dev mode" for localhost)
@@ -938,9 +938,9 @@ Admin settings include:
 
 - `src/packages/frontend/project/settings/editor-extensions.tsx`
 - `src/packages/frontend/account/editor-extensions.tsx`
-- `src/packages/frontend/extensions/dev-reload-listener.ts` (WebSocket client for dev server)
-- `src/packages/editor-extensions/cli/dev.ts`
-- `src/packages/editor-extensions/cli/dev-server.ts`
+- `src/packages/frontend/sdk/dev-reload-listener.ts` (WebSocket client for dev server)
+- `src/packages/sdk/cli/dev.ts`
+- `src/packages/sdk/cli/dev-server.ts`
 
 ### Phase 3: Frame-Level Extensions
 
@@ -955,7 +955,7 @@ Admin settings include:
 
 **Goal**: Convert existing editors, publish SDK, create template.
 
-- [ ] Publish `@cocalc/editor-extensions` to npm
+- [ ] Publish `@cocalc/sdk` to npm
 - [ ] Create template repo (`cocalc-extension-template`) with build + dev + sign config
 - [ ] Write extension developer documentation with tutorial (getting started, dev workflow, signing, publishing)
 - [ ] Convert existing editors one-by-one (markdown, HTML, LaTeX, etc.)
@@ -967,8 +967,8 @@ Admin settings include:
 
 After each phase:
 
-1. **Build**: `pnpm build` in `packages/editor-extensions`, then `pnpm build-dev` in `packages/static`
-2. **Unit tests**: run tests for the new package (`packages/editor-extensions`)
+1. **Build**: `pnpm build` in `packages/sdk`, then `pnpm build-dev` in `packages/static`
+2. **Unit tests**: run tests for the new package (`packages/sdk`)
 3. **Manual test**: open a CSV file in the dev server, verify grid + raw views work, verify sync
 4. **Regression**: open existing editors (code, Jupyter, markdown, LaTeX) and verify they still work
 5. **Dynamic loading** (Phase 2+): add an extension via project settings, verify it appears as an editor option
@@ -977,13 +977,13 @@ After each phase:
 
 ## Open Questions
 
-1. **Package name**: `editor-extensions` vs `editor-sdk` vs `editor-plugins`? Using `editor-extensions` for now since it describes both the mechanism and the authoring SDK.
+1. **Package name**: `sdk-bundles` vs `editor-sdk` vs `editor-plugins`? Using `sdk-bundles` for now since it describes both the mechanism and the authoring SDK.
 
 2. **Frame extension composition**: When a Level 2 extension adds a frame to an existing editor, should it appear in the frame picker automatically, or require the user to enable it via project settings? Suggest: controlled via per-editor settings in project configuration (Phase 3).
 
 3. **Marketplace**: A curated registry/directory of extensions. Out of scope for initial implementation but the signing infrastructure supports it -- suppliers are already identified by public key.
 
-4. **SDK versioning**: When `@cocalc/editor-extensions` is published to npm, extensions pin to a version. CoCalc ships a runtime version. How do we handle version mismatches? Options: (a) semver compatibility -- extensions declare minimum SDK version in manifest, CoCalc rejects incompatible ones; (b) adapter layer in the registry that bridges minor differences.
+4. **SDK versioning**: When `@cocalc/sdk` is published to npm, extensions pin to a version. CoCalc ships a runtime version. How do we handle version mismatches? Options: (a) semver compatibility -- extensions declare minimum SDK version in manifest, CoCalc rejects incompatible ones; (b) adapter layer in the registry that bridges minor differences.
 
 5. **React version coupling**: Extensions bundle their own components but use CoCalc's React instance. This means extensions must be compatible with CoCalc's React version. Document this clearly; the template repo should pin a compatible React version as a peer dependency.
 
