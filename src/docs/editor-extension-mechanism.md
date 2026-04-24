@@ -744,7 +744,7 @@ Admin settings include:
 
 ```typescript
 {
-  "trusted_extension_suppliers": [
+  "trusted_app_suppliers": [
     {
       "id": "sagemath",
       "name": "SageMath",

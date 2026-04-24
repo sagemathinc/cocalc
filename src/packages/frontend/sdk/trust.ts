@@ -1,6 +1,6 @@
 declare var DEBUG: boolean;
 
-import type { TrustedExtensionSupplier } from "@cocalc/sdk";
+import type { TrustedAppSupplier } from "@cocalc/sdk";
 
 import { redux } from "@cocalc/frontend/app-framework";
 
@@ -10,7 +10,7 @@ const EXTENSION_TRUST_CONFIG_KEY = Symbol.for(
 
 interface ExtensionTrustConfig {
   allowUnsignedLocalhost?: boolean;
-  trustedSuppliers?: TrustedExtensionSupplier[];
+  trustedSuppliers?: TrustedAppSupplier[];
 }
 
 function getExtensionTrustConfigStore(): ExtensionTrustConfig {
@@ -26,7 +26,7 @@ function getExtensionTrustConfigStore(): ExtensionTrustConfig {
 
 function normalizeTrustedSuppliers(
   value: unknown,
-): TrustedExtensionSupplier[] | undefined {
+): TrustedAppSupplier[] | undefined {
   if (value == null) {
     return;
   }
@@ -56,14 +56,14 @@ function normalizeTrustedSuppliers(
     .filter(({ id, publicKey }) => id !== "" && publicKey !== "");
 }
 
-function getConfiguredTrustedSuppliers(): TrustedExtensionSupplier[] {
+function getConfiguredTrustedSuppliers(): TrustedAppSupplier[] {
   const configured = getExtensionTrustConfigStore().trustedSuppliers;
   if (configured != null) {
     return configured;
   }
   return (
     normalizeTrustedSuppliers(
-      redux.getStore("customize")?.get?.("trusted_sdk_suppliers"),
+      redux.getStore("customize")?.get?.("trusted_app_suppliers"),
     ) ?? []
   );
 }
@@ -97,7 +97,7 @@ export function setupExtensionTrust(config: ExtensionTrustConfig): void {
   }
 }
 
-export function getTrustedExtensionSuppliers(): TrustedExtensionSupplier[] {
+export function getTrustedAppSuppliers(): TrustedAppSupplier[] {
   return getConfiguredTrustedSuppliers();
 }
 

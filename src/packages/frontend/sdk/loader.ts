@@ -64,14 +64,14 @@ interface LoadExtensionBundleOptions {
 }
 
 interface ExtensionTrustHelpers {
-  getTrustedExtensionSuppliers: typeof import("./trust").getTrustedExtensionSuppliers;
+  getTrustedAppSuppliers: typeof import("./trust").getTrustedAppSuppliers;
   shouldSkipExtensionSignatureVerification: typeof import("./trust").shouldSkipExtensionSignatureVerification;
 }
 
 async function getExtensionTrustHelpers(): Promise<ExtensionTrustHelpers> {
   const trust = await import("./trust");
   return {
-    getTrustedExtensionSuppliers: trust.getTrustedExtensionSuppliers,
+    getTrustedAppSuppliers: trust.getTrustedAppSuppliers,
     shouldSkipExtensionSignatureVerification:
       trust.shouldSkipExtensionSignatureVerification,
   };
@@ -554,7 +554,7 @@ async function verifyExtractedArchive(
     return { mode: "builtin" };
   }
   const {
-    getTrustedExtensionSuppliers,
+    getTrustedAppSuppliers,
     shouldSkipExtensionSignatureVerification,
   } = await getExtensionTrustHelpers();
   if (shouldSkipExtensionSignatureVerification(bundleUrl)) {
@@ -563,7 +563,7 @@ async function verifyExtractedArchive(
   const verified: VerifiedExtensionArchiveSignature =
     await verifyExtensionArchiveSignature({
       files: archive.files,
-      trustedSuppliers: getTrustedExtensionSuppliers(),
+      trustedSuppliers: getTrustedAppSuppliers(),
     });
   return {
     mode: "signed",

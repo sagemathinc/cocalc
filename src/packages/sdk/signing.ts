@@ -4,7 +4,7 @@ export interface ExtensionArchiveSignatureFile {
   signature: string;
 }
 
-export interface TrustedExtensionSupplier {
+export interface TrustedAppSupplier {
   id: string;
   name?: string;
   publicKey: string;
@@ -14,7 +14,7 @@ export interface TrustedExtensionSupplier {
 export interface VerifiedExtensionArchiveSignature {
   digestHex: string;
   signature: ExtensionArchiveSignatureFile;
-  supplier: TrustedExtensionSupplier;
+  supplier: TrustedAppSupplier;
 }
 
 function assertNonEmptyString(
@@ -103,7 +103,7 @@ export async function verifyExtensionArchiveSignature({
   trustedSuppliers,
 }: {
   files: Map<string, Uint8Array>;
-  trustedSuppliers: TrustedExtensionSupplier[];
+  trustedSuppliers: TrustedAppSupplier[];
 }): Promise<VerifiedExtensionArchiveSignature> {
   if (typeof crypto?.subtle?.verify !== "function") {
     throw new Error("WebCrypto signature verification is not available");
