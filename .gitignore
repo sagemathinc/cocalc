@@ -181,3 +181,4 @@ junit.xml
 **/cocalc-api/site/**
 
 !src/packages/next/public/documents/*.pdf
+.claude/scheduled_tasks.lock
