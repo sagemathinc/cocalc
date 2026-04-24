@@ -29,7 +29,7 @@ or
 */
 
 import { delay } from "awaiting";
-import { Map, Set } from "immutable";
+import { Map as IMap, Set as ISet } from "immutable";
 import React from "react";
 
 import { AccountState } from "@cocalc/frontend/account/types";
@@ -65,32 +65,32 @@ interface FrameTreeProps {
   actions: Actions;
   active_id: string;
   available_features: AvailableFeatures;
-  complete: Map<string, any>;
-  cursors: Map<string, any>;
-  derived_file_types: Set<string>;
+  complete: IMap<string, any>;
+  cursors: IMap<string, any>;
+  derived_file_types: ISet<string>;
   editor_settings: AccountState["editor_settings"];
   editor_spec: EditorSpec;
   editor_state: EditorState; // IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
   font_size: number;
-  frame_tree: Map<string, any>;
+  frame_tree: IMap<string, any>;
   full_id: string;
   has_uncommitted_changes: boolean;
   has_unsaved_changes: boolean;
   is_only: boolean;
   is_saving: boolean;
   is_visible: boolean;
-  local_view_state: Map<string, any>;
-  misspelled_words: Set<string>;
+  local_view_state: IMap<string, any>;
+  misspelled_words: ISet<string>;
   name: string; // just so editors (leaf nodes) can plug into reduxProps if they need to.
   path: string; // assumed to never change -- all frames in same project
   project_id: string; // assumed to never change -- all frames in same project
   read_only: boolean; // if true, then whole document considered read only (individual frames can still be via desc)
-  reload: Map<string, number>;
+  reload: IMap<string, number>;
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
-  settings: Map<string, any>;
+  settings: IMap<string, any>;
   status: string;
   tab_is_visible: boolean;
-  terminal?: Map<string, any>; // terminal settings from account
+  terminal?: IMap<string, any>; // terminal settings from account
   value?: string;
 }
 
