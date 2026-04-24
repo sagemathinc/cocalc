@@ -282,21 +282,74 @@ async function buildBuiltin(builtinName) {
   };
 }
 
-rmSync(outputRoot, { force: true, recursive: true });
-ensureDir(outputRoot);
+// Optional target that receives a copy of the built archives + index.json.
+// Keeps the dev watch loop short: edit -> rebuild -> frontend picks up on
+// refresh without a separate `pnpm build-dev` in static.
+const staticTarget = path.resolve(packageRoot, "..", "static", "dist", "sdk");
 
-const builtins = [];
-for (const builtinName of listBuiltinDirs()) {
-  builtins.push(await buildBuiltin(builtinName));
+async function buildAll({ quiet = false } = {}) {
+  rmSync(outputRoot, { force: true, recursive: true });
+  ensureDir(outputRoot);
+
+  const builtins = [];
+  for (const builtinName of listBuiltinDirs()) {
+    builtins.push(await buildBuiltin(builtinName));
+  }
+
+  writeFileSync(
+    path.join(outputRoot, "index.json"),
+    JSON.stringify({ builtins }, null, 2) + "\n",
+  );
+
+  if (existsSync(staticTarget)) {
+    rmSync(staticTarget, { force: true, recursive: true });
+    cpSync(outputRoot, staticTarget, { recursive: true });
+  }
+
+  if (!quiet) {
+    for (const builtin of builtins) {
+      console.log(
+        `Built builtin extension archive: ${path.join(outputRoot, builtin.filename)}`,
+      );
+    }
+  }
+  return builtins;
 }
 
-writeFileSync(
-  path.join(outputRoot, "index.json"),
-  JSON.stringify({ builtins }, null, 2) + "\n",
-);
+const watchMode = process.argv.includes("--watch");
 
-for (const builtin of builtins) {
-  console.log(
-    `Built builtin extension archive: ${path.join(outputRoot, builtin.filename)}`,
-  );
+if (!watchMode) {
+  await buildAll();
+} else {
+  await buildAll();
+  console.log(`\nWatching ${builtinRoot} for changes... (Ctrl+C to stop)`);
+  const { watch } = await import("node:fs");
+  let pending = false;
+  let rebuilding = false;
+  const trigger = async () => {
+    if (rebuilding) {
+      pending = true;
+      return;
+    }
+    rebuilding = true;
+    try {
+      const started = Date.now();
+      await buildAll({ quiet: true });
+      console.log(`[${new Date().toLocaleTimeString()}] rebuilt in ${Date.now() - started}ms`);
+    } catch (err) {
+      console.error(`[${new Date().toLocaleTimeString()}] build failed: ${err?.message ?? err}`);
+    } finally {
+      rebuilding = false;
+      if (pending) {
+        pending = false;
+        trigger();
+      }
+    }
+  };
+  let debounce;
+  watch(builtinRoot, { recursive: true }, () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(trigger, 150);
+  });
+  await new Promise(() => {}); // keep alive
 }
