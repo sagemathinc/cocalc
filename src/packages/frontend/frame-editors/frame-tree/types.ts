@@ -137,7 +137,7 @@ const LEGACY_FRAME_TYPE_ALIASES: Readonly<Record<string, string>> = {
   course_handouts: "course-handouts",
   course_shared_project: "course-shared_project",
   course_students: "course-students",
-  grid: "csv-grid",
+  grid: "cocalc/csv-grid",
   introspect: "jupyter-introspect",
   jupyter_cell_notebook: "jupyter",
   jupyter_json: "jupyter_json_view",
