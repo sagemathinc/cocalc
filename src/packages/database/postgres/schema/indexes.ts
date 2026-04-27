@@ -52,10 +52,11 @@ export async function createIndexes(
     // but the first time we tried this in production (postgres 10), it just made "invalid" indices.
     // the problem might be that several create index commands were issued rapidly, which threw this off
     // So, for now, it's probably best to either create them manually first (concurrently) or be
-    // aware that this does lock up briefly.
-    const fullQuery = `CREATE ${unique ? "UNIQUE" : ""} INDEX ${name} ON ${
-      schema.name
-    } ${query}`;
+    // aware that this does lock up briefly. IF NOT EXISTS keeps the manual
+    // precreate path safe (no "index already exists" at hub startup).
+    const fullQuery = `CREATE ${
+      unique ? "UNIQUE" : ""
+    } INDEX IF NOT EXISTS ${name} ON ${schema.name} ${query}`;
     log.debug("createIndexes -- creating ", name, " using ", fullQuery);
     await db.query(fullQuery);
   }

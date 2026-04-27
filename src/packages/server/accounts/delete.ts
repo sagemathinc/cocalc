@@ -44,7 +44,7 @@ export async function markAccountDeleted(account_id: string): Promise<void> {
   }
   const email_address_before_delete = rows[0].email_address ?? "";
   await pool.query(
-    "UPDATE accounts SET deleted=true, email_address_before_delete=$1::TEXT, email_address=NULL, passports=NULL WHERE account_id=$2::UUID",
+    "UPDATE accounts SET deleted=true, deleted_at=NOW(), email_address_before_delete=$1::TEXT, email_address=NULL, passports=NULL WHERE account_id=$2::UUID",
     [email_address_before_delete, account_id]
   );
 }

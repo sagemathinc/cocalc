@@ -152,7 +152,9 @@ async function updateIndex(
   log.debug("updateIndex", { table, action, name });
   if (action == "create") {
     // ATTN if you consider adding CONCURRENTLY to create index, read the note earlier above about this
-    await db.query(`CREATE ${unique ? "UNIQUE" : ""} INDEX ${name} ON ${table} ${query}`);
+    await db.query(
+      `CREATE ${unique ? "UNIQUE" : ""} INDEX IF NOT EXISTS ${name} ON ${table} ${query}`,
+    );
   } else if (action == "delete") {
     await db.query(`DROP INDEX ${name}`);
   } else {

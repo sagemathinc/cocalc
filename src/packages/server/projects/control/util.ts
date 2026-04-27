@@ -1,22 +1,22 @@
-import { promisify } from "util";
-import { dirname, join, resolve } from "path";
-import { exec as exec0, spawn } from "child_process";
 import spawnAsync from "await-spawn";
-import * as fs from "fs";
 import { writeFile } from "fs/promises";
-import { projects, root } from "@cocalc/backend/data";
-import { is_valid_uuid_string } from "@cocalc/util/misc";
-import { callback2 } from "@cocalc/util/async-utils";
-import getLogger from "@cocalc/backend/logger";
-import { CopyOptions, ProjectState, ProjectStatus } from "./base";
-import { getUid } from "@cocalc/backend/misc";
+import { exec as exec0, spawn } from "node:child_process";
+import * as fs from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { promisify } from "node:util";
+
 import base_path from "@cocalc/backend/base-path";
-import { db } from "@cocalc/database";
-import { getProject } from ".";
-import { conatServer } from "@cocalc/backend/data";
-import { pidFilename } from "@cocalc/util/project-info";
+import { conatServer, root } from "@cocalc/backend/data";
 import { executeCode } from "@cocalc/backend/execute-code";
+import getLogger from "@cocalc/backend/logger";
+import { getUid, homePath } from "@cocalc/backend/misc";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
+import { db } from "@cocalc/database";
+import { callback2 } from "@cocalc/util/async-utils";
+import { is_valid_uuid_string } from "@cocalc/util/misc";
+import { pidFilename } from "@cocalc/util/project-info";
+import { getProject } from ".";
+import { CopyOptions, ProjectState, ProjectStatus } from "./base";
 
 const logger = getLogger("project-control:util");
 
@@ -32,10 +32,6 @@ export async function chown(path: string, uid: number): Promise<void> {
 
 export function dataPath(HOME: string): string {
   return join(HOME, ".smc");
-}
-
-export function homePath(project_id: string): string {
-  return projects.replace("[project_id]", project_id);
 }
 
 export function getUsername(project_id: string): string {
@@ -55,7 +51,7 @@ function pidFile(HOME: string): string {
   return join(dataPath(HOME), pidFilename);
 }
 
-function parseDarwinTime(output:string) : number {
+function parseDarwinTime(output: string): number {
   // output = '{ sec = 1747866131, usec = 180679 } Wed May 21 15:22:11 2025';
   const match = output.match(/sec\s*=\s*(\d+)/);
 
@@ -72,7 +68,10 @@ export async function bootTime(): Promise<number> {
   if (!_bootTime) {
     if (process.platform === "darwin") {
       // uptime isn't available on macos.
-      const { stdout } = await executeCode({ command: "sysctl", args: ['-n', 'kern.boottime']});
+      const { stdout } = await executeCode({
+        command: "sysctl",
+        args: ["-n", "kern.boottime"],
+      });
       _bootTime = parseDarwinTime(stdout);
     } else {
       const { stdout } = await executeCode({ command: "uptime", args: ["-s"] });
