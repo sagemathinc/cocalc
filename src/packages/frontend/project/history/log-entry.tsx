@@ -41,7 +41,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { FormattedMessage, useIntl } from "react-intl";
 import { SOFTWARE_ENVIRONMENT_ICON } from "../settings/software-consts";
 import { SystemProcess } from "./system-process";
-import { handleFileEntryClick } from "./utils";
+import { handleFileEntryClick, normalizeLogFilename } from "./utils";
 import type {
   AIAssistanceEvent,
   AssistantEvent,
@@ -156,12 +156,15 @@ export const LogEntry: React.FC<Props> = React.memo(
     const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
 
     function render_open_file(event: OpenFile): React.JSX.Element {
+      // `event.filename` is typed as string but at runtime may be an
+      // object `{ ext, path, editorId }` written by a newer client.
+      const filename = normalizeLogFilename(event.filename) ?? "";
       return (
         <span>
           Opened
           <Gap />
           <PathLink
-            path={event.filename}
+            path={filename}
             full={true}
             style={cursor ? selected_item : undefined}
             trunc={TRUNC}
@@ -171,7 +174,7 @@ export const LogEntry: React.FC<Props> = React.memo(
               track("open-file", {
                 how: "project-log",
                 type: "open_file",
-                path: event.filename,
+                path: filename,
                 project_id,
               })
             }
@@ -1016,7 +1019,9 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "open_project":
           return "folder-open";
         case "open": // open a file
-          const ext = misc.filename_extension(event.filename);
+          const ext = misc.filename_extension(
+            normalizeLogFilename(event.filename) ?? "",
+          );
           const info = file_associations[ext];
           if (info == null) return "file-code";
           let x = info.icon;
