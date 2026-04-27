@@ -50,6 +50,7 @@ import {
   getRootMessage,
   getSelectedHashtagsSearch,
   getThreadRootDate,
+  isThreadResolved,
   newest_content,
 } from "./utils";
 
@@ -671,7 +672,11 @@ export function MessageList({
     // visible. This handles threads where all messages fit in the viewport
     // and no further scroll events will fire.
     const replayVisibleRange = (retries = 0) => {
-      if (!selectedThread || !actions?.updateLastRead || sortedDates.length === 0) {
+      if (
+        !selectedThread ||
+        !actions?.updateLastRead ||
+        sortedDates.length === 0
+      ) {
         return;
       }
       if (lastEndIndexRef.current < 0) {
@@ -684,9 +689,7 @@ export function MessageList({
         return;
       }
       const visibleDateStr =
-        sortedDates[
-          Math.min(lastEndIndexRef.current, sortedDates.length - 1)
-        ];
+        sortedDates[Math.min(lastEndIndexRef.current, sortedDates.length - 1)];
       if (visibleDateStr) {
         const visibleDateMs = parseFloat(visibleDateStr);
         if (Number.isFinite(visibleDateMs)) {
@@ -876,7 +879,16 @@ export function MessageList({
                 }
                 allowReply={
                   !singleThreadView &&
-                  messages.getIn([sortedDates[index + 1], "reply_to"]) == null
+                  messages.getIn([sortedDates[index + 1], "reply_to"]) ==
+                    null &&
+                  // Resolved threads are read-only archives: hide the
+                  // per-thread Reply button even in all-threads view, so
+                  // the only way to "continue" the discussion is the
+                  // ResolvedThreadPanel's "Start new chat thread" flow.
+                  !isThreadResolved({
+                    date: parseFloat(date),
+                    messages,
+                  })
                 }
                 costEstimate={costEstimate}
                 threadViewMode={singleThreadView}

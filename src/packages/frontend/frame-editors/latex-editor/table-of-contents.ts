@@ -7,12 +7,25 @@ change them.
 */
 
 import { TableOfContentsEntry as Entry } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
 
-import { scanBookmarks } from "./chat-markers";
+import { scanBookmarks, scanMarkers } from "./chat-markers";
+
+/**
+ * Information stashed under `entry.extra` for chat-marker TOC rows. The
+ * latex-specific TOC component dispatches on `kind === "chat"` and renders
+ * a custom row that looks up live unread/total counts via
+ * `useAnchoredThreads(masterPath, hash)`. Heading and bookmark rows leave
+ * `extra` unset.
+ */
+export interface ChatTocExtra {
+  kind: "chat";
+  hash: string;
+}
 
 export function parseTableOfContents(
   latex: string,
-  opts: { includeBookmarks?: boolean } = {},
+  opts: { includeBookmarks?: boolean; includeChatMarkers?: boolean } = {},
 ): Entry[] {
   let id = 0;
   const entries: Entry[] = [];
@@ -30,6 +43,21 @@ export function parseTableOfContents(
       seenTexts.add(b.text);
       if (!bookmarksByLine.has(b.line)) {
         bookmarksByLine.set(b.line, b.text);
+      }
+    }
+  }
+
+  // Optional chat-marker overlay. Like bookmarks, we dedupe by hash and
+  // keep the first occurrence — duplicate markers anchored to the same
+  // thread are reference copies; surfacing each one would clutter the TOC.
+  const chatByLine = new Map<number, string>();
+  if (opts.includeChatMarkers) {
+    const seenHashes = new Set<string>();
+    for (const m of scanMarkers(latex)) {
+      if (seenHashes.has(m.hash)) continue;
+      seenHashes.add(m.hash);
+      if (!chatByLine.has(m.line)) {
+        chatByLine.set(m.line, m.hash);
       }
     }
   }
@@ -53,7 +81,26 @@ export function parseTableOfContents(
         value: bookmarkText,
         id: `${id}b`,
         icon: "bookmark",
-        iconColor: "#1677ff",
+        iconColor: COLORS.ANTD_LINK_BLUE,
+      });
+    }
+
+    // Chat-marker entry for this line (if any). Format: `Chat <hash>
+    // (line N)` — the hash is mnemonic and unique, the line number
+    // disambiguates duplicate hashes (rare but supported). The
+    // latex-specific TOC component reads `extra.hash` and renders a live
+    // count pill alongside this label.
+    const chatHash = chatByLine.get(lineIdx);
+    if (chatHash != null) {
+      const label = `Chat ${chatHash} (line ${lineIdx + 1})`;
+      const extra: ChatTocExtra = { kind: "chat", hash: chatHash };
+      entries.push({
+        level: 6,
+        value: label,
+        id: `${id}c`,
+        icon: "comment",
+        iconColor: COLORS.ANTD_LINK_BLUE,
+        extra,
       });
     }
 

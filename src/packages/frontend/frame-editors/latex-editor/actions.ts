@@ -53,6 +53,7 @@ import {
   getSideChatActions,
 } from "@cocalc/frontend/frame-editors/generic/chat";
 import { initChat } from "@cocalc/frontend/chat/register";
+import { formerAnchorIdOf } from "@cocalc/frontend/chat/utils";
 
 import { type AccountStore } from "@cocalc/frontend/account";
 import { Store, TypedMap } from "@cocalc/frontend/app-framework";
@@ -934,11 +935,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // Frame types (EDITOR_SPEC keys) that already display build errors.
   // https://github.com/sagemathinc/cocalc/issues/8659
-  private static ERROR_DISPLAY_FRAMES = [
-    "output",
-    "build",
-    "error",
-  ] as const;
+  private static ERROR_DISPLAY_FRAMES = ["output", "build", "error"] as const;
 
   private hasErrorDisplayFrame(): boolean {
     try {
@@ -1522,9 +1519,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     const lvs = this.store.get("local_view_state");
     const persisted = lvs?.get("switch_to_files");
     if (persisted == null) return;
-    const arr = (persisted as any).toJS
-      ? (persisted as any).toJS()
-      : persisted;
+    const arr = (persisted as any).toJS ? (persisted as any).toJS() : persisted;
     if (!Array.isArray(arr) || arr.length === 0) return;
     const filtered = arr.filter(
       (p: unknown) => typeof p === "string" && p.length > 0,
@@ -2314,9 +2309,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.project_id,
         path_normalize(sourcePath),
       ) as BaseActions<CodeEditorState> | undefined;
-      const subSs = (subActions as any)?._syncstring as
-        | SyncString
-        | undefined;
+      const subSs = (subActions as any)?._syncstring as SyncString | undefined;
       sourceText = subSs?.try_to_str();
     }
     if (sourceText == null) {
@@ -2332,6 +2325,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     const contents = fromJS(
       parseTableOfContents(sourceText, {
         includeBookmarks: true,
+        includeChatMarkers: true,
       }),
     ) as any;
     this.setState({ contents, contents_path: resolvedPath });
@@ -2698,15 +2692,12 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
       const markers = scanMarkers(text);
       const cur =
-        this.store.get("chat_markers") ?? IMap<string, List<TypedMap<ChatMarker>>>();
+        this.store.get("chat_markers") ??
+        IMap<string, List<TypedMap<ChatMarker>>>();
       const prevForPath = cur.get(path);
       const next = cur.set(
         path,
-        List(
-          markers.map(
-            (m) => fromJS(m) as unknown as TypedMap<ChatMarker>,
-          ),
-        ),
+        List(markers.map((m) => fromJS(m) as unknown as TypedMap<ChatMarker>)),
       );
       if (!cur.equals(next)) {
         this.setState({ chat_markers: next });
@@ -2873,8 +2864,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
 
     const perCm =
-      this._chatGutterHosts[path] ??
-      (this._chatGutterHosts[path] = new Map());
+      this._chatGutterHosts[path] ?? (this._chatGutterHosts[path] = new Map());
     const liveCms = new Set<CodeMirror.Editor>(cms);
 
     // Prune entries for CMs that no longer exist (pane unmounted).
@@ -3147,10 +3137,7 @@ export class Actions extends BaseActions<LatexEditorState> {
    * line — unless that line already has a marker, in which case the host
    * is detached from the gutter.
    */
-  private _refreshChatCursorInsert(
-    path: string,
-    cm: CodeMirror.Editor,
-  ): void {
+  private _refreshChatCursorInsert(path: string, cm: CodeMirror.Editor): void {
     const entry = this._chatCursorInsertHosts[path]?.get(cm);
     if (entry == null) return;
 
@@ -3280,8 +3267,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (cms.length === 0) return;
 
     const tmMap =
-      this._chatTextMarkers[path] ??
-      (this._chatTextMarkers[path] = new Map());
+      this._chatTextMarkers[path] ?? (this._chatTextMarkers[path] = new Map());
     const bmMap =
       this._chatDeleteBookmarks[path] ??
       (this._chatDeleteBookmarks[path] = new Map());
@@ -3389,7 +3375,17 @@ export class Actions extends BaseActions<LatexEditorState> {
               onOpen: () => {
                 void this.openAnchorChat(hashForBookmark, path);
               },
-              onConfirmDelete: () =>
+              // Default × action: resolve the chat AND remove every marker
+              // we know about for this hash. Callback closes over the hash
+              // (not line/col) because resolveChatMarker walks all scanned
+              // files and deletes bottom-up, which is safer than deleting
+              // by stale (line, col) coords from this render snapshot.
+              onConfirmResolve: () => {
+                void this.resolveChatMarker(hashForBookmark);
+              },
+              // Stale form: just remove this single marker line/col; the
+              // thread is already resolved.
+              onConfirmRemoveStale: () =>
                 this.deleteChatMarker(path, lineForBookmark, colForBookmark),
             }),
           );
@@ -3477,6 +3473,13 @@ export class Actions extends BaseActions<LatexEditorState> {
         const hash = (m as any).chatHash as string | undefined;
         if (typeof hash === "string") {
           event.preventDefault();
+          // Stale marker: hash matches the former anchor of a resolved
+          // thread, no active thread exists. Clicking through would
+          // stage a fresh pending anchor on a retired hash and break
+          // the resolved-archive invariant. The inline tail's stale ×
+          // is the supported path to remove the leftover marker — this
+          // click just no-ops.
+          if (this._isStaleChatHash(hash)) return;
           void this.openAnchorChat(hash, path);
           return;
         }
@@ -3484,13 +3487,36 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
+  /**
+   * True iff `hash` is a "stale" chat anchor: at least one root message
+   * has been resolved with this hash as its former anchor, AND no
+   * active anchored thread for this hash exists. Used by the CM text
+   * click handler to refuse opening chat on retired hashes.
+   */
+  private _isStaleChatHash(hash: string): boolean {
+    const chatActions = getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    const messages = chatActions?.store?.get("messages");
+    if (messages == null) return false;
+    let hasResolved = false;
+    for (const [, msg] of messages) {
+      if (msg == null || msg.get("reply_to")) continue;
+      const active = msg.get("id") ?? msg.get("cell_id");
+      if (active === hash && msg.get("resolved") == null) {
+        // Active thread exists for this hash — not stale.
+        return false;
+      }
+      if (formerAnchorIdOf(msg) === hash) hasResolved = true;
+    }
+    return hasResolved;
+  }
+
   /** CM instances that already have the Shift-Ctrl-M keymap bound. */
   private _chatKeybindingInstalled: WeakSet<CodeMirror.Editor> = new WeakSet();
 
-  private _ensureChatKeybindings(
-    cm: CodeMirror.Editor,
-    path: string,
-  ): void {
+  private _ensureChatKeybindings(cm: CodeMirror.Editor, path: string): void {
     if (this._chatKeybindingInstalled.has(cm)) return;
     this._chatKeybindingInstalled.add(cm);
     cm.addKeyMap({
@@ -3820,6 +3846,27 @@ export class Actions extends BaseActions<LatexEditorState> {
     return `${hash} (${basename}:${loc.line + 1})`;
   }
 
+  /**
+   * Short, human-readable "where does this anchor live" label suitable
+   * for jump-to-source button text. Returns just `basename:line` (or
+   * `basename` if the line is unknown), without the opaque hash —
+   * complementary to `getAnchorLabel`, which prefixes the hash for
+   * places that need an unambiguous thread identifier (e.g. the auto
+   * thread name written to the chat root).
+   *
+   * Returns `undefined` when no location is known, so the caller can
+   * decide whether to show a generic "Jump to anchor" fallback or hide
+   * the button entirely.
+   */
+  public getAnchorJumpLabel(hash: string): string | undefined {
+    const locs = this.getAnchorLocations(hash);
+    if (locs.length === 0) return undefined;
+    if (locs.length > 1) return `${locs.length} locations`;
+    const [loc] = locs;
+    const basename = loc.path.split("/").pop() ?? loc.path;
+    return loc.line < 0 ? basename : `${basename}:${loc.line + 1}`;
+  }
+
   public async jumpToAnchor(hash: string): Promise<void> {
     const locs = this.getAnchorLocations(hash);
     if (locs.length === 0) return;
@@ -3907,6 +3954,12 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (gen !== this._anchorChatOpenGeneration) return;
 
     if (chatActions.store?.get("messages") != null) {
+      // Re-check stale-anchor state with hydrated messages: a click
+      // landed before chat sync was ready would have passed the
+      // gutter/text/TOC stale gates (they returned false on
+      // un-hydrated stores), but we must not stage a fresh pending
+      // thread on a hash whose only history is a resolve.
+      if (this._isStaleChatHash(hash)) return;
       chatActions.findOrCreateAnchorThread(hash, label, path);
       return;
     }
@@ -3916,6 +3969,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (this._state === "closed") return;
       if (gen !== this._anchorChatOpenGeneration) return;
       if (chatActions.store?.get("messages") != null) {
+        if (this._isStaleChatHash(hash)) return;
         chatActions.findOrCreateAnchorThread(hash, label, path);
         return;
       }
@@ -3938,11 +3992,7 @@ export class Actions extends BaseActions<LatexEditorState> {
    * The associated thread in `.sage-chat` is left intact (orphaned). If the
    * user wants to re-anchor, they insert a fresh marker.
    */
-  public deleteChatMarker(
-    targetPath: string,
-    line: number,
-    col: number,
-  ): void {
+  public deleteChatMarker(targetPath: string, line: number, col: number): void {
     const fileActions = this.redux.getEditorActions(
       this.project_id,
       path_normalize(targetPath),
@@ -3986,16 +4036,15 @@ export class Actions extends BaseActions<LatexEditorState> {
       // line without newline if it's the last line).
       const lastLine = cm.lastLine();
       if (line < lastLine) {
-        cm.replaceRange(
-          "",
-          { line, ch: 0 },
-          { line: line + 1, ch: 0 },
-        );
+        cm.replaceRange("", { line, ch: 0 }, { line: line + 1, ch: 0 });
       } else {
         // last line: remove leading newline of the line being removed
         cm.replaceRange(
           "",
-          { line: Math.max(0, line - 1), ch: cm.getLine(line - 1)?.length ?? 0 },
+          {
+            line: Math.max(0, line - 1),
+            ch: cm.getLine(line - 1)?.length ?? 0,
+          },
           { line, ch: lineText.length },
         );
       }
@@ -4005,14 +4054,170 @@ export class Actions extends BaseActions<LatexEditorState> {
       while (startCh > 0 && /\s/.test(lineText[startCh - 1])) {
         startCh -= 1;
       }
-      cm.replaceRange(
-        "",
-        { line, ch: startCh },
-        { line, ch: lineText.length },
-      );
+      cm.replaceRange("", { line, ch: startCh }, { line, ch: lineText.length });
     }
     fileActions.set_syncstring_to_codemirror();
     (fileActions as any)._syncstring?.commit?.();
+  }
+
+  /**
+   * Resolve a chat thread anchored at `hash`: stamp `resolved` metadata on
+   * each anchored root message in the side-chat syncdb, clear its active
+   * `id`/`path`, and then remove every `% chat: <hash>` marker we know
+   * about across currently-scanned files.
+   *
+   * Markers in sub-files that aren't open at the time of resolve persist as
+   * "stale" markers — see `useResolvedAnchoredThreads` and the gutter/tail
+   * stale rendering. A subsequent open of that file will surface them with
+   * a quick "remove stale marker" affordance.
+   */
+  public async resolveChatMarker(hash: string): Promise<void> {
+    if (typeof hash !== "string" || hash.length === 0) return;
+    const chatActions = await this._waitForChatActions();
+    if (chatActions == null) return;
+
+    // 1. Resolve every active anchored root message for this hash. Snapshot
+    // the dates first so we don't iterate over a store that's mutating.
+    const messages = chatActions.store?.get("messages");
+    const rootDates: Date[] = [];
+    if (messages != null) {
+      for (const [, msg] of messages) {
+        if (msg == null) continue;
+        if (msg.get("reply_to")) continue;
+        if (msg.get("resolved") != null) continue;
+        const anchor = msg.get("id") ?? msg.get("cell_id");
+        if (anchor !== hash) continue;
+        const date = msg.get("date");
+        if (date instanceof Date) rootDates.push(date);
+      }
+    }
+    for (const d of rootDates) {
+      chatActions.resolveAnchorThread(d);
+    }
+
+    // 2. Collect every marker line for this hash across scanned paths.
+    // Group by path and sort descending so deletions don't shift later
+    // lines we still plan to touch within the same file.
+    const all = this.store.get("chat_markers");
+    if (all != null) {
+      const byPath: { [path: string]: { line: number; col: number }[] } = {};
+      for (const [path, list] of all.entries()) {
+        if (list == null) continue;
+        for (const entry of list) {
+          const m = entry.toJS() as ChatMarker;
+          if (m.hash === hash) {
+            (byPath[path] ??= []).push({ line: m.line, col: m.col });
+          }
+        }
+      }
+      for (const [path, lines] of Object.entries(byPath)) {
+        lines.sort((a, b) =>
+          b.line !== a.line ? b.line - a.line : b.col - a.col,
+        );
+        for (const { line, col } of lines) {
+          this.deleteChatMarker(path, line, col);
+        }
+        // Force the scanner to immediately reflect the post-delete state so
+        // any UI driven off `chat_markers` is consistent before we return.
+        this._chatMarkerScanners[path]?.flush?.();
+      }
+    }
+  }
+
+  /**
+   * Discard a pending (just-inserted but no-message-yet) chat marker.
+   * Called from the side chat's "Cancel" button on the empty pending
+   * compose, so canceling out also removes the source marker the user
+   * wanted to abandon.
+   *
+   * Safety: only removes markers for `pending.id` if no chat message
+   * (active OR resolved) has ever referenced that hash. The callsite
+   * already guards on `pendingAnchorThread != null` (which by definition
+   * means no root message exists yet), but a concurrent message-send
+   * could land between user click and our store read; this guard means
+   * we never delete markers for a real conversation.
+   *
+   * Always clears the pending anchor regardless — clearing is what the
+   * caller actually requested.
+   */
+  public cancelPendingAnchorThread(pending: {
+    id: string;
+    path?: string;
+    label?: string;
+  }): void {
+    const hash = pending?.id;
+    const chatActions = getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    chatActions?.setPendingAnchorThread(null);
+    if (typeof hash !== "string" || hash.length === 0) return;
+    // Bail if any chat message ever referenced this hash — this should
+    // never be true for a true pending anchor, but it's the cheap
+    // safety net Codex flagged.
+    const messages = chatActions?.store?.get("messages");
+    if (messages != null) {
+      for (const [, msg] of messages) {
+        if (msg == null) continue;
+        const active = msg.get("id") ?? msg.get("cell_id");
+        if (active === hash) return;
+        const resolvedRaw = msg.get("resolved");
+        if (resolvedRaw != null) {
+          const formerId =
+            typeof (resolvedRaw as any).get === "function"
+              ? (resolvedRaw as any).get("anchorId")
+              : (resolvedRaw as any).anchorId;
+          if (formerId === hash) return;
+        }
+      }
+    }
+    // Delete every marker with this hash in scanned files. Bottom-up
+    // per file so line numbers don't shift mid-batch — same dance as
+    // resolveChatMarker's marker step.
+    const all = this.store.get("chat_markers");
+    if (all == null) return;
+    const byPath: { [path: string]: { line: number; col: number }[] } = {};
+    for (const [path, list] of all.entries()) {
+      if (list == null) continue;
+      for (const entry of list) {
+        const m = entry.toJS() as ChatMarker;
+        if (m.hash === hash) {
+          (byPath[path] ??= []).push({ line: m.line, col: m.col });
+        }
+      }
+    }
+    for (const [path, lines] of Object.entries(byPath)) {
+      lines.sort((a, b) =>
+        b.line !== a.line ? b.line - a.line : b.col - a.col,
+      );
+      for (const { line, col } of lines) {
+        this.deleteChatMarker(path, line, col);
+      }
+      this._chatMarkerScanners[path]?.flush?.();
+    }
+  }
+
+  /**
+   * For the "Start new chat thread" affordance on a resolved chat panel:
+   * report where a new marker would land if we called `insertChatMarker()`
+   * right now (active CM's path + cursor line). Used to populate the
+   * confirmation popup so the user isn't surprised. Returns `null` when no
+   * CM is currently focused.
+   */
+  public previewMarkerInsertion(): {
+    path: string;
+    line: number;
+  } | null {
+    const path = this._activeCmPath();
+    const fileActions = this.redux.getEditorActions(
+      this.project_id,
+      path_normalize(path),
+    ) as BaseActions<CodeEditorState> | undefined;
+    if (fileActions == null) return null;
+    const cm = this._cmForInsert(fileActions);
+    if (cm == null) return null;
+    const line = cm.getCursor().line;
+    return { path, line };
   }
 
   // ----- Marker insertion --------------------------------------------------
@@ -4022,12 +4227,14 @@ export class Actions extends BaseActions<LatexEditorState> {
    * frame's path (defaulting to the master file). If `mode === "auto"`, pick
    * inline if the target line has tex content, block otherwise.
    */
-  public async insertChatMarker(opts: {
-    targetPath?: string;
-    targetLine?: number;
-    mode?: "inline" | "block" | "auto";
-    cm?: CodeMirror.Editor;
-  } = {}): Promise<void> {
+  public async insertChatMarker(
+    opts: {
+      targetPath?: string;
+      targetLine?: number;
+      mode?: "inline" | "block" | "auto";
+      cm?: CodeMirror.Editor;
+    } = {},
+  ): Promise<void> {
     const targetPath = opts.targetPath ?? this._activeCmPath();
     const fileActions = this.redux.getEditorActions(
       this.project_id,
@@ -4144,11 +4351,13 @@ export class Actions extends BaseActions<LatexEditorState> {
    * Unlike chat markers, bookmarks are free-form text and never become
    * read-only.
    */
-  public async insertBookmark(opts: {
-    targetPath?: string;
-    targetLine?: number;
-    cm?: CodeMirror.Editor;
-  } = {}): Promise<void> {
+  public async insertBookmark(
+    opts: {
+      targetPath?: string;
+      targetLine?: number;
+      cm?: CodeMirror.Editor;
+    } = {},
+  ): Promise<void> {
     const targetPath = opts.targetPath ?? this._activeCmPath();
     const fileActions = this.redux.getEditorActions(
       this.project_id,

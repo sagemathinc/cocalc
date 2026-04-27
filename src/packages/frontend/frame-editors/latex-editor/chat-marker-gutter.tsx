@@ -10,11 +10,20 @@ that mirrors the jupyter per-cell chat UX:
  - red badge with unread count when there are unread messages for this anchor
  - gray badge with total message count when everything is read.
 
-Clicking opens the side chat focused on that anchor's thread.
+When the marker is *stale* (its hash matches a resolved thread, no active
+thread exists — typically a marker in a sub-file that wasn't open at
+resolve time), the icon is muted and clicking it does nothing on its own;
+the inline tail is the place to remove the stale marker.
+
+Clicking on a non-stale marker opens the side chat focused on that
+anchor's thread.
 */
 
 import { Popconfirm, Tooltip } from "antd";
-import { useAnchoredThreads } from "@cocalc/frontend/chat/threads";
+import {
+  useAnchoredThreads,
+  useResolvedAnchoredThreads,
+} from "@cocalc/frontend/chat/threads";
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -49,10 +58,17 @@ export function ChatMarkerGutter({
     masterPath,
     hash,
   );
+  const { hasResolved } = useResolvedAnchoredThreads(
+    project_id,
+    masterPath,
+    hash,
+  );
+  const isStale = hasResolved && anchoredThreads.length === 0;
   const hasUnread = totalUnread > 0;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isStale) return;
     if (hasUnread) {
       const newestUnread = anchoredThreads
         .filter((t) => t.unreadCount > 0)
@@ -66,15 +82,27 @@ export function ChatMarkerGutter({
   };
 
   return (
-    <Tooltip title="Open chat thread for this anchor" placement="right">
+    <Tooltip
+      title={
+        isStale
+          ? "Stale marker — its chat thread was resolved. Use × to remove."
+          : "Open chat thread for this anchor"
+      }
+      placement="right"
+    >
       <span
         onClick={handleClick}
         style={{
           display: "inline-flex",
           alignItems: "center",
-          cursor: "pointer",
+          cursor: isStale ? "default" : "pointer",
           marginLeft: -9,
-          color: hasUnread ? COLORS.ANTD_RED : COLORS.GRAY_M,
+          color: isStale
+            ? COLORS.GRAY_L
+            : hasUnread
+              ? COLORS.ANTD_RED
+              : COLORS.GRAY_M,
+          opacity: isStale ? 0.6 : 1,
         }}
       >
         <Icon name="comment" />
@@ -88,29 +116,42 @@ export function ChatMarkerGutter({
  * `% chat: <hash>`. It shows a message-count pill (red "N unread" when the
  * user has unread messages, gray "N messages" once everything is read, and
  * nothing at all while the thread has no messages yet) followed by a gray
- * `×` with an antd Popconfirm to remove the marker.
+ * `×` whose Popconfirm resolves the chat (marks the thread resolved AND
+ * removes the marker). Stale markers (hash matches a resolved thread, no
+ * active thread) skip the count pill entirely and offer a plain "remove
+ * stale marker" affordance instead.
  */
 export function ChatMarkerInlineTail({
   hash,
   masterPath,
   project_id,
   onOpen,
-  onConfirmDelete,
+  onConfirmResolve,
+  onConfirmRemoveStale,
 }: {
   hash: string;
   masterPath: string;
   project_id: string;
   onOpen: () => void;
-  onConfirmDelete: () => void;
+  /** Mark the anchored thread(s) resolved AND remove the marker. */
+  onConfirmResolve: () => void;
+  /** Stale marker only: just remove the marker; thread already resolved. */
+  onConfirmRemoveStale: () => void;
 }) {
-  const { totalMessages, totalUnread } = useAnchoredThreads(
+  const { totalMessages, totalUnread, anchoredThreads } = useAnchoredThreads(
     project_id,
     masterPath,
     hash,
   );
+  const { hasResolved } = useResolvedAnchoredThreads(
+    project_id,
+    masterPath,
+    hash,
+  );
+  const isStale = hasResolved && anchoredThreads.length === 0;
   const hasUnread = totalUnread > 0;
   const pillText =
-    totalMessages <= 0
+    isStale || totalMessages <= 0
       ? null
       : hasUnread
         ? `${totalUnread} unread`
@@ -143,29 +184,66 @@ export function ChatMarkerInlineTail({
               lineHeight: 1.4,
               fontWeight: 500,
               cursor: "pointer",
-              backgroundColor: hasUnread ? "#ff4d4f" : "#e0e0e0",
-              color: hasUnread ? "white" : "#555",
+              backgroundColor: hasUnread ? COLORS.ANTD_RED : COLORS.GRAY_LL,
+              color: hasUnread ? COLORS.WHITE : COLORS.GRAY_DD,
             }}
           >
             {pillText}
           </span>
         </Tooltip>
       )}
+      {isStale && (
+        <Tooltip title="Stale marker — chat is resolved" placement="top">
+          <span
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              display: "inline-block",
+              padding: "0 10px",
+              borderRadius: 10,
+              fontSize: "0.85em",
+              lineHeight: 1.4,
+              fontStyle: "italic",
+              color: COLORS.GRAY_M,
+              backgroundColor: COLORS.GRAY_LL,
+            }}
+          >
+            resolved
+          </span>
+        </Tooltip>
+      )}
       <Popconfirm
-        title="Remove chat marker?"
+        title={
+          isStale ? "Remove stale marker?" : "Resolve chat and remove marker?"
+        }
         description={
-          <div style={{ maxWidth: 280 }}>
-            This removes the marker from the source. The chat thread itself
-            is kept in the <code>.sage-chat</code> file but loses its link
-            to this location.
+          <div style={{ maxWidth: 320 }}>
+            {isStale ? (
+              <>
+                The chat thread was already resolved. This just removes the
+                leftover <code>% chat: …</code> marker from the source.
+              </>
+            ) : (
+              <>
+                Marks the chat thread as <b>resolved</b> and removes every{" "}
+                <code>% chat: …</code> marker from all files. The thread is kept
+                in <code>.sage-chat</code> as a read-only archive.
+              </>
+            )}
           </div>
         }
-        okText="Remove"
+        okText={isStale ? "Remove" : "Resolve"}
         cancelText="Cancel"
-        onConfirm={onConfirmDelete}
+        onConfirm={isStale ? onConfirmRemoveStale : onConfirmResolve}
         placement="right"
       >
-        <Tooltip title="Remove this chat marker" placement="right">
+        <Tooltip
+          title={
+            isStale
+              ? "Remove this stale marker"
+              : "Resolve chat and remove this marker"
+          }
+          placement="right"
+        >
           <span
             onMouseDown={(e) => {
               // Prevent CM's mousedown handler from treating this as a
@@ -175,13 +253,17 @@ export function ChatMarkerInlineTail({
             style={{
               display: "inline-block",
               cursor: "pointer",
-              color: COLORS.GRAY_L,
-              fontSize: "0.9em",
-              marginLeft: 6,
-              padding: "0 2px",
+              // Stale-remove stays subdued; the resolve check is a
+              // primary action (turns a chat into a closed TODO), so
+              // give it a clearly readable green and a slightly bigger
+              // hit target.
+              color: isStale ? COLORS.GRAY_L : COLORS.BS_GREEN_D,
+              fontSize: isStale ? "0.9em" : "1.1em",
+              marginLeft: 8,
+              padding: "0 4px",
             }}
           >
-            <Icon name="times-circle" />
+            <Icon name={isStale ? "times-circle" : "check-circle"} />
           </span>
         </Tooltip>
       </Popconfirm>
