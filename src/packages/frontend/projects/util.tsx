@@ -289,9 +289,7 @@ export function useRecentFiles(
         return true;
       })
       .filter((entry: EventRecordMap) =>
-        getOpenEventFilename(entry, "")!
-          .toLowerCase()
-          .includes(searchLower),
+        getOpenEventFilename(entry, "")!.toLowerCase().includes(searchLower),
       )
       .filter((entry: EventRecordMap) => {
         if (directory_listings == null) return true;
