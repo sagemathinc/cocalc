@@ -350,6 +350,17 @@ interface SubscriptionOptions {
   timeout?: number;
 }
 
+interface RpcServiceOptions {
+  queue?: string;
+  timeout?: number;
+}
+
+type RpcServiceHandle = {
+  subject: string;
+  close: () => void;
+  stop: () => void;
+};
+
 // WARNING!  This is the default and you can't just change it!
 // Yes, for specific messages you can, but in general DO NOT.  The reason is because, e.g.,
 // JSON will turn Dates into strings, and we no longer fix that.  So unless you modify the
@@ -395,6 +406,8 @@ export class Client extends EventEmitter {
   // queueGroups is a map from subject to the queue group for the subscription to that subject
   private queueGroups: { [subject: string]: string } = {};
   private subs: { [subject: string]: SubscriptionEmitter } = {};
+  private rpcServiceQueues: { [subject: string]: string } = {};
+  private rpcServiceImpls: { [subject: string]: any } = {};
   private sockets: {
     // all socket servers created using this Client
     servers: { [subject: string]: ConatSocketServer };
@@ -474,12 +487,16 @@ export class Client extends EventEmitter {
       const firstTime = this.info == null;
       this.info = info;
       this.emit("info", info);
-      setTimeout(this.syncSubscriptions, firstTime ? 3000 : 0);
+      setTimeout(() => {
+        void this.syncSubscriptions();
+        void this.syncRpcServices();
+      }, firstTime ? 3000 : 0);
     });
     this.conn.on("permission", ({ message, type, subject }) => {
       logger.debug(message);
       this.permissionError[type]?.set(subject, message);
     });
+    this.conn.on("rpc-request", this.handleRpcRequest);
     this.conn.on("connect", async () => {
       logger.debug(`Conat: Connected to ${this.options.address}`);
       if (this.conn.connected) {
@@ -713,6 +730,11 @@ export class Client extends EventEmitter {
       this.conn.emit("unsubscribe", { subject });
       delete this.queueGroups[subject];
     }
+    for (const subject in this.rpcServiceQueues) {
+      this.conn.emit("rpc-service-close", { subject });
+      delete this.rpcServiceQueues[subject];
+      delete this.rpcServiceImpls[subject];
+    }
     for (const sub of Object.values(this.subs)) {
       sub.refCount = 0;
       sub.close();
@@ -721,6 +743,10 @@ export class Client extends EventEmitter {
     }
     // @ts-ignore
     delete this.queueGroups;
+    // @ts-ignore
+    delete this.rpcServiceQueues;
+    // @ts-ignore
+    delete this.rpcServiceImpls;
     // @ts-ignore
     delete this.inboxSubject;
     delete this.inbox;
@@ -819,6 +845,87 @@ export class Client extends EventEmitter {
       stable = false;
     }
     return stable;
+  };
+
+  private syncRpcServices = reuseInFlight(async () => {
+    if (this.isClosed() || isEmpty(this.rpcServiceQueues)) {
+      return;
+    }
+    await this.waitUntilConnected();
+    if (this.isClosed() || isEmpty(this.rpcServiceQueues)) {
+      return;
+    }
+    const services = Object.entries(this.rpcServiceQueues).map(
+      ([subject, queue]) => ({ subject, queue }),
+    );
+    const resp = await this.conn
+      .timeout(DEFAULT_SUBSCRIPTION_TIMEOUT)
+      .emitWithAck("rpc-service", services);
+    for (let i = 0; i < services.length; i++) {
+      if (resp?.[i]?.error) {
+        logger.debug(
+          `WARNING: rpc service '${services[i].subject}' failed to (re-)register: ${resp[i].error}`,
+        );
+      }
+    }
+  });
+
+  private handleRpcRequest = async (
+    { subject, pattern, encoding, raw, headers },
+    respond,
+  ) => {
+    if (respond == null) {
+      return;
+    }
+    const impl = this.rpcServiceImpls[pattern];
+    if (impl == null) {
+      respond({
+        error: `rpc service '${pattern}' is not registered`,
+        code: 503,
+      });
+      return;
+    }
+    const request = new Message({
+      encoding,
+      raw,
+      headers,
+      client: this,
+      subject,
+    });
+    this.recvStats(raw?.byteLength ?? raw?.length ?? 0);
+    try {
+      const [name, args] = request.data;
+      const f = impl[name];
+      if (f == null) {
+        throw Error(`${name} not defined`);
+      }
+      const response = messageData(await f.apply(request, args));
+      this.stats.send.messages += 1;
+      this.stats.send.bytes += response.raw.length;
+      respond({
+        encoding: response.encoding,
+        raw: response.raw,
+        headers: response.headers,
+      });
+    } catch (err) {
+      const response = messageData(null, {
+        headers: {
+          error: err instanceof Error ? err.message : `${err}`,
+          error_attrs: {
+            code: (err as any)?.code,
+            errno: (err as any)?.errno,
+            path: (err as any)?.path,
+            syscall: (err as any)?.syscall,
+            subject: (err as any)?.subject,
+          },
+        },
+      });
+      respond({
+        encoding: response.encoding,
+        raw: response.raw,
+        headers: response.headers,
+      });
+    }
   };
 
   numSubscriptions = () => Object.keys(this.queueGroups).length;
@@ -1061,6 +1168,111 @@ export class Client extends EventEmitter {
     loop();
     return sub;
   };
+
+  rpcService: <T = any>(
+    subject: string,
+    impl: T,
+    opts?: RpcServiceOptions,
+  ) => Promise<RpcServiceHandle> = async (subject, impl, opts = {}) => {
+    if (!isValidSubject(subject)) {
+      throw Error(`invalid rpc service subject '${subject}'`);
+    }
+    await this.waitUntilSignedIn();
+    const queue = opts.queue ?? "0";
+    this.rpcServiceQueues[subject] = queue;
+    this.rpcServiceImpls[subject] = impl;
+    try {
+      const response = await this.conn
+        .timeout(opts.timeout ?? DEFAULT_SUBSCRIPTION_TIMEOUT)
+        .emitWithAck("rpc-service", { subject, queue });
+      if (response?.error) {
+        throw new ConatError(response.error, { code: response.code });
+      }
+    } catch (err) {
+      delete this.rpcServiceQueues[subject];
+      delete this.rpcServiceImpls[subject];
+      throw err;
+    }
+    const close = () => {
+      if (this.rpcServiceQueues?.[subject] == null) {
+        return;
+      }
+      delete this.rpcServiceQueues[subject];
+      delete this.rpcServiceImpls[subject];
+      if (!this.isClosed()) {
+        this.conn.emit("rpc-service-close", { subject });
+      }
+    };
+    return { subject, close, stop: close };
+  };
+
+  rpcRequest = async (
+    subject: string,
+    mesg: any,
+    {
+      timeout = DEFAULT_REQUEST_TIMEOUT,
+      ignoreErrorHeader,
+      ...options
+    }: PublishOptions & { ignoreErrorHeader?: boolean } = {},
+  ): Promise<Message> => {
+    if (timeout <= 0) {
+      throw Error("timeout must be positive");
+    }
+    await this.waitUntilSignedIn();
+    const request = messageData(mesg, options);
+    this.stats.send.messages += 1;
+    this.stats.send.bytes += request.raw.length;
+    let response;
+    try {
+      response = await this.conn.timeout(timeout).emitWithAck("rpc", {
+        subject,
+        encoding: request.encoding,
+        raw: request.raw,
+        headers: request.headers,
+        timeout,
+      });
+    } catch (err) {
+      throw toConatError(err);
+    }
+    if (response?.error) {
+      throw new ConatError(response.error, { code: response.code });
+    }
+    const resp = new Message({
+      encoding: response.encoding,
+      raw: response.raw,
+      headers: response.headers,
+      client: this,
+      subject,
+    });
+    this.recvStats(response.raw?.byteLength ?? response.raw?.length ?? 0);
+    if (!ignoreErrorHeader && resp.headers?.error) {
+      throw Error(`${resp.headers.error}`);
+    }
+    return resp;
+  };
+
+  rpcCall<T = any>(subject: string, opts?: PublishOptions): T {
+    const call = async (name: string, args: any[]) => {
+      const resp = await this.rpcRequest(subject, [name, args], opts);
+      return resp.data;
+    };
+
+    return new Proxy(
+      { subject },
+      {
+        get: (target, name) => {
+          const s = target[String(name)];
+          if (s !== undefined) {
+            return s;
+          }
+          if (typeof name !== "string" || name == "then") {
+            return undefined;
+          }
+          return async (...args) => await call(name, args);
+        },
+      },
+    ) as T;
+  }
 
   // Call a service as defined above.
   call<T = any>(subject: string, opts?: PublishOptions): T {
