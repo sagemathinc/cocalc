@@ -3,6 +3,7 @@ import {
   PING_PONG_INTERVAL,
   type Command,
   SOCKET_HEADER_CMD,
+  SOCKET_HEADER_CONNECT_ATTEMPT,
   clientSubject,
   serverStatusSubject,
 } from "./util";
@@ -214,9 +215,22 @@ export class ConatSocketServer extends ConatSocketBase {
       delete this.sockets[id];
       mesg.respondSync("closed");
     } else if (cmd == "connect") {
-      // very important that connected is successfully delivered, so do not use respondSync.
-      // Using respond waits for interest.
-      mesg.respond("connected", { noThrow: true });
+      // Dedicated connect-control handshake: instead of replying to the
+      // client's request inbox, publish a `connected` control message to the
+      // client subject the client has already subscribed to.  By the time we
+      // reach here the new-connection branch above has already awaited
+      // waitForInterest(socket.clientSubject), so the publish is delivered
+      // through the same path the rest of the socket lifetime uses.  This
+      // avoids coupling the connect step to generic request/reply machinery
+      // (inboxes, reply subscriptions, request timeouts), which is
+      // particularly fragile across cluster nodes.
+      this.client.publishSync(socket.clientSubject, null, {
+        headers: {
+          [SOCKET_HEADER_CMD]: "connected",
+          [SOCKET_HEADER_CONNECT_ATTEMPT]:
+            mesg.headers?.[SOCKET_HEADER_CONNECT_ATTEMPT],
+        },
+      });
     } else {
       mesg.respondSync({ error: `unknown command - '${cmd}'` });
     }
