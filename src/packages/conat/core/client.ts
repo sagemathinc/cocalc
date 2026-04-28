@@ -221,7 +221,8 @@ import {
 } from "socket.io-client";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import type { ConnectionStats, ServerInfo } from "./types";
-import * as msgpack from "@msgpack/msgpack";
+import { DataEncoding, decode, encode } from "./codec";
+export { DataEncoding, decode, encode } from "./codec";
 import { randomId } from "@cocalc/conat/names";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
@@ -261,12 +262,6 @@ import {
 export const MAX_INTEREST_TIMEOUT = 90_000;
 
 const DEFAULT_WAIT_FOR_INTEREST_TIMEOUT = 30_000;
-
-const MSGPACK_ENCODER_OPTIONS = {
-  // ignoreUndefined is critical so database queries work properly, and
-  // also we have a lot of api calls with tons of wasted undefined values.
-  ignoreUndefined: true,
-};
 
 export const DEFAULT_SOCKETIO_CLIENT_OPTIONS = {
   // A major problem if we allow long polling is that we must always use at most
@@ -335,11 +330,6 @@ export function setDefaultTimeouts({
   DEFAULT_PUBLISH_TIMEOUT = publish;
 }
 
-export enum DataEncoding {
-  MsgPack = 0,
-  JsonCodec = 1,
-}
-
 interface SubscriptionOptions {
   maxWait?: number;
   mesgLimit?: number;
@@ -349,6 +339,17 @@ interface SubscriptionOptions {
   // it starts ticking.
   timeout?: number;
 }
+
+interface RpcServiceOptions {
+  queue?: string;
+  timeout?: number;
+}
+
+type RpcServiceHandle = {
+  subject: string;
+  close: () => void;
+  stop: () => void;
+};
 
 // WARNING!  This is the default and you can't just change it!
 // Yes, for specific messages you can, but in general DO NOT.  The reason is because, e.g.,
@@ -395,6 +396,11 @@ export class Client extends EventEmitter {
   // queueGroups is a map from subject to the queue group for the subscription to that subject
   private queueGroups: { [subject: string]: string } = {};
   private subs: { [subject: string]: SubscriptionEmitter } = {};
+  private rpcServiceQueues: { [subject: string]: string } = {};
+  private rpcServiceImpls: { [subject: string]: any } = {};
+  private fastRpcServiceHandlers: {
+    [subject: string]: (payload: any) => any;
+  } = {};
   private sockets: {
     // all socket servers created using this Client
     servers: { [subject: string]: ConatSocketServer };
@@ -474,12 +480,17 @@ export class Client extends EventEmitter {
       const firstTime = this.info == null;
       this.info = info;
       this.emit("info", info);
-      setTimeout(this.syncSubscriptions, firstTime ? 3000 : 0);
+      setTimeout(() => {
+        void this.syncSubscriptions();
+        void this.syncRpcServices();
+      }, firstTime ? 3000 : 0);
     });
     this.conn.on("permission", ({ message, type, subject }) => {
       logger.debug(message);
       this.permissionError[type]?.set(subject, message);
     });
+    this.conn.on("rpc-request", this.handleRpcRequest);
+    this.conn.on("fast-rpc-request", this.handleFastRpcRequest);
     this.conn.on("connect", async () => {
       logger.debug(`Conat: Connected to ${this.options.address}`);
       if (this.conn.connected) {
@@ -713,6 +724,12 @@ export class Client extends EventEmitter {
       this.conn.emit("unsubscribe", { subject });
       delete this.queueGroups[subject];
     }
+    for (const subject in this.rpcServiceQueues) {
+      this.conn.emit("rpc-service-close", { subject });
+      delete this.rpcServiceQueues[subject];
+      delete this.rpcServiceImpls[subject];
+      delete this.fastRpcServiceHandlers[subject];
+    }
     for (const sub of Object.values(this.subs)) {
       sub.refCount = 0;
       sub.close();
@@ -721,6 +738,12 @@ export class Client extends EventEmitter {
     }
     // @ts-ignore
     delete this.queueGroups;
+    // @ts-ignore
+    delete this.rpcServiceQueues;
+    // @ts-ignore
+    delete this.rpcServiceImpls;
+    // @ts-ignore
+    delete this.fastRpcServiceHandlers;
     // @ts-ignore
     delete this.inboxSubject;
     delete this.inbox;
@@ -819,6 +842,109 @@ export class Client extends EventEmitter {
       stable = false;
     }
     return stable;
+  };
+
+  private syncRpcServices = reuseInFlight(async () => {
+    if (this.isClosed() || isEmpty(this.rpcServiceQueues)) {
+      return;
+    }
+    await this.waitUntilConnected();
+    if (this.isClosed() || isEmpty(this.rpcServiceQueues)) {
+      return;
+    }
+    const services = Object.entries(this.rpcServiceQueues).map(
+      ([subject, queue]) => ({ subject, queue }),
+    );
+    const resp = await this.conn
+      .timeout(DEFAULT_SUBSCRIPTION_TIMEOUT)
+      .emitWithAck("rpc-service", services);
+    for (let i = 0; i < services.length; i++) {
+      if (resp?.[i]?.error) {
+        logger.debug(
+          `WARNING: rpc service '${services[i].subject}' failed to (re-)register: ${resp[i].error}`,
+        );
+      }
+    }
+  });
+
+  private handleRpcRequest = async (
+    { subject, pattern, encoding, raw, headers },
+    respond,
+  ) => {
+    if (respond == null) {
+      return;
+    }
+    const impl = this.rpcServiceImpls[pattern];
+    if (impl == null) {
+      respond({
+        error: `rpc service '${pattern}' is not registered`,
+        code: 503,
+      });
+      return;
+    }
+    const request = new Message({
+      encoding,
+      raw,
+      headers,
+      client: this,
+      subject,
+    });
+    this.recvStats(raw?.byteLength ?? raw?.length ?? 0);
+    try {
+      const [name, args] = request.data;
+      const f = impl[name];
+      if (f == null) {
+        throw Error(`${name} not defined`);
+      }
+      const response = messageData(await f.apply(request, args));
+      this.stats.send.messages += 1;
+      this.stats.send.bytes += response.raw.length;
+      respond({
+        encoding: response.encoding,
+        raw: response.raw,
+        headers: response.headers,
+      });
+    } catch (err) {
+      const response = messageData(null, {
+        headers: {
+          error: err instanceof Error ? err.message : `${err}`,
+          error_attrs: {
+            code: (err as any)?.code,
+            errno: (err as any)?.errno,
+            path: (err as any)?.path,
+            syscall: (err as any)?.syscall,
+            subject: (err as any)?.subject,
+          },
+        },
+      });
+      respond({
+        encoding: response.encoding,
+        raw: response.raw,
+        headers: response.headers,
+      });
+    }
+  };
+
+  private handleFastRpcRequest = async ({ pattern, payload }, respond) => {
+    if (respond == null) {
+      return;
+    }
+    const handler = this.fastRpcServiceHandlers[pattern];
+    if (handler == null) {
+      respond({
+        error: `fast rpc service '${pattern}' is not registered`,
+        code: 503,
+      });
+      return;
+    }
+    try {
+      respond(await handler(payload));
+    } catch (err) {
+      respond({
+        error: err instanceof Error ? err.message : `${err}`,
+        code: (err as any)?.code,
+      });
+    }
   };
 
   numSubscriptions = () => Object.keys(this.queueGroups).length;
@@ -1061,6 +1187,173 @@ export class Client extends EventEmitter {
     loop();
     return sub;
   };
+
+  rpcService: <T = any>(
+    subject: string,
+    impl: T,
+    opts?: RpcServiceOptions,
+  ) => Promise<RpcServiceHandle> = async (subject, impl, opts = {}) => {
+    if (!isValidSubject(subject)) {
+      throw Error(`invalid rpc service subject '${subject}'`);
+    }
+    await this.waitUntilSignedIn();
+    const queue = opts.queue ?? "0";
+    this.rpcServiceQueues[subject] = queue;
+    this.rpcServiceImpls[subject] = impl;
+    try {
+      const response = await this.conn
+        .timeout(opts.timeout ?? DEFAULT_SUBSCRIPTION_TIMEOUT)
+        .emitWithAck("rpc-service", { subject, queue });
+      if (response?.error) {
+        throw new ConatError(response.error, { code: response.code });
+      }
+    } catch (err) {
+      delete this.rpcServiceQueues[subject];
+      delete this.rpcServiceImpls[subject];
+      throw err;
+    }
+    const close = () => {
+      if (this.rpcServiceQueues?.[subject] == null) {
+        return;
+      }
+      delete this.rpcServiceQueues[subject];
+      delete this.rpcServiceImpls[subject];
+      if (!this.isClosed()) {
+        this.conn.emit("rpc-service-close", { subject });
+      }
+    };
+    return { subject, close, stop: close };
+  };
+
+  fastRpcService = async (
+    subject: string,
+    handler: (payload: any) => any,
+    opts: RpcServiceOptions = {},
+  ): Promise<RpcServiceHandle> => {
+    if (!isValidSubject(subject)) {
+      throw Error(`invalid fast rpc service subject '${subject}'`);
+    }
+    await this.waitUntilSignedIn();
+    const queue = opts.queue ?? "0";
+    this.rpcServiceQueues[subject] = queue;
+    this.fastRpcServiceHandlers[subject] = handler;
+    try {
+      const response = await this.conn
+        .timeout(opts.timeout ?? DEFAULT_SUBSCRIPTION_TIMEOUT)
+        .emitWithAck("rpc-service", { subject, queue });
+      if (response?.error) {
+        throw new ConatError(response.error, { code: response.code });
+      }
+    } catch (err) {
+      delete this.rpcServiceQueues[subject];
+      delete this.fastRpcServiceHandlers[subject];
+      throw err;
+    }
+    const close = () => {
+      if (this.rpcServiceQueues?.[subject] == null) {
+        return;
+      }
+      delete this.rpcServiceQueues[subject];
+      delete this.fastRpcServiceHandlers[subject];
+      if (!this.isClosed()) {
+        this.conn.emit("rpc-service-close", { subject });
+      }
+    };
+    return { subject, close, stop: close };
+  };
+
+  fastRpcRequest = async (
+    subject: string,
+    payload: any,
+    { timeout = DEFAULT_REQUEST_TIMEOUT }: { timeout?: number } = {},
+  ): Promise<any> => {
+    if (timeout <= 0) {
+      throw Error("timeout must be positive");
+    }
+    await this.waitUntilSignedIn();
+    let response;
+    try {
+      response = await this.conn.timeout(timeout).emitWithAck("fast-rpc", {
+        subject,
+        payload,
+        timeout,
+      });
+    } catch (err) {
+      throw toConatError(err);
+    }
+    if (response?.error) {
+      throw new ConatError(response.error, { code: response.code });
+    }
+    return response;
+  };
+
+  rpcRequest = async (
+    subject: string,
+    mesg: any,
+    {
+      timeout = DEFAULT_REQUEST_TIMEOUT,
+      ignoreErrorHeader,
+      ...options
+    }: PublishOptions & { ignoreErrorHeader?: boolean } = {},
+  ): Promise<Message> => {
+    if (timeout <= 0) {
+      throw Error("timeout must be positive");
+    }
+    await this.waitUntilSignedIn();
+    const request = messageData(mesg, options);
+    this.stats.send.messages += 1;
+    this.stats.send.bytes += request.raw.length;
+    let response;
+    try {
+      response = await this.conn.timeout(timeout).emitWithAck("rpc", {
+        subject,
+        encoding: request.encoding,
+        raw: request.raw,
+        headers: request.headers,
+        timeout,
+      });
+    } catch (err) {
+      throw toConatError(err);
+    }
+    if (response?.error) {
+      throw new ConatError(response.error, { code: response.code });
+    }
+    const resp = new Message({
+      encoding: response.encoding,
+      raw: response.raw,
+      headers: response.headers,
+      client: this,
+      subject,
+    });
+    this.recvStats(response.raw?.byteLength ?? response.raw?.length ?? 0);
+    if (!ignoreErrorHeader && resp.headers?.error) {
+      throw Error(`${resp.headers.error}`);
+    }
+    return resp;
+  };
+
+  rpcCall<T = any>(subject: string, opts?: PublishOptions): T {
+    const call = async (name: string, args: any[]) => {
+      const resp = await this.rpcRequest(subject, [name, args], opts);
+      return resp.data;
+    };
+
+    return new Proxy(
+      { subject },
+      {
+        get: (target, name) => {
+          const s = target[String(name)];
+          if (s !== undefined) {
+            return s;
+          }
+          if (typeof name !== "string" || name == "then") {
+            return undefined;
+          }
+          return async (...args) => await call(name, args);
+        },
+      },
+    ) as T;
+  }
 
   // Call a service as defined above.
   call<T = any>(subject: string, opts?: PublishOptions): T {
@@ -1568,55 +1861,6 @@ interface PublishOptions {
 interface RequestManyOptions extends PublishOptions {
   maxWait?: number;
   maxMessages?: number;
-}
-
-export function encode({
-  encoding,
-  mesg,
-}: {
-  encoding: DataEncoding;
-  mesg: any;
-}) {
-  if (encoding == DataEncoding.MsgPack) {
-    return msgpack.encode(mesg, MSGPACK_ENCODER_OPTIONS);
-  } else if (encoding == DataEncoding.JsonCodec) {
-    return jsonEncoder(mesg);
-  } else {
-    throw Error(`unknown encoding ${encoding}`);
-  }
-}
-
-export function decode({
-  encoding,
-  data,
-}: {
-  encoding: DataEncoding;
-  data;
-}): any {
-  if (encoding == DataEncoding.MsgPack) {
-    return msgpack.decode(data);
-  } else if (encoding == DataEncoding.JsonCodec) {
-    return jsonDecoder(data);
-  } else {
-    throw Error(`unknown encoding ${encoding}`);
-  }
-}
-
-let textEncoder: TextEncoder | undefined = undefined;
-let textDecoder: TextDecoder | undefined = undefined;
-
-function jsonEncoder(obj: any) {
-  if (textEncoder === undefined) {
-    textEncoder = new TextEncoder();
-  }
-  return textEncoder.encode(JSON.stringify(obj));
-}
-
-function jsonDecoder(data: Buffer): any {
-  if (textDecoder === undefined) {
-    textDecoder = new TextDecoder();
-  }
-  return JSON.parse(textDecoder.decode(data));
 }
 
 interface Chunk {
