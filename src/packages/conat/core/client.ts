@@ -408,6 +408,9 @@ export class Client extends EventEmitter {
   private subs: { [subject: string]: SubscriptionEmitter } = {};
   private rpcServiceQueues: { [subject: string]: string } = {};
   private rpcServiceImpls: { [subject: string]: any } = {};
+  private fastRpcServiceHandlers: {
+    [subject: string]: (payload: any) => any;
+  } = {};
   private sockets: {
     // all socket servers created using this Client
     servers: { [subject: string]: ConatSocketServer };
@@ -497,6 +500,7 @@ export class Client extends EventEmitter {
       this.permissionError[type]?.set(subject, message);
     });
     this.conn.on("rpc-request", this.handleRpcRequest);
+    this.conn.on("fast-rpc-request", this.handleFastRpcRequest);
     this.conn.on("connect", async () => {
       logger.debug(`Conat: Connected to ${this.options.address}`);
       if (this.conn.connected) {
@@ -734,6 +738,7 @@ export class Client extends EventEmitter {
       this.conn.emit("rpc-service-close", { subject });
       delete this.rpcServiceQueues[subject];
       delete this.rpcServiceImpls[subject];
+      delete this.fastRpcServiceHandlers[subject];
     }
     for (const sub of Object.values(this.subs)) {
       sub.refCount = 0;
@@ -747,6 +752,8 @@ export class Client extends EventEmitter {
     delete this.rpcServiceQueues;
     // @ts-ignore
     delete this.rpcServiceImpls;
+    // @ts-ignore
+    delete this.fastRpcServiceHandlers;
     // @ts-ignore
     delete this.inboxSubject;
     delete this.inbox;
@@ -924,6 +931,28 @@ export class Client extends EventEmitter {
         encoding: response.encoding,
         raw: response.raw,
         headers: response.headers,
+      });
+    }
+  };
+
+  private handleFastRpcRequest = async ({ pattern, payload }, respond) => {
+    if (respond == null) {
+      return;
+    }
+    const handler = this.fastRpcServiceHandlers[pattern];
+    if (handler == null) {
+      respond({
+        error: `fast rpc service '${pattern}' is not registered`,
+        code: 503,
+      });
+      return;
+    }
+    try {
+      respond(await handler(payload));
+    } catch (err) {
+      respond({
+        error: err instanceof Error ? err.message : `${err}`,
+        code: (err as any)?.code,
       });
     }
   };
@@ -1204,6 +1233,68 @@ export class Client extends EventEmitter {
       }
     };
     return { subject, close, stop: close };
+  };
+
+  fastRpcService = async (
+    subject: string,
+    handler: (payload: any) => any,
+    opts: RpcServiceOptions = {},
+  ): Promise<RpcServiceHandle> => {
+    if (!isValidSubject(subject)) {
+      throw Error(`invalid fast rpc service subject '${subject}'`);
+    }
+    await this.waitUntilSignedIn();
+    const queue = opts.queue ?? "0";
+    this.rpcServiceQueues[subject] = queue;
+    this.fastRpcServiceHandlers[subject] = handler;
+    try {
+      const response = await this.conn
+        .timeout(opts.timeout ?? DEFAULT_SUBSCRIPTION_TIMEOUT)
+        .emitWithAck("rpc-service", { subject, queue });
+      if (response?.error) {
+        throw new ConatError(response.error, { code: response.code });
+      }
+    } catch (err) {
+      delete this.rpcServiceQueues[subject];
+      delete this.fastRpcServiceHandlers[subject];
+      throw err;
+    }
+    const close = () => {
+      if (this.rpcServiceQueues?.[subject] == null) {
+        return;
+      }
+      delete this.rpcServiceQueues[subject];
+      delete this.fastRpcServiceHandlers[subject];
+      if (!this.isClosed()) {
+        this.conn.emit("rpc-service-close", { subject });
+      }
+    };
+    return { subject, close, stop: close };
+  };
+
+  fastRpcRequest = async (
+    subject: string,
+    payload: any,
+    { timeout = DEFAULT_REQUEST_TIMEOUT }: { timeout?: number } = {},
+  ): Promise<any> => {
+    if (timeout <= 0) {
+      throw Error("timeout must be positive");
+    }
+    await this.waitUntilSignedIn();
+    let response;
+    try {
+      response = await this.conn.timeout(timeout).emitWithAck("fast-rpc", {
+        subject,
+        payload,
+        timeout,
+      });
+    } catch (err) {
+      throw toConatError(err);
+    }
+    if (response?.error) {
+      throw new ConatError(response.error, { code: response.code });
+    }
+    return response;
   };
 
   rpcRequest = async (

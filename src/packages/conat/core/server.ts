@@ -1053,6 +1053,86 @@ export class ConatServer extends EventEmitter {
       },
     );
 
+    socket.on(
+      "fast-rpc",
+      async ({ subject, payload, timeout = MAX_INTEREST_TIMEOUT }, respond) => {
+        const handlerStart = Date.now();
+        if (respond == null) {
+          return;
+        }
+        if (!isValidSubjectWithoutWildcards(subject)) {
+          respond({ error: "invalid subject", code: 400 });
+          return;
+        }
+        const authStart = Date.now();
+        if (!(await this.isAllowed({ user, subject, type: "pub" }))) {
+          const message = `permission denied fast RPC to '${subject}' from ${JSON.stringify(
+            user,
+          )}`;
+          this.log(message);
+          socket.emit("permission", {
+            message,
+            subject,
+            type: "pub",
+          });
+          respond({ error: message, code: 403 });
+          return;
+        }
+        const authMs = Date.now() - authStart;
+        const routeStart = Date.now();
+        const target = this.resolveRpcService(subject);
+        const routeMs = Date.now() - routeStart;
+        if (target == null) {
+          respond({
+            error: `fast-rpc -- no services matching '${subject}'`,
+            code: 503,
+            serverAuthMs: authMs,
+            serverRouteMs: routeMs,
+            serverHandlerMs: Date.now() - handlerStart,
+          });
+          return;
+        }
+        const targetSocket = this.sockets[target.target];
+        if (targetSocket == null) {
+          respond({
+            error: `fast-rpc -- target service disconnected for '${subject}'`,
+            code: 503,
+            serverAuthMs: authMs,
+            serverRouteMs: routeMs,
+            serverHandlerMs: Date.now() - handlerStart,
+          });
+          return;
+        }
+        try {
+          const response = await emitWithAckTimeoutValue(
+            targetSocket,
+            "fast-rpc-request",
+            {
+              subject,
+              pattern: target.pattern,
+              payload,
+            },
+            Math.min(timeout, MAX_INTEREST_TIMEOUT),
+          );
+          respond({
+            ...response,
+            count: 1,
+            serverAuthMs: authMs,
+            serverRouteMs: routeMs,
+            serverHandlerMs: Date.now() - handlerStart,
+          });
+        } catch (err) {
+          respond({
+            error: `${err}`,
+            code: 408,
+            serverAuthMs: authMs,
+            serverRouteMs: routeMs,
+            serverHandlerMs: Date.now() - handlerStart,
+          });
+        }
+      },
+    );
+
     const subscribe = async ({ subject, queue }) => {
       try {
         if (this.subscriptions[id].has(subject)) {
