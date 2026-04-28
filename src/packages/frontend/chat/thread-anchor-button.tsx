@@ -20,8 +20,14 @@ export function ThreadAnchorButton({ anchorId, actions }: Props) {
   if (!editorActions || typeof editorActions.jumpToAnchor !== "function") {
     return null;
   }
-  const label: string =
-    editorActions.getAnchorLabel?.(anchorId) ?? "Jump to anchor";
+  // Prefer the location-only label (`path:line`); the opaque hash is
+  // not useful in a "Jump to ..." button. Fall back to the full label
+  // (which includes the hash) only when no jump-label is available, and
+  // finally to a bare "Jump to anchor".
+  const jumpTarget: string | undefined =
+    editorActions.getAnchorJumpLabel?.(anchorId) ??
+    editorActions.getAnchorLabel?.(anchorId);
+  const label = jumpTarget ? `Jump to ${jumpTarget}` : "Jump to anchor";
 
   const style = {
     background: isDark

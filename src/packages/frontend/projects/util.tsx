@@ -13,7 +13,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { isIntlMessage } from "@cocalc/frontend/i18n";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
-import { getOpenFilePath } from "@cocalc/frontend/project/history/utils";
+import { getOpenEventFilename } from "@cocalc/frontend/project/history/utils";
 import {
   SPEC as SERVER_SPEC,
   serverURL,
@@ -276,27 +276,27 @@ export function useRecentFiles(
       .valueSeq()
       .filter(
         (entry: EventRecordMap) =>
-          getOpenFilePath(entry.getIn(["event", "filename"])) != null &&
+          getOpenEventFilename(entry, undefined) != null &&
           entry.getIn(["event", "event"]) === "open",
       )
       .sort((a, b) => getTime(b) - getTime(a))
       .filter((entry: EventRecordMap) => {
-        const fn = getOpenFilePath(entry.getIn(["event", "filename"]));
+        const fn = getOpenEventFilename(entry, undefined);
         if (fn == null) return false;
         if (dedupe.includes(fn)) return false;
         dedupe.push(fn);
         return true;
       })
       .filter((entry: EventRecordMap) => {
-        const filename = getOpenFilePath(entry.getIn(["event", "filename"]));
+        const filename = getOpenEventFilename(entry, undefined);
         return filename == null
           ? false
           : filename.toLowerCase().includes(searchLower);
       })
       .filter((entry: EventRecordMap) => {
         if (directory_listings == null) return true;
-        const filename = getOpenFilePath(entry.getIn(["event", "filename"]));
-        if (filename == null) return true;
+        const filename = getOpenEventFilename(entry, undefined);
+        if (!filename) return true;
         const { head: parentDir, tail: baseName } = path_split(filename);
         if (!baseName) return true;
         // Use the compute server recorded in the log entry (default 0 = home base
@@ -320,7 +320,7 @@ export function useRecentFiles(
       })
       .slice(0, max)
       .map((entry: EventRecordMap) => ({
-        filename: getOpenFilePath(entry.getIn(["event", "filename"])) ?? "",
+        filename: getOpenEventFilename(entry, "") as string,
         time: entry.get("time"),
         account_id: entry.get("account_id"),
       }))

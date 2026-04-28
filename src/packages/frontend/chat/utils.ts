@@ -24,15 +24,39 @@ import { is_date as isDate } from "@cocalc/util/misc";
 export const INPUT_HEIGHT = "125px";
 
 /**
- * Read the anchor id stamped on a chat message's root, preferring the
- * current `id` field but falling back to the legacy `cell_id` field so
+ * Read the *active* anchor id stamped on a chat message's root, preferring
+ * the current `id` field but falling back to the legacy `cell_id` field so
  * notebooks with pre-rename chat data continue to find their threads.
+ *
+ * Returns `undefined` when the root message has been marked `resolved`, so
+ * resolved (LaTeX collaborative-TODO) threads are never treated as live
+ * anchors regardless of whether the `id` field was actually cleared. Use
+ * `formerAnchorIdOf` to read the hash a resolved thread once had.
  */
 export function anchorIdOf(
   msg: ChatMessageTyped | undefined,
 ): string | undefined {
   if (msg == null) return undefined;
+  if (msg.get("resolved") != null) return undefined;
   const v = msg.get("id") ?? msg.get("cell_id");
+  return typeof v === "string" ? v : undefined;
+}
+
+/**
+ * Read the former anchor id of a resolved root message, or `undefined` if
+ * the message is not resolved (or wasn't anchored). Used by stale-marker
+ * detection in the LaTeX editor.
+ */
+export function formerAnchorIdOf(
+  msg: ChatMessageTyped | undefined,
+): string | undefined {
+  if (msg == null) return undefined;
+  const r = msg.get("resolved");
+  if (r == null) return undefined;
+  const v =
+    typeof (r as any).get === "function"
+      ? (r as any).get("anchorId")
+      : (r as any).anchorId;
   return typeof v === "string" ? v : undefined;
 }
 
@@ -221,6 +245,27 @@ export function getThreadRootDate({
   }
   const d = getReplyToRoot({ message, messages });
   return d?.valueOf() ?? 0;
+}
+
+/**
+ * True iff the thread containing this message has been resolved (LaTeX
+ * collaborative-TODO flow). Walks to the thread root and checks
+ * `resolved`. Used to gate per-thread Reply buttons in the all-threads
+ * view, where the per-thread composer doesn't run.
+ */
+export function isThreadResolved({
+  date,
+  messages,
+}: {
+  date: number;
+  messages?: ChatMessages;
+}): boolean {
+  if (messages == null) return false;
+  const rootMs = getThreadRootDate({ date, messages });
+  if (!rootMs) return false;
+  const root = messages.get(`${rootMs}`);
+  if (root == null) return false;
+  return root.get("resolved") != null;
 }
 
 // Use heuristics to try to turn "date", whatever it might be,

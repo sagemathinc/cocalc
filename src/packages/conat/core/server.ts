@@ -256,10 +256,12 @@ export class ConatServer extends EventEmitter {
       maxHttpBufferSize: MAX_PAYLOAD,
       path,
       adapter,
-      // perMessageDeflate is disabled by default in socket.io, but it
-      // seems unclear exactly *why*:
-      //   https://github.com/socketio/socket.io/issues/3477#issuecomment-930503313
-      perMessageDeflate: { threshold: 1024 },
+      // Effectively skip per-message compression: most conat traffic is tiny
+      // control-plane messages, so a 1 GiB threshold means messages never hit
+      // zlib while keeping the socket.io extension active. (Setting
+      // perMessageDeflate: false outright triggers a socket.io code path that
+      // breaks message ordering on our backend conat tests.)
+      perMessageDeflate: { threshold: 1 << 30 },
     };
     this.log(socketioOptions);
     if (httpServer) {

@@ -36,6 +36,9 @@ export const LogSearch: React.FC<Props> = ({
 
       switch (e.get("event")) {
         case "open":
+          // `filename` may be a string (legacy) or an object/Map carrying
+          // the path under `.path` (newer clients). `getOpenFilePath`
+          // delegates to `normalizeLogFilename` and handles all shapes.
           const target = getOpenFilePath(e.get("filename"));
           if (target != null) {
             actions.open_file({

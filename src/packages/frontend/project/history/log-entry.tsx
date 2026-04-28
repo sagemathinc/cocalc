@@ -41,7 +41,11 @@ import { COLORS } from "@cocalc/util/theme";
 import { FormattedMessage, useIntl } from "react-intl";
 import { SOFTWARE_ENVIRONMENT_ICON } from "../settings/software-consts";
 import { SystemProcess } from "./system-process";
-import { getOpenFileExt, getOpenFilePath, handleFileEntryClick } from "./utils";
+import {
+  getOpenFileExt,
+  handleFileEntryClick,
+  normalizeLogFilename,
+} from "./utils";
 import type {
   AIAssistanceEvent,
   AssistantEvent,
@@ -160,7 +164,11 @@ export const LogEntry: React.FC<Props> = React.memo(
     const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
 
     function render_open_file(event: OpenFile): React.JSX.Element {
-      const path = getOpenFilePath(event.filename);
+      // `event.filename` is typed as string but at runtime may be an
+      // object `{ ext, path, editorId }` (or an Immutable Map of it)
+      // written by a newer client. `normalizeLogFilename` covers both
+      // shapes and returns undefined when nothing usable is present.
+      const path = normalizeLogFilename(event.filename);
       if (path == null) {
         return <span>Opened an invalid file entry</span>;
       }
@@ -1030,6 +1038,10 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "open_project":
           return "folder-open";
         case "open": // open a file
+          // `getOpenFileExt` first checks `event.filename.ext` (newer
+          // clients pre-compute it), then falls back to extracting from
+          // the path. Robust against both string and `{ext, path, …}`
+          // shapes — see normalizeLogFilename note above.
           const ext = getOpenFileExt(event.filename);
           const info = file_associations[ext];
           if (info == null) return "file-code";
