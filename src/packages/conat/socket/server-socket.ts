@@ -16,6 +16,16 @@ import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("socket:server-socket");
 
+// Schedule a callback for the next event-loop turn.  Falls back to
+// setTimeout(..., 0) if setImmediate isn't available (e.g. jsdom).
+const nextTurn = (f: () => void) => {
+  if (typeof globalThis.setImmediate == "function") {
+    globalThis.setImmediate(f);
+  } else {
+    setTimeout(f, 0);
+  }
+};
+
 // One specific socket from the point of view of a server.
 export class ServerSocket extends EventEmitter {
   private conatSocket: ConatSocketServer;
@@ -24,6 +34,15 @@ export class ServerSocket extends EventEmitter {
 
   private queuedWrites: { data: any; headers?: Headers }[] = [];
   public readonly clientSubject: string;
+
+  // Inbound `data` events are buffered and emitted one per event-loop
+  // turn so back-to-back data events don't get coalesced from the
+  // perspective of synchronous EventEmitter consumers (which would
+  // otherwise miss intermediate events when the consumer awaits between
+  // them).  A request handler that needs ordered data must call
+  // flushDataQueue() to drain pending entries synchronously first.
+  private dataQueue: { data: any; headers?: Headers }[] = [];
+  private dataQueueScheduled = false;
 
   public state: State = "ready";
   // the non-pattern subject the client connected to
@@ -91,13 +110,46 @@ export class ServerSocket extends EventEmitter {
     );
 
     this.tcp.recv.on("message", (mesg) => {
-      // console.log("tcp recv emitted message", mesg.data);
-      this.emit("data", mesg.data, mesg.headers);
+      this.enqueueData(mesg.data, mesg.headers);
     });
     this.tcp.send.on("drain", () => {
       this.emit("drain");
     });
   }
+
+  private enqueueData = (data: any, headers?: Headers) => {
+    this.dataQueue.push({ data, headers });
+    this.scheduleDataDelivery();
+  };
+
+  private scheduleDataDelivery = () => {
+    if (this.dataQueueScheduled) {
+      return;
+    }
+    this.dataQueueScheduled = true;
+    nextTurn(() => {
+      this.dataQueueScheduled = false;
+      const mesg = this.dataQueue.shift();
+      if (mesg == null || this.state == "closed") {
+        return;
+      }
+      this.emit("data", mesg.data, mesg.headers);
+      if (this.dataQueue.length > 0) {
+        this.scheduleDataDelivery();
+      }
+    });
+  };
+
+  // Synchronously drain pending data events.  Used by the server's
+  // request path so a request handler sees any preceding data first.
+  flushDataQueue = () => {
+    while (this.dataQueue.length > 0 && this.state != "closed") {
+      const mesg = this.dataQueue.shift();
+      if (mesg != null) {
+        this.emit("data", mesg.data, mesg.headers);
+      }
+    }
+  };
 
   disconnect = () => {
     this.setState("disconnected");

@@ -132,6 +132,9 @@ export class ConatSocketServer extends ConatSocketBase {
       this.handleCommandFromClient({ socket, cmd: cmd as Command, mesg });
     } else if (mesg.isRequest()) {
       // a request to support the socket.on('request', (mesg) => ...) protocol:
+      // Flush any pending data events first so the request handler sees
+      // them in order, not after the request.
+      socket.flushDataQueue();
       socket.emit("request", mesg);
     } else {
       socket.receiveDataFromClient(mesg);

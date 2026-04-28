@@ -23,12 +23,27 @@ const logger = getLogger("socket:client");
 // DO NOT directly instantiate here -- instead, call the
 // socket.connect method on ConatClient.
 
+// Schedule a callback for the next event-loop turn.  Falls back to
+// setTimeout(..., 0) if setImmediate isn't available (e.g. jsdom).
+const nextTurn = (f: () => void) => {
+  if (typeof globalThis.setImmediate == "function") {
+    globalThis.setImmediate(f);
+  } else {
+    setTimeout(f, 0);
+  }
+};
+
 export class ConatSocketClient extends ConatSocketBase {
   queuedWrites: { data: any; headers?: Headers }[] = [];
   private tcp?: TCP;
   private alive?: KeepAlive;
   private serverId?: string;
   private loadBalancer?: (subject:string) => Promise<string>;
+  // Inbound `data` events are buffered and emitted one per event-loop
+  // turn so back-to-back data events don't get coalesced from the
+  // perspective of synchronous EventEmitter consumers.
+  private dataQueue: { data: any; headers?: Headers }[] = [];
+  private dataQueueScheduled = false;
   // For the connect-control handshake: each connect attempt gets a unique id
   // we tag onto the publish so the matching `connected` reply can be
   // correlated.  Not strictly required for correctness today but lets us
@@ -103,12 +118,46 @@ export class ConatSocketClient extends ConatSocketBase {
     this.client.on("disconnected", this.tcp.send.resendLastUntilAcked);
 
     this.tcp.recv.on("message", (mesg) => {
-      this.emit("data", mesg.data, mesg.headers);
+      this.enqueueData(mesg.data, mesg.headers);
     });
     this.tcp.send.on("drain", () => {
       this.emit("drain");
     });
   }
+
+  private enqueueData = (data: any, headers?: Headers) => {
+    this.dataQueue.push({ data, headers });
+    this.scheduleDataDelivery();
+  };
+
+  private scheduleDataDelivery = () => {
+    if (this.dataQueueScheduled) {
+      return;
+    }
+    this.dataQueueScheduled = true;
+    nextTurn(() => {
+      this.dataQueueScheduled = false;
+      const mesg = this.dataQueue.shift();
+      if (mesg == null || this.state == "closed") {
+        return;
+      }
+      this.emit("data", mesg.data, mesg.headers);
+      if (this.dataQueue.length > 0) {
+        this.scheduleDataDelivery();
+      }
+    });
+  };
+
+  // Synchronously drain pending data events.  Used by the request path
+  // so a request handler sees any preceding data first.
+  flushDataQueue = () => {
+    while (this.dataQueue.length > 0 && this.state != "closed") {
+      const mesg = this.dataQueue.shift();
+      if (mesg != null) {
+        this.emit("data", mesg.data, mesg.headers);
+      }
+    }
+  };
 
   waitUntilDrain = async () => {
     await this.tcp?.send.waitUntilDrain();
@@ -214,6 +263,9 @@ export class ConatSocketClient extends ConatSocketBase {
       } else if (cmd == "ping") {
         mesg.respondSync(null);
       } else if (mesg.isRequest()) {
+        // Flush any pending data events first so the request handler
+        // sees them in order, not after the request.
+        this.flushDataQueue();
         this.emit("request", mesg);
       } else {
         this.tcp?.recv.process(mesg);
