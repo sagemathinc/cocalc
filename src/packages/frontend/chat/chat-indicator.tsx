@@ -8,7 +8,6 @@ import { Button, Space, Tooltip } from "antd";
 import { COLORS } from "@cocalc/util/theme";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { AIAvatar } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -24,19 +23,11 @@ export type ChatState =
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "15pt",
-  paddingTop: "2px",
   cursor: "pointer",
   background: COLORS.GRAY_L0,
   borderTop: `2px solid ${COLORS.GRAY_L}`,
+  height: "100%",
 } as const;
-
-const USERS_VIEWING_STYLE: React.CSSProperties = {
-  maxWidth: "120px",
-  marginRight: "5px",
-} as const;
-
-// Light tint of assistant color for hover
-const AI_HOVER_BG = COLORS.YELL_LLL;
 
 interface Props {
   project_id: string;
@@ -53,16 +44,13 @@ export function ChatIndicator({
 }: Props) {
   const style: React.CSSProperties = {
     ...CHAT_INDICATOR_STYLE,
-    ...{ display: "flex" },
+    ...{ display: "flex", alignItems: "center" as const },
+    background: `var(--cocalc-editor-titlebar-bg, ${COLORS.GRAY_L0})`,
+    borderTop: "none",
   };
 
   return (
     <div style={style}>
-      <UsersViewing
-        project_id={project_id}
-        path={path}
-        style={USERS_VIEWING_STYLE}
-      />
       <ChatButtons
         project_id={project_id}
         path={path}
@@ -124,8 +112,15 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
   const aiActive = !!chatState && chatMode === "assistant";
   const chatActive = !!chatState && chatMode !== "assistant";
 
-  // Common border style for both buttons
-  const borderColor = COLORS.GRAY_L;
+  const borderColor = "transparent";
+  const buttonHoverBg = `var(--cocalc-top-bar-hover, ${COLORS.GRAY_LLL})`;
+  const buttonActiveBg = `var(--cocalc-editor-titlebar-bg-active, white)`;
+  const buttonText = `var(--cocalc-top-bar-text, ${COLORS.GRAY})`;
+  const buttonTextActive = `var(--cocalc-text-primary, #333)`;
+  const aiButtonActiveBg = `var(--cocalc-ai-bg, ${COLORS.AI_ASSISTANT_BG})`;
+  const aiButtonActiveText = `var(--cocalc-ai-text, ${COLORS.AI_ASSISTANT_TXT})`;
+  // Faint AI color hint when inactive
+  const aiButtonInactiveBg = `color-mix(in srgb, var(--cocalc-ai-bg, ${COLORS.AI_ASSISTANT_BG}) 25%, transparent)`;
 
   const chatButton = (
     <Tooltip
@@ -149,11 +144,12 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
         onMouseLeave={() => setHoverChat(false)}
         style={{
           background: chatActive
-            ? "white"
+            ? buttonActiveBg
             : hoverChat
-              ? COLORS.GRAY_LLL
+              ? buttonHoverBg
               : "transparent",
           borderColor,
+          color: chatActive ? buttonTextActive : buttonText,
         }}
       >
         <Icon name="comment" />
@@ -186,15 +182,16 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
           onMouseLeave={() => setHoverAI(false)}
           style={{
             background: aiActive
-              ? COLORS.AI_ASSISTANT_BG
+              ? aiButtonActiveBg
               : hoverAI
-                ? AI_HOVER_BG
-                : "transparent",
+                ? aiButtonActiveBg
+                : aiButtonInactiveBg,
             borderColor,
+            color: aiActive ? aiButtonActiveText : buttonText,
             padding: "4px 8px",
           }}
         >
-          <AIAvatar size={16} />
+          <AIAvatar size={16} iconColor="currentColor" />
           <span style={{ marginLeft: "5px" }}>AI</span>
         </Button>
       </Tooltip>

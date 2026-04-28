@@ -133,8 +133,8 @@ export default function Overview() {
             navMap={"page"}
             style={{
               pointerEvents: "none",
-              background: "white",
-              border: "1px solid #ccc",
+              background: "var(--cocalc-bg-base, white)",
+              border: "1px solid var(--cocalc-border, #ccc)",
               borderRadius: "5px",
             }}
             maxScale={2}
@@ -168,7 +168,7 @@ export default function Overview() {
     <div
       className="smc-vfill"
       style={{
-        background: "#eee",
+        background: "var(--cocalc-bg-hover, #eee)",
         padding: "0 0 2px 10px" /* bottom padding also stops bouncing */,
       }}
     >

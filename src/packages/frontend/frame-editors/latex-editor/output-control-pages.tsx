@@ -13,7 +13,6 @@ import { useIntl } from "react-intl";
 
 import { Icon, Tip } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 
 import { Actions } from "./actions";
 
@@ -25,7 +24,7 @@ const CONTROL_PAGE_STYLE = {
   alignItems: "center",
   gap: "5px",
   fontSize: "13px",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
 } as const;
 
 interface PageNavigationControlsProps {

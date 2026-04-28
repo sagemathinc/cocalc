@@ -11,7 +11,6 @@ import { Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import Ansi from "@cocalc/frontend/components/ansi-to-react";
 import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
-import { COLORS } from "@cocalc/util/theme";
 import {
   STYLE_ERR,
   STYLE_HEADER,
@@ -234,7 +233,7 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
               margin: "10px",
               fontWeight: "bold",
               fontSize: `${font_size}px`,
-              color: COLORS.GRAY_M,
+              color: "var(--cocalc-text-primary, #5f5f5f)",
             }}
           >
             Build completed.{peakResourceUsage}

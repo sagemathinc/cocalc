@@ -25,12 +25,12 @@ export class PlanInfo extends Component<Props> {
     return (
       <div key={name} style={{ marginBottom: "5px", marginLeft: "10px" }}>
         <Tip title={data.display} tip={data.desc}>
-          <span style={{ fontWeight: "bold", color: "#444" }}>
+          <span style={{ fontWeight: "bold", color: "var(--cocalc-text-primary, #444)" }}>
             {value * data.pricing_factor}{" "}
             {plural(value * data.pricing_factor, data.pricing_unit)}
           </span>
           <Gap />
-          <span style={{ color: "#666" }}>{data.display}</span>
+          <span style={{ color: "var(--cocalc-text-secondary, #666)" }}>{data.display}</span>
         </Tip>
       </div>
     );

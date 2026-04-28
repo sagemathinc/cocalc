@@ -18,6 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - Add suitable types when you write code
 - Follow DRY principles!
 - TypeScript: prefer `var1 ?? var2` for fallbacks. only use `var1 || var2` in explicit or-chains or when necessary.
+- TypeScript: strictly avoid `as any` type casts. Fix the underlying types instead. Use `unknown` with proper type guards when needed.
 - Variable name styles are `camelCase` for local and `FOO_BAR` for global variables. React Components and Classes are `FooBar`. If you edit older code not following these guidelines, adjust this rule to fit the file's style.
 - Some older code is JavaScript or CoffeeScript, which will be translated to TypeScript
 - Use ES modules (import/export) syntax, not CommonJS (require)
@@ -74,7 +75,6 @@ cd ../frontend && npx tsc --noEmit
 - `cd src/packages/[package] && pnpm test` - Run all tests for a specific package
 - `cd src/packages/[package] && pnpm test -- [path/to/file.test.ts]` - Run a single test file (preferred — faster than running the full suite)
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
-- **IMPORTANT**: When modifying colors in `src/packages/util/theme.ts`, run `cd src/packages/frontend && pnpm update-color-scheme` to regenerate the SASS color variables in `src/packages/frontend/_colors.sass`
 
 ### Workspace Management (`src/workspaces.py`)
 
@@ -100,7 +100,7 @@ After finishing a batch of code edits, you MUST run these steps automatically �
 **Frontend code** (`src/packages/frontend`):
 
 1. `prettier -w [each edited file]`
-2. `cd src/packages/frontend && pnpm tsc --noEmit` — fix any errors before continuing
+2. `cd src/packages/frontend && npx tsc --noEmit` — fix any errors before continuing
 3. `cd src/packages/static && pnpm build-dev` — compile for testing
 4. **DO NOT** run `pnpm build` in `src/packages/frontend` — it won't work for frontend dev.
 
@@ -112,7 +112,6 @@ After finishing a batch of code edits, you MUST run these steps automatically �
 
 **Special cases**:
 
-- After editing colors in `src/packages/util/theme.ts`: run `cd src/packages/frontend && pnpm update-color-scheme`
 - After updating `package.json` deps: run `python3 src/workspaces.py version-check` then `python3 src/workspaces.py install`
 
 ## Architecture Overview

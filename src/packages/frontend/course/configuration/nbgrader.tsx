@@ -48,7 +48,7 @@ export function Nbgrader({ name }: Props) {
     return (
       <div
         style={{
-          border: "1px solid lightgrey",
+          border: "1px solid var(--cocalc-border-light, lightgray)",
           padding: "10px",
           borderRadius: "5px",
         }}
@@ -121,7 +121,7 @@ export function Nbgrader({ name }: Props) {
     return (
       <div
         style={{
-          border: "1px solid lightgrey",
+          border: "1px solid var(--cocalc-border-light, lightgray)",
           padding: "10px",
           borderRadius: "5px",
         }}
@@ -159,7 +159,7 @@ export function Nbgrader({ name }: Props) {
     return (
       <div
         style={{
-          border: "1px solid lightgrey",
+          border: "1px solid var(--cocalc-border-light, lightgray)",
           padding: "10px",
           borderRadius: "5px",
         }}
@@ -209,7 +209,7 @@ export function Nbgrader({ name }: Props) {
     return (
       <div
         style={{
-          border: "1px solid lightgrey",
+          border: "1px solid var(--cocalc-border-light, lightgray)",
           padding: "10px",
           borderRadius: "5px",
         }}
@@ -253,7 +253,7 @@ export function Nbgrader({ name }: Props) {
     return (
       <div
         style={{
-          border: "1px solid lightgrey",
+          border: "1px solid var(--cocalc-border-light, lightgray)",
           padding: "10px",
           borderRadius: "5px",
         }}

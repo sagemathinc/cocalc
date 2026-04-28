@@ -54,10 +54,10 @@ export default function CellInput({
   const controlBar = disableExtraButtons ? null : (
     <div
       style={{
-        borderBottom: "1px solid #ccc",
+        borderBottom: "1px solid var(--cocalc-border, #ccc)",
         padding: "3px",
         display: "flex",
-        background: "#f8f8f8",
+        background: "var(--cocalc-bg-elevated, #f8f8f8)",
       }}
     >
       <div style={{ flex: 1 }} />
@@ -79,7 +79,7 @@ export default function CellInput({
             style={
               editing && newValue != value
                 ? { background: "#5cb85c", color: "white" }
-                : { color: "#666" }
+                : { color: "var(--cocalc-text-secondary, #666)" }
             }
             onClick={() => {
               if (editing) {
@@ -122,7 +122,7 @@ export default function CellInput({
           {editing && (
             <div
               style={{
-                border: "1px solid #ccc",
+                border: "1px solid var(--cocalc-border, #ccc)",
                 borderRadius: "5px",
                 overflow: "hidden",
               }}

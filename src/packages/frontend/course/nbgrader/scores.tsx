@@ -132,7 +132,7 @@ export function NbgraderScores({
     return (
       <table
         style={{
-          border: "1px solid lightgray",
+          border: "1px solid var(--cocalc-border-light, lightgray)",
           width: "100%",
           borderRadius: "3px",
           borderCollapse: "collapse",
@@ -172,9 +172,9 @@ export function NbgraderScores({
     const value = `${score.score != null ? score.score : ""}`;
     const style = {
       width: "48px",
-      color: "#666",
+      color: "var(--cocalc-text-secondary, #666)",
       fontSize: "14px",
-      border: "1px solid lightgrey",
+      border: "1px solid var(--cocalc-border-light, lightgray)",
       display: "inline-block",
       padding: "1px",
     };

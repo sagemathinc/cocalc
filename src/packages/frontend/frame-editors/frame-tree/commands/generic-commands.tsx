@@ -313,11 +313,18 @@ addCommands({
     label: editor.toggle_pdf_dark_mode_label,
     icon: () => <Icon unicode={DARK_MODE_ICON} />,
     isVisible: () => {
-      const other_settings = redux
-        .getStore("account")
-        .get("other_settings")
-        ?.toJS();
-      return other_settings?.dark_mode ?? false;
+      const other_settings = redux.getStore("account").get("other_settings");
+      const nativeDark = String(
+        other_settings?.get("native_dark_mode") ?? "off",
+      );
+      if (nativeDark === "on") return true;
+      if (nativeDark === "system") {
+        return (
+          typeof window !== "undefined" &&
+          window.matchMedia?.("(prefers-color-scheme: dark)").matches
+        );
+      }
+      return false;
     },
     onClick: ({ props }) => {
       props.actions.toggle_pdf_dark_mode?.(props.id);
@@ -1601,9 +1608,10 @@ addCommands({
         ),
         description: (
           <div>
-            {intl.formatMessage({
-              id: "commands.generic.toggle_button_bar.confirm.description",
-              defaultMessage: `The menu toolbar is a customizable bar of shortcuts to menu items.
+            {intl.formatMessage(
+              {
+                id: "commands.generic.toggle_button_bar.confirm.description",
+                defaultMessage: `The menu toolbar is a customizable bar of shortcuts to menu items.
               <ul>
               <li>
                 Everything in the menu toolbar is always available in the menus
@@ -1619,8 +1627,21 @@ addCommands({
               <li>
                 Hide only this frame's toolbar: 'View → Menu Toolbar → Remove All Buttons'.
               </li>
+              <li>
+                Pinned menu items are always available in the {menuIcon} menu at the top right.
+              </li>
               </ul>`,
-            })}
+              },
+              {
+                menuIcon: (
+                  <Icon
+                    name="ellipsis"
+                    rotate="90"
+                    style={{ display: "inline-block", verticalAlign: "middle" }}
+                  />
+                ),
+              },
+            )}
           </div>
         ),
         cancelText: intl.formatMessage(labels.cancel),

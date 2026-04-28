@@ -19,7 +19,7 @@ export const STYLE = {
 } as const;
 
 const ICON_STYLE = {
-  color: COLORS.FILE_ICON,
+  color: "var(--cocalc-primary, rgb(66, 139, 202))",
   fontSize: "125%",
 } as const;
 
@@ -86,14 +86,14 @@ export function NewFileButton({
           <div>
             {displayed_icon}
             <br />
-            <span style={{ color: COLORS.GRAY_D }}>{name}</span>
+            <span style={{ color: "var(--cocalc-text-primary-strong, #434343)" }}>{name}</span>
           </div>
         );
       case "small":
         return (
           <div>
             {displayed_icon}{" "}
-            <span style={{ color: COLORS.GRAY_D }}>{name}</span>
+            <span style={{ color: "var(--cocalc-text-primary-strong, #434343)" }}>{name}</span>
           </div>
         );
       default:

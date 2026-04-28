@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -77,14 +77,25 @@ export function SaveButton({
   // whiteSpace:"nowrap" due to https://github.com/sagemathinc/cocalc/issues/4434
   return (
     <Button
+      className={
+        type == "default" || disabled
+          ? undefined
+          : "cc-dark-chrome-button-success"
+      }
       size={size}
       disabled={disabled}
       onClick={onClick}
       style={{
         ...(type == "default"
           ? undefined
-          : { background: "#5cb85c", color: "#333" }),
-        opacity: disabled ? 0.65 : undefined,
+          : disabled
+            ? {
+                background: "transparent",
+                color: "var(--cocalc-text-primary, #888)",
+                opacity: 0.5,
+                border: "none",
+              }
+            : { border: "none" }),
         whiteSpace: "nowrap",
         ...style,
       }}

@@ -28,6 +28,64 @@ dl.cc-project-settings-features
       font-size: 125%
       margin-right: 10px
 
+.cc-project-file-tabs
+  > .ant-tabs-nav
+    .ant-tabs-tab
+      background: var(--cocalc-top-bar-bg, #ddd)
+      border-color: var(--cocalc-border-light, #c0c0c0)
+      color: var(--cocalc-text-primary, #434343)
+
+      &.ant-tabs-tab-active
+        background: var(--cocalc-editor-titlebar-bg-active, #3a3d4a)
+        border-color: var(--cocalc-border-light, #c0c0c0)
+
+        .ant-tabs-tab-btn
+          color: var(--cocalc-top-bar-text-active, #fff)
+
+// Top-right actions area next to file tabs (save, chat, share, close)
+$toprightborder: 1px solid var(--cocalc-border-light, #c0c0c0)
+
+.cc-project-tabs-top-right
+  background: var(--cocalc-top-bar-bg, #ddd)
+  display: flex
+  flex: 0 1 auto
+  flex-direction: row
+  border-bottom: $toprightborder
+
+.cc-project-tabs-top-right-actions
+  display: inline-flex
+  justify-content: space-between
+  gap: 5px
+  z-index: 2
+  flex: 1 0 auto
+  flex-direction: row
+  align-items: center
+  background-color: var(--cocalc-editor-titlebar-bg, #e9edf2)
+  color: var(--cocalc-text-primary, #303030)
+  border-top: $toprightborder
+  padding: 2px 5px
+  position: relative
+  top: 1px
+
+.cc-project-tabs-top-right-slant
+  z-index: 1
+  display: flex
+  flex: 1 0 auto
+  flex-direction: row
+  content: ""
+  width: 20px
+  position: relative
+  top: 1px
+  left: 12px
+  background-color: var(--cocalc-editor-titlebar-bg, #e9edf2)
+  -webkit-transform: skewX(-10deg)
+  -moz-transform: skewX(-10deg)
+  -ms-transform: skewX(-10deg)
+  transform: skewX(-10deg)
+  border-top: $toprightborder
+  border-left: $toprightborder
+  border-radius: 5px 0 0 0
+
 .cc-project-info-cgroup-table-flyout
   div.ant-descriptions-view
     border-left: 0 !important

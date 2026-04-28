@@ -68,6 +68,7 @@ require("codemirror/theme/yeti.css");
 require("codemirror/theme/yonce.css");
 require("codemirror/theme/zenburn.css");
 
+require("@cocalc/cdn/dist/cm-custom-theme/cocalc-auto.css");
 require("@cocalc/cdn/dist/cm-custom-theme/cocalc-dark.css");
 require("@cocalc/cdn/dist/cm-custom-theme/cocalc-light.css");
 

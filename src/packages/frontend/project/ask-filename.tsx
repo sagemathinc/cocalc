@@ -94,10 +94,10 @@ export default function AskNewFilename({ project_id }: Props) {
         style={{
           margin: "auto",
           maxWidth: "500px",
-          border: "1px solid #ccc",
+          border: "1px solid var(--cocalc-border, #ccc)",
           padding: "15px",
           borderRadius: "5px",
-          background: "#f8f8f8",
+          background: "var(--cocalc-bg-elevated, #f8f8f8)",
         }}
       >
         <div>

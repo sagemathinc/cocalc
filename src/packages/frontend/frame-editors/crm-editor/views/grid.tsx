@@ -90,9 +90,9 @@ function GridRow({
   });
   const v: ReactNode[] = [];
   v.push(
-    <td key="expand" style={{ border: "1px solid #eee", background }}>
+    <td key="expand" style={{ border: "1px solid var(--cocalc-border-light, #eee)", background }}>
       <Button
-        style={{ fontSize: "13pt", height: "100%", color: "#666" }}
+        style={{ fontSize: "13pt", height: "100%", color: "var(--cocalc-text-secondary, #666)" }}
         onClick={() => setOpen(true)}
         type="text"
       >
@@ -106,9 +106,9 @@ function GridRow({
         key="index"
         style={{
           cursor: "pointer",
-          border: "1px solid #eee",
+          border: "1px solid var(--cocalc-border-light, #eee)",
           padding: "0 5px",
-          color: "#666",
+          color: "var(--cocalc-text-secondary, #666)",
           textAlign: "center",
           background,
         }}
@@ -132,7 +132,7 @@ function GridRow({
         style={{
           cursor: "pointer",
           width,
-          border: "1px solid #eee",
+          border: "1px solid var(--cocalc-border-light, #eee)",
           background,
         }}
       >

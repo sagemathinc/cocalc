@@ -286,7 +286,7 @@ export default function AppPreview({ name }: EditorComponentProps) {
         >
           <Empty
             description={
-              <span style={{ color: COLORS.GRAY_M }}>
+              <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
                 No app yet. Ask the agent to create an application and it will
                 appear here.
               </span>
@@ -418,7 +418,7 @@ export default function AppPreview({ name }: EditorComponentProps) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: COLORS.GRAY_M,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
             padding: 20,
             textAlign: "center",
           }}
@@ -485,7 +485,7 @@ function BridgeMessageRow({
           padding: "4px 6px",
           whiteSpace: "nowrap",
           fontVariantNumeric: "tabular-nums",
-          color: COLORS.GRAY_M,
+          color: "var(--cocalc-text-primary, #5f5f5f)",
           fontSize: 12,
         }}
       >
@@ -500,7 +500,7 @@ function BridgeMessageRow({
           padding: "4px 6px",
           whiteSpace: "nowrap",
           fontSize: 11,
-          color: COLORS.GRAY_M,
+          color: "var(--cocalc-text-primary, #5f5f5f)",
         }}
       >
         {time}
@@ -526,7 +526,7 @@ function BridgeMessageRow({
               cursor: "pointer",
               userSelect: "none",
               flexShrink: 0,
-              color: COLORS.GRAY_M,
+              color: "var(--cocalc-text-primary, #5f5f5f)",
               lineHeight: "18px",
             }}
           >
@@ -584,7 +584,7 @@ function BridgeMessagesModal({
         }}
       >
         <thead>
-          <tr style={{ fontSize: 11, color: COLORS.GRAY_M, textAlign: "left" }}>
+          <tr style={{ fontSize: 11, color: "var(--cocalc-text-primary, #5f5f5f)", textAlign: "left" }}>
             <th style={{ padding: "2px 6px", whiteSpace: "nowrap" }}>#</th>
             <th style={{ padding: "2px 6px", whiteSpace: "nowrap" }}>Time</th>
             <th style={{ padding: "2px 6px" }}>Payload</th>

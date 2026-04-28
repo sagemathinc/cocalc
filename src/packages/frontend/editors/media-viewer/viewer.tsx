@@ -41,7 +41,7 @@ export const MediaViewer: React.FC<Props> = ({ project_id, path }) => {
           flex: 1,
           marginTop: "1px",
           padding: "1px",
-          borderTop: "1px solid lightgray",
+          borderTop: "1px solid var(--cocalc-border-light, lightgray)",
           textAlign: "center",
           background: "black",
         }}
@@ -74,7 +74,7 @@ const RenderMedia: React.FC<{ path: string; url: string }> = ({
   switch (get_mode(path)) {
     case "image":
       return (
-        <img src={url} style={{ maxWidth: "100%", background: "white" }} />
+        <img src={url} style={{ maxWidth: "100%", background: "var(--cocalc-bg-base, white)" }} />
       );
     case "video":
       return (

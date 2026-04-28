@@ -5,10 +5,14 @@ Dropdown on frame title bar for running that Jupyter notebook or terminal on a c
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "antd";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { delay } from "awaiting";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
-import SelectServer, { PROJECT_COLOR } from "./select-server";
+import SelectServer, {
+  getHomeBaseColor,
+  getHomeBaseTextColor,
+} from "./select-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
@@ -36,6 +40,9 @@ export default function SelectComputeServerForFile({
   type,
   noLabel,
 }: Props) {
+  const colorTheme = useColorTheme();
+  const homeBaseColor = getHomeBaseColor(colorTheme);
+  const homeBaseTextColor = getHomeBaseTextColor(colorTheme);
   const getPath = (path) => {
     if (actions != null && type == "terminal") {
       if (frame_id == null) {
@@ -158,10 +165,10 @@ export default function SelectComputeServerForFile({
           ref: okButtonRef,
           style: {
             marginTop: "5px",
-            background: computeServers[idNum]?.color ?? PROJECT_COLOR,
-            color: avatar_fontcolor(
-              computeServers[idNum]?.color ?? PROJECT_COLOR,
-            ),
+            background: computeServers[idNum]?.color ?? homeBaseColor,
+            color: computeServers[idNum]?.color
+              ? avatar_fontcolor(computeServers[idNum]?.color)
+              : homeBaseTextColor,
           },
         }}
         onOk={() => {

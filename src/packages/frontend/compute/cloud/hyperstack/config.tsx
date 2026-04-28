@@ -161,7 +161,7 @@ export default function HyperstackConfig({
       value: (
         <>
           <div style={{ marginBottom: "5px" }}>
-            <b style={{ color: "#666" }}>Machine Type</b>
+            <b style={{ color: "var(--cocalc-text-secondary, #666)" }}>Machine Type</b>
             <br />
           </div>
           <MachineType
@@ -218,7 +218,7 @@ export default function HyperstackConfig({
           setConfig={setConfig}
           configuration={configuration}
           state={state}
-          style={{ marginTop: "10px", color: "#666" }}
+          style={{ marginTop: "10px", color: "var(--cocalc-text-secondary, #666)" }}
         />
       ),
     },
@@ -226,7 +226,7 @@ export default function HyperstackConfig({
       key: "dns",
       value: (
         <div>
-          <Icon name="network" /> <b style={{ color: "#666" }}>Domain Name</b>
+          <Icon name="network" /> <b style={{ color: "var(--cocalc-text-secondary, #666)" }}>Domain Name</b>
           <DNS
             setConfig={setConfig}
             configuration={configuration}
@@ -290,7 +290,7 @@ export default function HyperstackConfig({
 
   return (
     <div style={{ marginBottom: "30px" }}>
-      <div style={{ color: "#666", marginBottom: "10px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "10px" }}>
         {showError}
         {loading && (
           <div style={{ textAlign: "center" }}>
@@ -356,7 +356,7 @@ function Admin({ id, configuration, template }) {
   }
   return (
     <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <b>
           <Icon name="users" /> Admin
         </b>

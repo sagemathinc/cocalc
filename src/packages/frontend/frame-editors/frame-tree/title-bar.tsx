@@ -1,6 +1,5 @@
 /*
-
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -36,6 +35,8 @@ import {
   useRedux,
   useState,
 } from "@cocalc/frontend/app-framework";
+import { useAppContext } from "@cocalc/frontend/app/context";
+import type { TopBarActionsData } from "@cocalc/frontend/project/page/top-tabbar/types";
 import {
   Gap,
   Icon,
@@ -122,14 +123,9 @@ interface EditorActions extends Actions {
 
 const MAX_SEARCH_RESULTS = 10;
 
-const COL_BAR_BACKGROUND = "#f8f8f8";
-const COL_BAR_BACKGROUND_DARK = COL_BAR_BACKGROUND;
-//const COL_BAR_BACKGROUND_DARK = "#ddd";
-const COL_BAR_BORDER = "rgb(204,204,204)";
-
 const title_bar_style: CSS = {
-  background: COL_BAR_BACKGROUND_DARK,
-  border: `1px solid ${COL_BAR_BORDER}`,
+  // background is set dynamically in render based on is_active
+  border: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
   padding: "1px",
   flexDirection: "row",
   flexWrap: "nowrap",
@@ -165,7 +161,7 @@ function connection_status_color(status: ConnectionStatus): string {
     case "connecting":
       return "rgb(255, 165, 0)";
     case "connected":
-      return "#666";
+      return "var(--cocalc-text-secondary, #666)";
     default:
       return "rgb(255, 165, 0)";
   }
@@ -191,6 +187,7 @@ export interface FrameTitleBarProps {
   id: string;
   is_full?: boolean;
   is_only?: boolean; // is the only frame
+  is_subframe?: boolean;
   is_public?: boolean; // public view of a file
   is_paused?: boolean;
   type: string; // type of editor
@@ -274,7 +271,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     const ext = props.path ? filename_extension(props.path) : "";
     return ext ? `${ext}-${props.type}` : props.type;
   }, [props.type, props.path]);
-  const { toolbarButtons, setToolbarButtons } =
+  const { toolbarButtons, setToolbarButtons, toolbarHidden, setToolbarHidden } =
     useFrameEditorToolbarButtons(frameEditorName, legacyEditorType);
   // REDUX:
   // state that is associated with the file being edited, not the
@@ -312,6 +309,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         frameEditorName,
         toolbarButtons,
         setToolbarButtons,
+        toolbarHidden,
+        setToolbarHidden,
         intl,
       }),
     [
@@ -325,10 +324,33 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       frameEditorName,
       toolbarButtons,
       setToolbarButtons,
+      toolbarHidden,
+      setToolbarHidden,
       intl,
       is_building,
     ],
   );
+
+  // When this frame becomes active, register its toolbar buttons with the
+  // editor actions so the top-tabbar can display them.  We reuse
+  // manageCommands.menuItem() which already builds fully-resolved antd
+  // MenuItems (labels, icons, submenus, stayOpenOnClick keys, etc.).
+  useEffect(() => {
+    if (!is_active) return;
+    const buttonNames = manageCommands.getToolbarButtons();
+    const menuItems = buttonNames
+      .map((name) => manageCommands.menuItem(name))
+      .filter((item) => item != null);
+    const data: TopBarActionsData = {
+      menuItems,
+      buttonNames,
+      onReorder: handleToolbarReorder,
+    };
+    (props.editor_actions as any).setTopBarActionsData?.(data);
+    return () => {
+      (props.editor_actions as any).setTopBarActionsData?.(null);
+    };
+  }, [is_active, manageCommands]);
 
   const has_unsaved_changes: boolean = useRedux([
     props.editor_actions.name,
@@ -346,7 +368,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
   const otherSettings = useRedux(["account", "other_settings"]);
   //  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
-  const darkMode = otherSettings.get("dark_mode");
+  const { isDark: darkMode } = useAppContext();
   const showSymbolBarLabels = otherSettings.get(
     "show_symbol_bar_labels",
     false,
@@ -643,8 +665,14 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       <DropdownMenu
         key={"switch-to-file"}
         style={{
-          margin: "0 -5px",
+          margin: "0 -2px",
           height: button_height(),
+          padding: "0 12px",
+          borderRadius: 0,
+          border: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
+          background:
+            "color-mix(in srgb, var(--cocalc-primary, #3a63a3) 14%, var(--cocalc-editor-titlebar-bg-active, #3a3d4a))",
+          color: `var(--cocalc-text-primary-strong, ${COLORS.GRAY_DD})`,
         }}
         title={<>File: {path_split(props.path).tail}</>}
         items={items}
@@ -653,7 +681,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderTimeTravel(noLabel): Rendered {
-    if (!manageCommands.isVisible("time_travel")) {
+    // Only render in title bars for subframe editors (e.g. LaTeX subfiles
+    // with an explicit path that overrides the parent editor's path) —
+    // matches renderSaveButton above. The main editor's TimeTravel button
+    // lives in the top tab bar (TopBarTimetravelButton).
+    if (!props.is_subframe || !manageCommands.isVisible("time_travel")) {
       return;
     }
     return (
@@ -661,7 +693,12 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         key={"time-travel-button"}
         style={{
           ...button_style(),
-          ...(!darkMode ? { color: "#333", background: "#5bc0de" } : undefined),
+          ...(!darkMode
+            ? {
+                color: "var(--cocalc-text-primary, #333)",
+                background: "#5bc0de",
+              }
+            : undefined),
         }}
         size={button_size()}
         onClick={(event) => {
@@ -716,10 +753,15 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderAssistant(noLabel, _where: "main" | "popover"): Rendered {
-    if (
-      !manageCommands.isVisible("chatgpt") ||
-      !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
-    ) {
+    const aiEnabled = redux
+      .getStore("projects")
+      .hasLanguageModelEnabled(props.project_id);
+    if (!manageCommands.isVisible("chatgpt") || !aiEnabled) {
+      return;
+    }
+    const hasEmbeddedAgent = getAgentSpec(props.path).hasAgent;
+    const showTopRightAI = hasEmbeddedAgent && aiEnabled;
+    if (showTopRightAI) {
       return;
     }
 
@@ -729,7 +771,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     const oldAssistantMode = redux
       .getStore("account")
       .getIn(["other_settings", "old_assistant_mode"]);
-    if (!getAgentSpec(props.path).hasAgent || oldAssistantMode) {
+    if (!hasEmbeddedAgent || oldAssistantMode) {
       return (
         <LanguageModelTitleBarButton
           key="assistant"
@@ -740,12 +782,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           buttonSize={button_size()}
           buttonStyle={{
             ...button_style(),
-            ...(!darkMode
-              ? {
-                  backgroundColor: COLORS.AI_ASSISTANT_BG,
-                  color: COLORS.AI_ASSISTANT_TXT,
-                }
-              : undefined),
+            backgroundColor: `var(--cocalc-ai-bg, ${COLORS.AI_ASSISTANT_BG})`,
+            color: `var(--cocalc-ai-text, ${COLORS.AI_ASSISTANT_TXT})`,
           }}
           visible={props.tab_is_visible}
           buttonRef={getTourRef("chatgpt")}
@@ -766,12 +804,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         size={button_size()}
         style={{
           ...button_style(),
-          ...(!darkMode
-            ? {
-                backgroundColor: COLORS.AI_ASSISTANT_BG,
-                color: COLORS.AI_ASSISTANT_TXT,
-              }
-            : undefined),
+          backgroundColor: `var(--cocalc-ai-bg, ${COLORS.AI_ASSISTANT_BG})`,
+          color: `var(--cocalc-ai-text, ${COLORS.AI_ASSISTANT_TXT})`,
         }}
         onClick={() => {
           projectActions.toggle_chat({
@@ -797,7 +831,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderSaveButton(noLabel): Rendered {
-    if (!manageCommands.isVisible("save")) {
+    if (!props.is_subframe || !manageCommands.isVisible("save")) {
       return;
     }
     return (
@@ -819,7 +853,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           props.editor_actions.save(true);
           props.actions.focus(props.id);
         }}
-        type={darkMode ? "default" : undefined}
       />
     );
   }
@@ -1040,7 +1073,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             ? {
                 cursor: "grabbing",
                 background: COLORS.BLUE_D,
-                color: "#fff",
+                color: "var(--cocalc-text-on-primary, white)",
                 borderRight: `1px solid ${COLORS.BLUE_D}`,
               }
             : undefined
@@ -1182,7 +1215,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               fontSize: "14pt",
               padding: "0 5px",
               height: props.is_only || props.is_full ? "34px" : "30px",
-              background: showMainButtonsPopover ? "#eee" : undefined,
+              background: showMainButtonsPopover
+                ? `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})`
+                : undefined,
             }}
             onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
           >
@@ -1209,7 +1244,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     const is_active = props.active_id === props.id;
     const style = is_active
       ? Object.assign({}, CONNECTION_STATUS_STYLE, {
-          background: COL_BAR_BACKGROUND,
+          background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`,
         })
       : CONNECTION_STATUS_STYLE;
 
@@ -1315,11 +1350,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       <div
         style={{
           padding: "5px",
-          borderBottom: "1px solid lightgrey",
+          borderBottom: "1px solid var(--cocalc-border-light, lightgray)",
           position: "absolute",
           width: "100%",
           zIndex: 100,
-          background: "white",
+          background: `var(--cocalc-bg-elevated, ${COLORS.WHITE})`,
           boxShadow: "rgba(0, 0, 0, 0.25) 0px 6px 24px",
         }}
       >
@@ -1363,7 +1398,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     }
     const { disabled, label, key, children, onClick } = item;
     const style: CSS = {
-      color: "#333",
+      color: `var(--cocalc-text-primary, ${COLORS.TAB})`,
       padding: showSymbolBarLabels ? "0" : "7.5px 0 0 0",
       height: showSymbolBarLabels ? "36px" : undefined,
     } as const;
@@ -1527,7 +1562,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     if (!is_active) {
       return null;
     }
-    if (!popup && !editorSettings?.get("extra_button_bar")) {
+    if (
+      !editorSettings?.get("extra_button_bar") ||
+      manageCommands.isToolbarHidden()
+    ) {
       return null;
     }
     const w = manageCommands.getToolbarButtons();
@@ -1554,8 +1592,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return wrapButtonBarContextMenu(
         <div
           style={{
-            borderBottom: popup ? undefined : "1px solid #ccc",
-            background: "#fafafa",
+            borderBottom: popup
+              ? undefined
+              : `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
+            background: `var(--cocalc-bg-hover, ${COLORS.GRAY_LLLL})`,
             opacity: is_active ? undefined : 0.3,
           }}
         >
@@ -1712,7 +1752,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
   let style;
   style = copy(title_bar_style);
-  style.background = is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK;
+  style.background = is_active
+    ? `var(--cocalc-editor-titlebar-bg-active, ${COLORS.GRAY_LLL})`
+    : `var(--cocalc-editor-titlebar-bg, ${COLORS.GRAY_LL})`;
   if (!props.is_only && !props.is_full) {
     style.maxHeight = "34px";
   } else {
@@ -1738,7 +1780,15 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
   return (
     <>
-      <div style={{ opacity: !is_active ? 0.6 : undefined }}>
+      <div
+        style={
+          !is_active
+            ? {
+                background: `var(--cocalc-editor-titlebar-bg, ${COLORS.GRAY_LL})`,
+              }
+            : undefined
+        }
+      >
         <div
           ref={titleBarRef}
           style={style}

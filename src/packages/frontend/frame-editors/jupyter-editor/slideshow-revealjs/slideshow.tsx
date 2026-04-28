@@ -65,7 +65,7 @@ class Slideshow extends Component<Props, {}> {
   private render_building(): Rendered {
     return (
       <div>
-        <h3 style={{ textAlign: "center", color: "#666" }}>
+        <h3 style={{ textAlign: "center", color: "var(--cocalc-text-secondary, #666)" }}>
           Creating slideshow using nbconvert...
         </h3>
       </div>

@@ -10,7 +10,6 @@ import MostlyStaticMarkdown, {
 } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { labels } from "@cocalc/frontend/i18n";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { COLORS } from "@cocalc/util/theme";
 import Compose from "./compose";
 import Like from "./like";
 import Read from "./read";
@@ -239,7 +238,7 @@ function MessageInList({
           <Tooltip title={<>{message.id}</>}>
             <div
               style={{
-                color: "#999",
+                color: "var(--cocalc-text-tertiary, #999)",
                 position: "absolute",
                 right: 0,
                 fontSize: "11px",
@@ -257,7 +256,7 @@ function MessageInList({
             height: "1.5em",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
-            color: "#666",
+            color: "var(--cocalc-text-secondary, #666)",
             fontSize,
           }}
         >
@@ -382,7 +381,7 @@ function MessageFull({
             <div
               style={{
                 marginLeft: LEFT_OFFSET,
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
               }}
             >
               {isToMe(message) && message.to_ids.length == 1 ? (
@@ -478,7 +477,7 @@ function MessageFull({
         {SHOW_ID && (
           <div
             style={{
-              color: "#999",
+              color: "var(--cocalc-text-tertiary, #999)",
               fontSize: "12px",
               position: "absolute",
               right: 0,

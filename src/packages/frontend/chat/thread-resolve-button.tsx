@@ -27,10 +27,11 @@ interface Props {
 
 const BUTTON_STYLE = {
   // Match the green of the inline tail's check icon so the visual ties
-  // these two entry points together as the "resolve" action.
-  background: COLORS.BS_GREEN_LL,
-  borderColor: COLORS.ANTD_GREEN,
-  color: COLORS.BS_GREEN_D,
+  // these two entry points together as the "resolve" action. CSS-var
+  // fallbacks let dark-mode/custom themes override the success palette.
+  background: `var(--cocalc-success-bg-subtle, ${COLORS.BS_GREEN_LL})`,
+  borderColor: `var(--cocalc-success, ${COLORS.ANTD_GREEN})`,
+  color: `var(--cocalc-success, ${COLORS.BS_GREEN_D})`,
 } as const;
 
 export function ThreadResolveButton({ anchorId, actions }: Props) {

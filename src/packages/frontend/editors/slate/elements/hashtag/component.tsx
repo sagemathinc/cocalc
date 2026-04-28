@@ -19,7 +19,7 @@ interface Props {
 
 export default function Hashtag({ value, selected, onClick }: Props) {
   const border = selected ? `1px solid ${FOCUSED_COLOR}` : TITLE_BAR_BORDER;
-  const backgroundColor = selected ? "#1990ff" : "#fafafa";
+  const backgroundColor = selected ? "#1990ff" : "var(--cocalc-bg-elevated, #fafafa)";
   const color = selected ? "white" : "#1b95e0";
 
   return (

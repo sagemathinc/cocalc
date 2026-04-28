@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -11,7 +11,6 @@ import ComputeServer from "@cocalc/frontend/compute/inline";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { AlertLevel, BackendState, Usage } from "@cocalc/jupyter/types";
 import { capitalize, closest_kernel_match, rpad_html } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import {
   Button,
   Popconfirm,
@@ -29,14 +28,17 @@ import ProgressEstimate from "../components/progress-estimate";
 import { jupyter as jupyterI18n, labels } from "../i18n";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
-import { SwitchToMinimalButton, SwitchToRegularButton } from "./minimal/frame-type-toggle";
+import {
+  SwitchToMinimalButton,
+  SwitchToRegularButton,
+} from "./minimal/frame-type-toggle";
 import MinimalNotebookHelp from "./minimal/minimal-help";
 import { ALERT_COLS } from "./usage";
 
 const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
   display: "block",
-  color: COLORS.BLUE_DD,
+  color: "var(--cocalc-primary, #2A5AA6)",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -44,8 +46,8 @@ const KERNEL_NAME_STYLE: CSS = {
 
 const KERNEL_USAGE_STYLE: CSS = {
   margin: "0px 5px",
-  color: COLORS.GRAY_M,
-  borderRight: `1px solid ${COLORS.GRAY}`,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
+  borderRight: `1px solid var(--cocalc-border, #888)`,
   paddingRight: "5px",
   display: "flex",
   flex: 1,
@@ -59,7 +61,7 @@ const KERNEL_ERROR_STYLE: CSS = {
   margin: "5px",
   color: "white",
   padding: "5px",
-  backgroundColor: COLORS.ANTD_BG_RED_M,
+  backgroundColor: "var(--cocalc-error, #ff7875)",
 } as const;
 
 const BACKEND_STATE_STYLE: CSS = {
@@ -251,7 +253,10 @@ export function Kernel({
       if (display_name == null) {
         display_name = kernel ?? "No Kernel";
       }
-      const style = { ...KERNEL_NAME_STYLE, maxWidth: compact ? "14em" : "20em" };
+      const style = {
+        ...KERNEL_NAME_STYLE,
+        maxWidth: compact ? "14em" : "20em",
+      };
       return (
         <div
           style={style}
@@ -297,7 +302,7 @@ export function Kernel({
         switch (kernel_state) {
           case "busy":
             name = "circle";
-            color = "#5cb85c";
+            color = "var(--cocalc-success, #5CB85C)";
             break;
           case "idle":
             name = "cocalc-ring";
@@ -322,9 +327,11 @@ export function Kernel({
         <div
           style={{
             display: "flex",
-            color: COLORS.GRAY_M,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
             paddingLeft: compact ? 0 : "5px",
-            borderLeft: compact ? "none" : "1px solid gray",
+            borderLeft: compact
+              ? "none"
+              : "1px solid var(--cocalc-border, #888)",
           }}
         >
           Trusted
@@ -335,7 +342,9 @@ export function Kernel({
         <div
           style={{
             paddingRight: compact ? 0 : "5px",
-            borderRight: compact ? "none" : "1px solid gray",
+            borderRight: compact
+              ? "none"
+              : "1px solid var(--cocalc-border, #888)",
           }}
         >
           <Tooltip
@@ -408,7 +417,9 @@ export function Kernel({
             </>
           );
         case "idle":
-          const tooltip = intl.formatMessage(jupyterI18n.editor.halt_kernel_confirm);
+          const tooltip = intl.formatMessage(
+            jupyterI18n.editor.halt_kernel_confirm,
+          );
           return (
             <>
               Kernel is idle{" "}
@@ -482,7 +493,7 @@ export function Kernel({
         <div
           style={{
             flex: compact ? "0 0 auto" : 1,
-            color: COLORS.GRAY_M,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
             textAlign: "center",
             whiteSpace: "nowrap",
             overflow: "hidden",
@@ -615,10 +626,7 @@ export function Kernel({
         kernel.startsWith("sage") || kernel.startsWith("julia") ? 30 : 15;
       return (
         <div style={{ ...usage_style, display: "flex" }}>
-          <ProgressEstimate
-            style={pstyle}
-            seconds={s}
-          />
+          <ProgressEstimate style={pstyle} seconds={s} />
         </div>
       );
     }
@@ -643,7 +651,7 @@ export function Kernel({
       display: "flex",
       width: compact ? "300px" : undefined,
       flex: compact ? undefined : 1,
-      borderLeft: `1px solid ${COLORS.GRAY}`,
+      borderLeft: `1px solid var(--cocalc-border, #888)`,
       cursor: "pointer",
       alignItems: compact ? "center" : undefined,
     };
@@ -653,10 +661,16 @@ export function Kernel({
       position: "relative",
       top: compact ? 0 : "-1px",
     };
-    const trailColor = compact ? COLORS.GRAY_LL : "white";
+    const trailColor = "var(--cocalc-border-light, #e0e0e0)";
     const showLabel = is_fullscreen || compact;
     const usage_style: CSS = compact
-      ? { ...KERNEL_USAGE_STYLE, borderRight: "none", margin: "0 4px", paddingRight: 0, alignItems: "center" }
+      ? {
+          ...KERNEL_USAGE_STYLE,
+          borderRight: "none",
+          margin: "0 4px",
+          paddingRight: 0,
+          alignItems: "center",
+        }
       : KERNEL_USAGE_STYLE;
 
     return (
@@ -672,7 +686,15 @@ export function Kernel({
           >
             <div style={usage_style}>
               {showLabel ? (
-                <span style={{ marginRight: "5px", color: COLORS.GRAY_M }}>Code</span>
+                <span
+                  style={{
+                    marginRight: "5px",
+                    fontSize: compact ? "11px" : undefined,
+                    color: "var(--cocalc-text-primary, #888)",
+                  }}
+                >
+                  Code
+                </span>
               ) : (
                 ""
               )}
@@ -687,7 +709,19 @@ export function Kernel({
           </Tooltip>
         )}
         <div style={usage_style}>
-          {showLabel ? <span style={{ marginRight: "5px", color: COLORS.GRAY_M }}>CPU</span> : ""}
+          {showLabel ? (
+            <span
+              style={{
+                marginRight: "5px",
+                fontSize: compact ? "11px" : undefined,
+                color: "var(--cocalc-text-primary, #888)",
+              }}
+            >
+              CPU
+            </span>
+          ) : (
+            ""
+          )}
           <Progress
             style={pstyle}
             showInfo={false}
@@ -698,7 +732,19 @@ export function Kernel({
           />
         </div>
         <div style={usage_style}>
-          {showLabel ? <span style={{ marginRight: "5px", color: COLORS.GRAY_M }}>RAM</span> : ""}
+          {showLabel ? (
+            <span
+              style={{
+                marginRight: "5px",
+                fontSize: compact ? "11px" : undefined,
+                color: "var(--cocalc-text-primary, #888)",
+              }}
+            >
+              RAM
+            </span>
+          ) : (
+            ""
+          )}
           <Progress
             style={pstyle}
             showInfo={false}
@@ -805,7 +851,7 @@ export function Kernel({
   const body = (
     <div
       style={{
-        color: COLORS.GRAY_M,
+        color: "var(--cocalc-text-primary, #5f5f5f)",
         cursor: "pointer",
       }}
     >
@@ -821,18 +867,23 @@ export function Kernel({
           overflow: "hidden",
           width: "100%",
           padding: "4px 6px",
-          backgroundColor: COLORS.GRAY_LLL,
+          background: `var(--cocalc-bg-elevated, #f8f8f8)`,
           display: "flex",
           alignItems: "center",
           gap: "6px",
-          borderBottom: "1px solid #ccc",
+          borderBottom: `1px solid var(--cocalc-border, #ccc)`,
           ...style,
         }}
       >
         {/* Left: logo + kernel + state + trusted */}
         <div
           ref={leftElRef}
-          style={{ display: "flex", alignItems: "center", gap: "6px", flex: "0 0 auto" }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            flex: "0 0 auto",
+          }}
         >
           <div>{renderLogo()}</div>
           {body}
@@ -843,17 +894,30 @@ export function Kernel({
         {onLayoutChange && (
           <div
             ref={rightElRef}
-            style={{ display: "inline-flex", alignItems: "center", gap: "8px", flex: "0 0 auto" }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              flex: "0 0 auto",
+            }}
           >
             {!hideUsageBars && renderTip(get_kernel_name(), renderUsage())}
             {!hideUsageBars && (
-              <div style={{ borderLeft: `1px solid ${COLORS.GRAY_L}`, height: "18px" }} />
+              <div
+                style={{
+                  borderLeft: `1px solid var(--cocalc-border-light, #e0e0e0)`,
+                  height: "18px",
+                  margin: "0 2px",
+                }}
+              />
             )}
             <Segmented
               size="small"
               className="minimal-status-segmented"
               value={minimalLayout ?? "comfortable"}
-              onChange={(v) => onLayoutChange(v as "wide" | "comfortable" | "narrow")}
+              onChange={(v) =>
+                onLayoutChange(v as "wide" | "comfortable" | "narrow")
+              }
               options={[
                 {
                   value: "wide",
@@ -881,12 +945,19 @@ export function Kernel({
                     </Tooltip>
                   ),
                 },
-              ].filter(o => availableLayouts?.includes(o.value as any) ?? true)}
+              ].filter(
+                (o) => availableLayouts?.includes(o.value as any) ?? true,
+              )}
             />
             {onZenModeChange && (
               <Tooltip title={zenMode ? "Show code cells" : "Hide code cells"}>
                 <span
-                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    cursor: "pointer",
+                  }}
                   onClick={() => onZenModeChange(!zenMode)}
                 >
                   <Switch size="small" checked={zenMode} />
@@ -894,7 +965,12 @@ export function Kernel({
                 </span>
               </Tooltip>
             )}
-            <div style={{ borderLeft: `1px solid ${COLORS.GRAY_L}`, height: "18px" }} />
+            <div
+              style={{
+                borderLeft: `1px solid var(--cocalc-border-light, #e0e0e0)`,
+                height: "18px",
+              }}
+            />
             <MinimalNotebookHelp />
             <SwitchToRegularButton />
           </div>
@@ -909,9 +985,9 @@ export function Kernel({
         overflow: "hidden",
         width: "100%",
         padding: "5px",
-        backgroundColor: COLORS.GRAY_LLL,
+        background: `var(--cocalc-bg-elevated, #f8f8f8)`,
         display: "flex",
-        borderBottom: "1px solid #ccc",
+        borderBottom: `1px solid var(--cocalc-border, #ccc)`,
         ...style,
       }}
     >

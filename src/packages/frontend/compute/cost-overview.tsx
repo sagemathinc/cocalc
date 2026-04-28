@@ -18,7 +18,7 @@ export default function CostOverview({ cost, description, style }: Props) {
         title={<b>Total Cost Per Hour While Running</b>}
         costPerMonth={730 * cost}
       />
-      <div style={{ color: "#666", maxWidth: "600px", margin: "auto" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", maxWidth: "600px", margin: "auto" }}>
         {description}
       </div>
     </div>

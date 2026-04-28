@@ -222,7 +222,7 @@ export function StudentAssignmentInfo({
               maxHeight: "4em",
               overflowY: "auto",
               padding: "5px",
-              border: "1px solid lightgray",
+              border: "1px solid var(--cocalc-border-light, lightgray)",
               cursor: "pointer",
               display: "inline-block",
             }}
@@ -544,7 +544,7 @@ export function StudentAssignmentInfo({
     <div>
       <Row
         style={{
-          borderTop: "1px solid #aaa",
+          borderTop: "1px solid var(--cocalc-text-tertiary, #aaa)",
           paddingTop: "5px",
           paddingBottom: "5px",
         }}

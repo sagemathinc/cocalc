@@ -20,6 +20,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { useAppContext } from "@cocalc/frontend/app/context";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -34,7 +35,6 @@ import {
   tab_to_path,
   unreachable,
 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { shouldOpenFileInNewWindow } from "../utils";
@@ -117,6 +117,7 @@ interface Props {
 export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
   const { wrap, flyoutWidth } = props;
   const { formatIntl } = useAppContext();
+  const theme = useColorTheme();
   const { project_id, flipTabs, manageStarredFiles } = useProjectContext();
   const flipTab = flipTabs[0];
   const flipTabPrevious = usePrevious(flipTab);
@@ -265,8 +266,8 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
     const style =
       group != null
         ? {
-            ...randomBorder(group, "left"),
-            ...(isLast ? randomBorder(group, "bottom") : {}),
+            ...randomBorder(group, "left", !!theme.isDark),
+            ...(isLast ? randomBorder(group, "bottom", !!theme.isDark) : {}),
           }
         : undefined;
 
@@ -359,7 +360,7 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
         or pick one from your{" "}
         <Button
           size="small"
-          icon={<Icon name="star-filled" style={{ color: COLORS.STAR }} />}
+          icon={<Icon name="star-filled" style={{ color: "var(--cocalc-star, #FFD700)" }} />}
           onClick={() => {
             setShowStarred(true);
             setShowStarredTabs(true);
@@ -583,13 +584,13 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
           style={{
             padding: FLYOUT_PADDING,
             ...GROUP_STYLE,
-            color: COLORS.FILE_EXT,
+            color: "var(--cocalc-text-tertiary, #999)",
           }}
         >
           <Icon name="undo" /> Closed files
           <Button
             size="small"
-            style={{ float: "right", color: COLORS.FILE_EXT }}
+            style={{ float: "right", color: "var(--cocalc-text-tertiary, #999)" }}
             onClick={() => actions?.clear_just_closed_files()}
           >
             <Icon name="times" /> Clear

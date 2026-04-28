@@ -10,7 +10,6 @@ import { redux, useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { DragHandle } from "@cocalc/frontend/components/sortable-list";
 import { openAssistantAndInsert } from "@cocalc/frontend/frame-editors/llm/assistant-seed";
-import { COLORS } from "@cocalc/util/theme";
 import { SECTION_LINE_WIDTH } from "./styles";
 
 export function formatDuration(ms: number): string {
@@ -43,12 +42,12 @@ export type CellRunState =
   | "markdown";
 
 const RUN_STATE_COLORS: Record<CellRunState, string> = {
-  idle: COLORS.GRAY_L0,
-  running: "#5cb85c",
-  queued: "#2e7d32",       // dark green — waiting to run
-  error: COLORS.ANTD_RED,
-  stale: COLORS.GRAY_L0,
-  markdown: COLORS.GRAY_L0,
+  idle: "var(--cocalc-border-light, #eee)",
+  running: "var(--cocalc-success, #5cb85c)",
+  queued: "var(--cocalc-run, #389e0d)", // waiting to run
+  error: "var(--cocalc-error, #ff4d4f)",
+  stale: "var(--cocalc-border-light, #eee)",
+  markdown: "var(--cocalc-border-light, #eee)",
 };
 
 interface MinimalGutterProps {
@@ -81,7 +80,10 @@ interface MinimalGutterProps {
   isNotDeletable?: boolean;
 }
 
-const CURRENT_COLOR = "#42a5f5"; // blue, same as default notebook
+const CURRENT_COLOR = "var(--cocalc-primary, #42a5f5)";
+const SELECTED_COLOR = "var(--cocalc-text-primary-strong, #555)";
+const DEFAULT_GUTTER_COLOR = "var(--cocalc-text-primary, #888)";
+const MUTED_GUTTER_COLOR = "var(--cocalc-text-secondary, #666)";
 
 export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
   ({
@@ -118,9 +120,7 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
           project_id,
           path,
           text: `#${index + 1}`,
-        }).catch((err) =>
-          console.warn("openAssistantAndInsert failed:", err),
-        );
+        }).catch((err) => console.warn("openAssistantAndInsert failed:", err));
       },
       [project_id, path, index],
     );
@@ -144,9 +144,11 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
     // Index/line color follows run state, then selection, then default.
     const accentColor = isBusy
       ? lineColor
-      : isCurrent || isSelected
+      : isCurrent
         ? CURRENT_COLOR
-        : null;
+        : isSelected
+          ? SELECTED_COLOR
+          : null;
 
     // ---- Local render helpers ----
 
@@ -183,7 +185,8 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
               width: SECTION_LINE_WIDTH,
               height: "100%",
               backgroundColor:
-                accentColor ?? (blockHighlighted ? COLORS.GRAY_L : lineColor),
+                accentColor ??
+                (blockHighlighted ? "var(--cocalc-border, #ccc)" : lineColor),
               transition: "background-color 150ms ease",
             }}
           />
@@ -205,10 +208,18 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
               fontWeight: 600,
               cursor: "pointer",
               zIndex: 2,
-              color: accentColor ?? COLORS.GRAY_D,
+              color: accentColor ?? SELECTED_COLOR,
             }}
           >
-            <span style={{ fontSize: "11px", color: COLORS.GRAY_M, fontWeight: 400 }}>#</span>
+            <span
+              style={{
+                fontSize: "11px",
+                color: accentColor ?? DEFAULT_GUTTER_COLOR,
+                fontWeight: 400,
+              }}
+            >
+              #
+            </span>
             <span style={{ fontSize: "13px" }}>{index + 1}</span>
           </div>
         </Tooltip>
@@ -218,7 +229,7 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
     // Lock / protected indicators (editable=false, deletable=false metadata).
     function renderLockIndicators() {
       const style: React.CSSProperties = {
-        color: COLORS.GRAY_M,
+        color: DEFAULT_GUTTER_COLOR,
         fontSize: "12px",
         zIndex: 2,
         marginTop: "2px",
@@ -259,7 +270,7 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
                 onStop();
               }}
               style={{
-                color: COLORS.ANTD_RED,
+                color: "var(--cocalc-error, #ff4d4f)",
                 transition: "color 150ms ease",
                 zIndex: 2,
               }}
@@ -279,7 +290,11 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
               onRun();
             }}
             style={{
-              color: hovered ? COLORS.GRAY_D : isDirty ? COLORS.GRAY_M : COLORS.GRAY_L,
+              color: hovered
+                ? SELECTED_COLOR
+                : isDirty
+                  ? MUTED_GUTTER_COLOR
+                  : DEFAULT_GUTTER_COLOR,
               transition: "color 150ms ease",
               zIndex: 2,
             }}
@@ -304,9 +319,9 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
               onInsertCell();
             }}
             style={{
-              color: COLORS.GRAY_D,
+              color: "var(--cocalc-text-primary-strong, #555)",
               marginTop: "auto",
-              transition: "opacity 150ms ease",
+              transition: "color 150ms ease, opacity 150ms ease",
               zIndex: 2,
               opacity: hovered ? 1 : 0,
             }}
@@ -328,8 +343,8 @@ export const MinimalGutter: React.FC<MinimalGutterProps> = React.memo(
             paddingTop: "9px",
             userSelect: "none",
             position: "relative",
-            backgroundColor: COLORS.GRAY_LLL,
-            borderRight: `1px solid ${COLORS.GRAY_LL}`,
+            backgroundColor: "var(--cocalc-bg-elevated, #f5f5f5)",
+            borderRight: `1px solid var(--cocalc-border-light, #e0e0e0)`,
             cursor: "grab",
             flex: 1,
           }}

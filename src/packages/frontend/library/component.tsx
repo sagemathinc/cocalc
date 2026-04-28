@@ -20,7 +20,6 @@ make
 
 import { join } from "path";
 import { path_split, search_match, search_split } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import track from "@cocalc/frontend/user-tracking";
 import {
   useActions,
@@ -38,6 +37,7 @@ import {
   SearchInput,
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { useColorTheme } from "../app/theme-context";
 
 // used for some styles
 const HEIGHT = "275px";
@@ -49,6 +49,7 @@ interface Props {
 
 // This is the main library component. It consists of a "selector" and a preview.
 export function Library({ project_id, onClose }: Props) {
+  const theme = useColorTheme();
   const current_path = useTypedRedux({ project_id }, "current_path");
   const library = useTypedRedux({ project_id }, "library");
   const library_selected = useTypedRedux({ project_id }, "library_selected");
@@ -199,7 +200,7 @@ export function Library({ project_id, onClose }: Props) {
           style={{
             ...item_style,
             ...(doc.get("id") == library_selected?.get("id")
-              ? { background: "#337ab7", color: "white" }
+              ? { background: theme.primary, color: theme.textOnPrimary }
               : undefined),
           }}
         >
@@ -215,7 +216,7 @@ export function Library({ project_id, onClose }: Props) {
       maxHeight: HEIGHT,
       overflowX: "hidden",
       overflowY: "scroll",
-      border: `1px solid ${COLORS.GRAY_LL}`,
+      border: `1px solid var(--cocalc-border-light)`,
       borderRadius: "5px",
       marginBottom: "0px",
       marginRight: "15px",
@@ -238,8 +239,8 @@ export function Library({ project_id, onClose }: Props) {
       display: show_thumb ? "block" : "none",
       maxHeight: "100%",
       maxWidth: "100%",
-      border: `1px solid ${COLORS.GRAY_L}`,
-      boxShadow: `2px 2px 1px ${COLORS.GRAY_LL}`,
+      border: `1px solid var(--cocalc-border)`,
+      boxShadow: `2px 2px 1px var(--cocalc-border-light)`,
       borderRadius: "5px",
     };
 
@@ -312,7 +313,7 @@ export function Library({ project_id, onClose }: Props) {
           {doc.get("author") != null ? ` by ${doc.get("author")}` : undefined}
         </h5>
         {doc.get("description") != null ? (
-          <p style={{ color: COLORS.GRAY_D }}>
+          <p style={{ color: "var(--cocalc-text-primary)" }}>
             <Markdown value={doc.get("description")} />
           </p>
         ) : undefined}
@@ -324,7 +325,7 @@ export function Library({ project_id, onClose }: Props) {
               textOverflow: "ellipsis",
             } as CSS;
             return (
-              <p style={{ color: COLORS.GRAY_D }}>
+              <p style={{ color: "var(--cocalc-text-primary)" }}>
                 Website:{" "}
                 <a
                   style={website_style}
@@ -339,7 +340,7 @@ export function Library({ project_id, onClose }: Props) {
           }
         })()}
         {doc.get("license") != null ? (
-          <p style={{ color: COLORS.GRAY_D }}>
+          <p style={{ color: "var(--cocalc-text-primary)" }}>
             License:{" "}
             {metadata().getIn(["licenses", doc.get("license")]) ??
               doc.get("license")}
@@ -351,7 +352,9 @@ export function Library({ project_id, onClose }: Props) {
               .get("tags")
               .map((t) => metadata().getIn(["tags", t, "name"]) ?? t);
             return (
-              <p style={{ color: COLORS.GRAY_D }}>Tags: {tags.join(", ")}</p>
+              <p style={{ color: "var(--cocalc-text-primary)" }}>
+                Tags: {tags.join(", ")}
+              </p>
             );
           }
         })()}
@@ -359,10 +362,10 @@ export function Library({ project_id, onClose }: Props) {
           if (tag_extra_info.length > 0) {
             info = tag_extra_info.join(" ");
             return (
-              <p style={{ color: COLORS.GRAY_D }}>
+              <p style={{ color: "var(--cocalc-text-primary)" }}>
                 <Icon
                   name="exclamation-triangle"
-                  style={{ color: COLORS.YELL_L }}
+                  style={{ color: "var(--cocalc-warning)" }}
                 />{" "}
                 {info}
               </p>

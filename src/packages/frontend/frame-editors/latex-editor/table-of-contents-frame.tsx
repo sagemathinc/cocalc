@@ -286,8 +286,12 @@ function ChatRow({
           lineHeight: 1.4,
           fontWeight: 500,
           fontStyle: isStale ? "italic" : "normal",
-          backgroundColor: hasUnread ? COLORS.ANTD_RED : COLORS.GRAY_LL,
-          color: hasUnread ? COLORS.WHITE : COLORS.GRAY_M,
+          backgroundColor: hasUnread
+            ? `var(--cocalc-error, ${COLORS.ANTD_RED})`
+            : `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})`,
+          color: hasUnread
+            ? `var(--cocalc-text-on-primary, ${COLORS.WHITE})`
+            : `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
           whiteSpace: "nowrap",
           cursor: pillClickable ? "pointer" : "default",
         }}
@@ -324,7 +328,7 @@ function RowHeader({
           <Icon
             name={icon}
             style={{
-              color: iconColor ?? COLORS.GRAY_M,
+              color: iconColor ?? `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
               marginLeft: indent.iconLeft,
             }}
           />

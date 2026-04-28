@@ -13,13 +13,13 @@ export default function ChatStatic({ element }: { element: Element }) {
     <>
       <Icon
         name={"comment"}
-        style={getStyle(element, { fontSize: 24, background: "white" })}
+        style={getStyle(element, { fontSize: 24, background: "var(--cocalc-bg-base, white)" })}
       />
       <div style={getChatStyle(element)}>
         <ChatLog
           Message={Message}
           element={element}
-          style={{ flex: 1, overflowY: "auto", background: "white" }}
+          style={{ flex: 1, overflowY: "auto", background: "var(--cocalc-bg-base, white)" }}
         />
       </div>
     </>
@@ -30,11 +30,11 @@ export function getChatStyle(element: Element): CSSProperties {
   return {
     padding: "5px",
     margin: "0 30px 30px 30px",
-    background: "white",
+    background: "var(--cocalc-bg-base, white)",
     height: `${element.h - 60}px`,
     display: "flex",
     flexDirection: "column",
-    border: `3px solid ${element.data?.color ?? "#ccc"}`,
+    border: `3px solid ${element.data?.color ?? "var(--cocalc-border, #ccc)"}`,
     borderRadius: "5px",
     boxShadow: "1px 5px 7px rgb(33 33 33 / 70%)",
   };
@@ -110,7 +110,7 @@ export function clearChat(element: Element): void {
 }
 
 export const messageStyle = {
-  border: "1px solid #ccc",
+  border: "1px solid var(--cocalc-border, #ccc)",
   borderRadius: "5px",
   margin: "5px 0",
   padding: "5px 15px",

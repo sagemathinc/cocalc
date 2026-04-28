@@ -68,13 +68,13 @@ export const Managers: React.FC<Props> = ({
       <div
         style={{
           margin: "15px",
-          border: "1px solid lightgrey",
+          border: "1px solid var(--cocalc-border-light, lightgray)",
           padding: "10px",
-          boxShadow: "3px 3px lightgrey",
+          boxShadow: "3px 3px var(--cocalc-border-light, lightgray)",
         }}
       >
         {render_manager_buttons(account_id)}
-        <h4 style={{ marginBottom: "20px", color: "#666" }}>
+        <h4 style={{ marginBottom: "20px", color: "var(--cocalc-text-secondary, #666)" }}>
           <User account_id={account_id} user_map={user_map} />
         </h4>
         <pre>{JSON.stringify(manager_info.toJS(), undefined, 2)}</pre>

@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
 import { SiteName } from "@cocalc/frontend/customize";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
@@ -27,10 +28,10 @@ export default function FirstSteps({ project_id }: Props) {
     <div
       style={{
         padding: "5px 15px",
-        color: "#666",
+        color: "var(--cocalc-text-primary, #5f5f5f)",
         fontSize: "11pt",
-        background: "#fafafa",
-        borderBottom: "1px solid #eee",
+        background: COLORS.GRAY_LLLL,
+        borderBottom: `1px solid ${COLORS.GRAY_LL}`,
       }}
     >
       <Icon
@@ -61,7 +62,7 @@ export default function FirstSteps({ project_id }: Props) {
                 });
               } catch (error) {
                 console.log(
-                  "cc-first-steps failed, so falling back to library"
+                  "cc-first-steps failed, so falling back to library",
                 );
                 await redux
                   .getProjectActions(project_id)

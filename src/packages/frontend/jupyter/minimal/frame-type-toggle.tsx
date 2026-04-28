@@ -12,7 +12,6 @@ import React from "react";
 
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { COLORS } from "@cocalc/util/theme";
 
 const SHOW_TAGS = webapp_client.server_time() < new Date("2026-05-01");
 
@@ -54,7 +53,11 @@ export function SwitchToMinimalButton() {
         onClick={() => actions.set_frame_type(id, "jupyter_minimal")}
       >
         Minimal
-        {SHOW_TAGS && <Tag color="blue" style={TAG_STYLE}>New</Tag>}
+        {SHOW_TAGS && (
+          <Tag color="blue" style={TAG_STYLE}>
+            New
+          </Tag>
+        )}
       </Button>
     </Tooltip>
   );
@@ -63,7 +66,10 @@ export function SwitchToMinimalButton() {
 export function SwitchToRegularButton() {
   const { actions, id } = useFrameContext();
 
-  if (isMultiFrame(actions) && hasFrameOfType(actions, "jupyter_cell_notebook")) {
+  if (
+    isMultiFrame(actions) &&
+    hasFrameOfType(actions, "jupyter_cell_notebook")
+  ) {
     return null;
   }
 
@@ -75,7 +81,18 @@ export function SwitchToRegularButton() {
         onClick={() => actions.set_frame_type(id, "jupyter_cell_notebook")}
       >
         Regular
-        {SHOW_TAGS && <Tag color={COLORS.GRAY_D} style={TAG_STYLE}>Old</Tag>}
+        {SHOW_TAGS && (
+          <Tag
+            style={{
+              ...TAG_STYLE,
+              color: "var(--cocalc-top-bar-text, #fff)",
+              background: "var(--cocalc-top-bar-bg, #333)",
+              borderColor: "var(--cocalc-top-bar-bg, #333)",
+            }}
+          >
+            Old
+          </Tag>
+        )}
       </Button>
     </Tooltip>
   );

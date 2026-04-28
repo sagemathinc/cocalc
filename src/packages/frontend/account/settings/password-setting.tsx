@@ -128,7 +128,7 @@ export const PasswordSetting: React.FC = () => {
         <Form onFinish={onFinish}>
           <Form.Item>
             Current password{" "}
-            <span color="#888">
+            <span color="var(--cocalc-text-tertiary, #888)">
               (leave blank if you have not set a password)
             </span>
             <Input.Password

@@ -132,8 +132,30 @@ export const DARK_MODE_DEFAULTS = {
   sepia: 0,
 } as const;
 
-export const DEFAULT_EDITOR_THEME = "cocalc-light";
-export const DEFAULT_TERMINAL_COLOR_SCHEME = "cocalc-light";
+/**
+ * Valid editor color scheme IDs — derived from EDITOR_COLOR_SCHEMES keys.
+ * "cocalc" is the auto light/dark virtual entry.
+ */
+export type EditorThemeId = keyof typeof EDITOR_COLOR_SCHEMES;
+
+/** Valid terminal color scheme IDs — "cocalc" is the auto light/dark virtual entry. */
+export type TerminalThemeId =
+  | "cocalc-auto"
+  | "cocalc"
+  | "cocalc-light"
+  | "cocalc-dark"
+  | "default"
+  | "solarized-dark"
+  | "solarized-light"
+  | "raven-dark"
+  | "raven-light"
+  | "low-contrast"
+  | "mono"
+  | "tango"
+  | "infred";
+
+export const DEFAULT_EDITOR_THEME: EditorThemeId = "cocalc-auto";
+export const DEFAULT_TERMINAL_COLOR_SCHEME: TerminalThemeId = "cocalc-auto";
 
 // throw error if not valid
 export function ensureAutoBalanceValid(obj) {
@@ -674,6 +696,11 @@ Table({
             dark_mode_brightness: DARK_MODE_DEFAULTS.brightness,
             dark_mode_contrast: DARK_MODE_DEFAULTS.contrast,
             dark_mode_sepia: DARK_MODE_DEFAULTS.sepia,
+            color_theme: "default",
+            custom_theme_colors: "",
+            native_dark_mode: "off",
+            theme_intensity: 100,
+            random_theme_seed: 0,
             news_read_until: 0,
             hide_project_popovers: false,
             hide_file_popovers: false,
@@ -850,7 +877,9 @@ export const EDITOR_BINDINGS = {
   emacs: "Emacs",
 };
 
-export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
+export const EDITOR_COLOR_SCHEMES = {
+  "cocalc-auto": "Auto (adapts automatically)",
+  cocalc: "CoCalc (auto light/dark)",
   default: "Default",
   "3024-day": "3024 day",
   "3024-night": "3024 night",
@@ -918,7 +947,7 @@ export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   yeti: "Yeti",
   yonce: "Yonce",
   zenburn: "Zenburn",
-};
+} as const satisfies Record<string, string>;
 
 Table({
   name: "crm_accounts",

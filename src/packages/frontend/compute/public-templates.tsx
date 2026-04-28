@@ -333,7 +333,7 @@ export default function PublicTemplates({
             fontWeight: "bold",
             fontSize: "13pt",
             flex: 0.1,
-            color: "#666",
+            color: "var(--cocalc-text-secondary, #666)",
             display: "flex",
             justifyContent: "center",
             flexDirection: "column",
@@ -349,7 +349,7 @@ export default function PublicTemplates({
             textAlign: "center",
             marginBottom: "5px",
             fontWeight: "normal",
-            border: "1px solid lightgrey",
+            border: "1px solid var(--cocalc-border-light, lightgray)",
             borderRadius: "5px",
             marginLeft: "15px",
             background: "#fffeee",
@@ -413,7 +413,7 @@ export default function PublicTemplates({
           height: "auto",
         }}
         placeholder={
-          <div style={{ color: "#666" }}>
+          <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
             Use filters above or type here to find a template, then modify it...
           </div>
         }
@@ -470,7 +470,7 @@ function TemplateLabel({ template, data }) {
         <div
           style={{
             flex: 1,
-            background: color ?? "#fff",
+            background: color ?? "var(--cocalc-bg-base, #fff)",
             color: avatar_fontcolor(color ?? "#fff"),
             padding: "2.5px 5px",
             overflow: "auto",
@@ -500,7 +500,7 @@ function TemplateLabel({ template, data }) {
           textAlign: "center",
           maxHeight: "1.2em",
           textOverflow: "ellipsis",
-          color: "#666",
+          color: "var(--cocalc-text-secondary, #666)",
         }}
       >
         {specs}

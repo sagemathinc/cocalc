@@ -16,7 +16,6 @@ import type * as immutable from "immutable";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import type { SectionBlock } from "./types";
-import { COLORS } from "@cocalc/util/theme";
 
 const MAX_VISIBLE = 20;
 
@@ -72,7 +71,7 @@ export const MiniTOC: React.FC<MiniTOCProps> = React.memo(
       let end = currentSectionIdx + half;
       // Clamp
       if (start < 0) {
-        end = Math.min(sections.length - 1, end + (-start));
+        end = Math.min(sections.length - 1, end + -start);
         start = 0;
       }
       if (end >= sections.length) {
@@ -94,7 +93,8 @@ export const MiniTOC: React.FC<MiniTOCProps> = React.memo(
         }}
       >
         {window.map(({ blockIndex, title }) => {
-          const isCurrent = blockIndex === sections[currentSectionIdx]?.blockIndex;
+          const isCurrent =
+            blockIndex === sections[currentSectionIdx]?.blockIndex;
           return (
             <div
               key={blockIndex}
@@ -119,7 +119,9 @@ export const MiniTOC: React.FC<MiniTOCProps> = React.memo(
               }}
               title={actions ? `${title} — double-click to run section` : title}
               style={{
-                color: isCurrent ? COLORS.GRAY_M : COLORS.GRAY_L,
+                color: isCurrent
+                  ? "var(--cocalc-text-primary, #888)"
+                  : "var(--cocalc-text-tertiary, #c0c0c0)",
                 fontSize: `${Math.round((fontSize ?? 14) * 0.9)}px`,
                 cursor: "pointer",
                 textAlign: "right",

@@ -15,7 +15,6 @@ import {
 import { Loading } from "@cocalc/frontend/components";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { FIXED_TABS_BG_COLOR } from "../activity-bar-tabs";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FLYOUT_PADDING } from "./consts";
@@ -87,7 +86,7 @@ export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
     borderRight: FIX_BORDER,
     width: flyoutWidth,
     height: "100%",
-    backgroundColor: FIXED_TABS_BG_COLOR,
+    backgroundColor: "var(--cocalc-bg-base, white)",
     overflowY: "hidden",
     overflowX: "hidden",
   };

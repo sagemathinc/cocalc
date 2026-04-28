@@ -19,7 +19,7 @@ export default function CloudFilesystemCardTitle({
     <div
       style={{
         display: "flex",
-        color: "#666",
+        color: "var(--cocalc-text-secondary, #666)",
         borderBottom: `1px solid ${cloudFilesystem.color}`,
         paddingBottom: "5px",
       }}

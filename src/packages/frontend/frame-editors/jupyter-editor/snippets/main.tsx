@@ -47,7 +47,6 @@ import {
 import { A, Loading } from "@cocalc/frontend/components";
 import type { JupyterStore } from "@cocalc/jupyter/redux/store";
 import { isMainConfiguration } from "@cocalc/frontend/project_configuration";
-import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "../cell-notebook/store";
 import { Copy, Highlight } from "./components";
@@ -281,7 +280,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
           <Highlight
             text={descr}
             search={search}
-            style={{ color: COLORS.GRAY }}
+            style={{ color: "var(--cocalc-text-secondary, #808080)" }}
           />
           {code != null && code.map((v, idx) => <pre key={idx}>{v}</pre>)}
           <Row>

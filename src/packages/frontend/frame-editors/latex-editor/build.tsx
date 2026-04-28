@@ -80,7 +80,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
   const logStyle: CSS = {
     fontFamily: "monospace",
     whiteSpace: "pre-line",
-    color: COLORS.GRAY_D,
+    color: "var(--cocalc-text-primary-strong, #434343)",
     background: COLORS.GRAY_LLL,
     width: "100%",
     padding: "5px",
@@ -100,7 +100,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     error?: boolean,
     job_info_str?: string,
   ): AntdTabItem {
-    const err_style = error ? { background: COLORS.ANTD_BG_RED_L } : undefined;
+    const err_style = error ? { background: "color-mix(in srgb, var(--cocalc-error, #f5222d) 15%, var(--cocalc-bg-elevated, white))" } : undefined;
     const tab_button = <div style={err_style}>{title}</div>;
 
     // Determine if stderr is informational (not actual errors)
@@ -141,7 +141,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
                 <div
                   style={{
                     fontWeight: "bold",
-                    color: COLORS.GRAY_M,
+                    color: "var(--cocalc-text-primary, #5f5f5f)",
                     borderBottom: `1px solid ${COLORS.GRAY_LL}`,
                     paddingBottom: "5px",
                     marginBottom: "5px",
@@ -170,9 +170,9 @@ export const Build: React.FC<Props> = React.memo((props) => {
                 <div
                   style={{
                     fontWeight: "bold",
-                    color: error ? COLORS.ANTD_RED : COLORS.GRAY_M,
+                    color: error ? "var(--cocalc-error, #f5222d)" : COLORS.GRAY_M,
                     borderBottom: `1px solid ${
-                      error ? COLORS.ANTD_RED_WARN : COLORS.GRAY_LL
+                      error ? "var(--cocalc-error, #f5222d)" : COLORS.GRAY_LL
                     }`,
                     paddingBottom: "5px",
                     marginBottom: "5px",
@@ -187,7 +187,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
                     overflowY: "auto",
                     background: stderrIsInformational
                       ? COLORS.GRAY_LLL
-                      : COLORS.ANTD_BG_RED_L,
+                      : "color-mix(in srgb, var(--cocalc-error, #f5222d) 15%, var(--cocalc-bg-elevated, white))",
                     padding: "5px",
                     borderRadius: "3px",
                   }}
@@ -417,7 +417,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
                 <div
                   style={{
                     fontWeight: "bold",
-                    color: COLORS.GRAY_M,
+                    color: "var(--cocalc-text-primary, #5f5f5f)",
                     borderBottom: `1px solid ${COLORS.GRAY_LL}`,
                     paddingBottom: "5px",
                     marginBottom: "5px",
@@ -453,7 +453,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
                 <div
                   style={{
                     fontWeight: "bold",
-                    color: COLORS.GRAY_M,
+                    color: "var(--cocalc-text-primary, #5f5f5f)",
                     borderBottom: `1px solid ${COLORS.GRAY_LL}`,
                     paddingBottom: "5px",
                     marginBottom: "5px",

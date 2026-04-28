@@ -367,7 +367,7 @@ export function StudentProjectUpgrades({
       <div style={{ marginTop: "15px" }}>
         {render_site_license()}
         <hr />
-        <div style={{ color: COLORS.GRAY_M }}>
+        <div style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           <p>
             <FormattedMessage
               id="course.upgrades.details"

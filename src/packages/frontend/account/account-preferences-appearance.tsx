@@ -3,9 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Card, Slider } from "antd";
-import { debounce } from "lodash";
-import { ReactElement, useMemo } from "react";
+import { ReactElement } from "react";
 import { FormattedMessage, defineMessages, useIntl } from "react-intl";
 
 import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
@@ -23,19 +21,10 @@ import {
   ACCESSIBILITY_ICON,
   DARK_MODE_ICON,
 } from "@cocalc/util/consts/ui";
-import {
-  DARK_MODE_DEFAULTS,
-  DEFAULT_EDITOR_THEME,
-} from "@cocalc/util/db-schema/accounts";
-import { COLORS } from "@cocalc/util/theme";
-import {
-  DARK_MODE_KEYS,
-  DARK_MODE_MINS,
-  get_dark_mode_config,
-} from "./dark-mode";
+import { DEFAULT_EDITOR_THEME } from "@cocalc/util/db-schema/accounts";
+import { ColorThemeSelector } from "./color-theme-selector";
 import { EditorSettingsColorScheme } from "./editor-settings/color-schemes";
 import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
-import { OtherSettings } from "./other-settings";
 import { TerminalSettings } from "./terminal-settings";
 
 // Icon constant for account preferences section
@@ -54,18 +43,15 @@ export function katexIsEnabled() {
   return redux.getStore("account")?.getIn(["other_settings", "katex"]) ?? true;
 }
 
-const DARK_MODE_LABELS = defineMessages({
-  brightness: {
-    id: "account.other-settings.theme.dark_mode.brightness",
-    defaultMessage: "Brightness",
+const DARK_MODE_MESSAGES = defineMessages({
+  title: {
+    id: "account.appearance.dark_mode.title",
+    defaultMessage: "Dark Mode",
   },
-  contrast: {
-    id: "account.other-settings.theme.dark_mode.contrast",
-    defaultMessage: "Contrast",
-  },
-  sepia: {
-    id: "account.other-settings.theme.dark_mode.sepia",
-    defaultMessage: "Sepia",
+  description: {
+    id: "account.appearance.dark_mode.description",
+    defaultMessage:
+      "Dark mode is now part of UI Theme above. Use the controls there to choose Off, System, or Always.",
   },
 });
 
@@ -77,7 +63,7 @@ const ACCESSIBILITY_MESSAGES = defineMessages({
   enabled: {
     id: "account.appearance.accessibility.enabled",
     defaultMessage:
-      "<strong>Enable Accessibility Mode:</strong> optimize the user interface for accessibility features",
+      "<strong>Accessibility Mode:</strong> optimize the user interface for accessibility features",
   },
 });
 
@@ -86,8 +72,6 @@ export function AccountPreferencesAppearance() {
   const other_settings = useTypedRedux("account", "other_settings");
   const editor_settings = useTypedRedux("account", "editor_settings");
   const font_size = useTypedRedux("account", "font_size");
-  const stripe_customer = useTypedRedux("account", "stripe_customer");
-  const kucalc = useTypedRedux("customize", "kucalc");
 
   function on_change(name: string, value: any): void {
     redux.getActions("account").set_other_settings(name, value);
@@ -96,16 +80,6 @@ export function AccountPreferencesAppearance() {
   function on_change_editor_settings(name: string, value: any): void {
     redux.getActions("account").set_editor_settings(name, value);
   }
-
-  // Debounced version for dark mode sliders to reduce CPU usage
-  const on_change_dark_mode = useMemo(
-    () =>
-      debounce((name: string, value: any) => on_change(name, value), 50, {
-        trailing: true,
-        leading: false,
-      }),
-    [],
-  );
 
   function render_katex() {
     if (!ALLOW_DISABLE_KATEX) {
@@ -123,6 +97,29 @@ export function AccountPreferencesAppearance() {
           values={{ katex: <A href={"https://katex.org/"}>KaTeX</A> }}
         />
       </Switch>
+    );
+  }
+
+  function renderDarkModePanel(): ReactElement {
+    return (
+      <Panel
+        size="small"
+        header={
+          <>
+            <Icon unicode={DARK_MODE_ICON} />{" "}
+            {intl.formatMessage(DARK_MODE_MESSAGES.title)}
+          </>
+        }
+      >
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--cocalc-text-secondary, #808080)",
+          }}
+        >
+          {intl.formatMessage(DARK_MODE_MESSAGES.description)}
+        </div>
+      </Panel>
     );
   }
 
@@ -162,107 +159,6 @@ export function AccountPreferencesAppearance() {
         >
           <FormattedMessage {...ACCESSIBILITY_MESSAGES.enabled} />
         </Switch>
-      </Panel>
-    );
-  }
-
-  function renderDarkModePanel(): ReactElement {
-    const checked = !!other_settings.get("dark_mode");
-    const config = get_dark_mode_config(other_settings.toJS());
-    return (
-      <Panel
-        size="small"
-        header={
-          <>
-            <Icon unicode={DARK_MODE_ICON} /> Dark Mode
-          </>
-        }
-        styles={{
-          header: {
-            color: COLORS.GRAY_LLL,
-            backgroundColor: COLORS.GRAY_DD,
-          },
-          body: {
-            color: COLORS.GRAY_LLL,
-            backgroundColor: COLORS.GRAY_D,
-          },
-        }}
-      >
-        <div>
-          <Switch
-            checked={checked}
-            onChange={(e) => on_change("dark_mode", e.target.checked)}
-            labelStyle={{ color: COLORS.GRAY_LLL }}
-          >
-            <FormattedMessage
-              id="account.other-settings.theme.dark_mode.compact"
-              defaultMessage={`Dark mode: reduce eye strain by showing a dark background (via {DR})`}
-              values={{
-                DR: (
-                  <A
-                    style={{ color: "#e96c4d", fontWeight: 700 }}
-                    href="https://darkreader.org/"
-                  >
-                    DARK READER
-                  </A>
-                ),
-              }}
-            />
-          </Switch>
-          {checked ? (
-            <Card
-              size="small"
-              title={
-                <>
-                  <Icon unicode={DARK_MODE_ICON} />{" "}
-                  {intl.formatMessage({
-                    id: "account.other-settings.theme.dark_mode.configuration",
-                    defaultMessage: "Dark Mode Configuration",
-                  })}
-                </>
-              }
-            >
-              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                {DARK_MODE_KEYS.map((key) => (
-                  <div
-                    key={key}
-                    style={{ display: "flex", gap: 10, alignItems: "center" }}
-                  >
-                    <div style={{ width: 100 }}>
-                      {intl.formatMessage(DARK_MODE_LABELS[key])}
-                    </div>
-                    <Slider
-                      min={DARK_MODE_MINS[key]}
-                      max={100}
-                      value={config[key]}
-                      onChange={(x) =>
-                        on_change_dark_mode(`dark_mode_${key}`, x)
-                      }
-                      marks={{
-                        [DARK_MODE_DEFAULTS[key]]: String(
-                          DARK_MODE_DEFAULTS[key],
-                        ),
-                      }}
-                      style={{ flex: 1, width: 0 }}
-                    />
-                    <Button
-                      size="small"
-                      style={{ marginLeft: "20px" }}
-                      onClick={() =>
-                        on_change_dark_mode(
-                          `dark_mode_${key}`,
-                          DARK_MODE_DEFAULTS[key],
-                        )
-                      }
-                    >
-                      {intl.formatMessage(labels.reset)}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          ) : undefined}
-        </div>
       </Panel>
     );
   }
@@ -353,16 +249,9 @@ export function AccountPreferencesAppearance() {
   return (
     <>
       {renderUserInterfacePanel()}
-      <OtherSettings
-        other_settings={other_settings}
-        is_stripe_customer={
-          !!stripe_customer?.getIn(["subscriptions", "total_count"])
-        }
-        kucalc={kucalc}
-        mode="appearance"
-      />
-      {renderDarkModePanel()}
+      <ColorThemeSelector />
       {renderAccessibilityPanel()}
+      {renderDarkModePanel()}
       <EditorSettingsColorScheme
         size="small"
         theme={editor_settings?.get("theme") ?? DEFAULT_EDITOR_THEME}

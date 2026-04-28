@@ -12,7 +12,6 @@ import { ErrorDisplay, LabeledRow, Saving } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { COLORS } from "@cocalc/util/theme";
 import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
 
 const sendWelcomeEmailError = defineMessage({
@@ -221,7 +220,7 @@ export const EmailAddressSetting = ({
   }
 
   const label = is_anonymous ? (
-    <h5 style={{ color: COLORS.GRAY_M }}>
+    <h5 style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
       Sign up using an email address and password
     </h5>
   ) : (
@@ -231,7 +230,7 @@ export const EmailAddressSetting = ({
   return (
     <LabeledRow
       label={label}
-      style={disabled ? { color: COLORS.GRAY_M } : undefined}
+      style={disabled ? { color: "var(--cocalc-text-primary, #5f5f5f)" } : undefined}
     >
       <div>
         {savedEmailAddress}

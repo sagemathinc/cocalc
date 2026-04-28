@@ -20,12 +20,9 @@ import LinkButton from "./link";
 import { Marks } from "./marks";
 
 export const BUTTON_STYLE = {
-  color: COLORS.GRAY_M,
+  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
   height: "24px",
-  borderLeft: "1px solid lightgray",
-  borderRight: "1px solid lightgray",
-  borderTop: "none",
-  borderBottom: "none",
+  border: "none",
   padding: "0 10px",
 } as CSSProperties;
 
@@ -42,7 +39,9 @@ const MarkButton: React.FC<MarkButtonProps> = ({ mark, active, editor }) => {
         type="text"
         style={{
           ...BUTTON_STYLE,
-          backgroundColor: active ? "#ccc" : undefined,
+          backgroundColor: active
+            ? "var(--cocalc-bg-hover, #ccc)"
+            : undefined,
         }}
         onClick={() => formatAction(editor, mark, [])}
       >

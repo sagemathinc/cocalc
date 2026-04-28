@@ -26,7 +26,6 @@ import {
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { plural } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { actions } from "./actions";
 import { License } from "./license";
 import { download_data } from "./download-data";
@@ -152,7 +151,7 @@ export const SiteLicenses: React.FC<{}> = () => {
             marginLeft: "5px",
             width: "40ex",
             padding: "5px",
-            border: "1px solid lightgrey",
+            border: "1px solid var(--cocalc-border-light, lightgray)",
             borderRadius: "3px",
           }}
           value={search ?? ""}
@@ -163,7 +162,7 @@ export const SiteLicenses: React.FC<{}> = () => {
             }
           }}
         />
-        <div style={{ color: COLORS.GRAY }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
           Search licenses by id, title, description, info, manager name and
           email address.
         </div>

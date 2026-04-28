@@ -25,7 +25,6 @@ import {
 
 import { Gap, Icon, Paragraph } from "@cocalc/frontend/components";
 import { course, labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
 import { CourseStore, TerminalCommand, TerminalCommandOutput } from "../store";
 import { MAX_PARALLEL_TASKS } from "../student-projects/actions";
@@ -105,7 +104,7 @@ export function TerminalCommandPanel({ name }: Props) {
       return (
         <div
           style={{
-            color: "#888",
+            color: "var(--cocalc-text-tertiary, #888)",
             padding: "5px",
             fontSize: "16px",
             fontWeight: "bold",
@@ -246,7 +245,7 @@ const CODE_STYLE: CSS = {
 const ERR_STYLE: CSS = {
   ...CODE_STYLE,
   color: "white",
-  background: COLORS.ANTD_RED,
+  background: "var(--cocalc-error, #f5222d)",
 } as const;
 
 function Output({ result }: { result: TerminalCommandOutput }) {

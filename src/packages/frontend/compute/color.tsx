@@ -35,7 +35,7 @@ export default function Color({
         cursor: editable ? "pointer" : undefined,
         width: "125px",
         height: "32px",
-        background: choice ?? "#aaa",
+        background: choice ?? "var(--cocalc-text-tertiary, #aaa)",
         borderRadius: "5px",
         border: `1px solid #ddd`,
       }}
@@ -87,9 +87,9 @@ export default function Color({
             style={{
               position: "absolute",
               zIndex: 100,
-              background: "white",
-              border: "1px solid #aaa",
-              boxShadow: "4px 4px 2px #aaa",
+              background: "var(--cocalc-bg-base, white)",
+              border: "1px solid var(--cocalc-text-tertiary, #aaa)",
+              boxShadow: "4px 4px 2px var(--cocalc-text-tertiary, #aaa)",
             }}
           >
             <ColorPicker color={color} onChange={handleChange} />

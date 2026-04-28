@@ -88,8 +88,8 @@ export function History({ history, user_map, isViewerMessage }: HistoryProps) {
               }
             : {
                 marginBottom: "0px",
-                background: "#ececec",
-                border: "1px solid #e0e0e0",
+                background: "var(--cocalc-bg-elevated, #ececec)",
+                border: "1px solid var(--cocalc-border-light, #e0e0e0)",
               }
         }
       >

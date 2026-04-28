@@ -426,7 +426,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       <div
         style={{
           fontSize: "32pt",
-          color: "#888",
+          color: "var(--cocalc-text-tertiary, #888)",
           textAlign: "center",
           marginTop: "15px",
         }}
@@ -793,7 +793,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           /* This is what is displayed when dragging the given cell. */
           <div
             style={{
-              background: "white",
+              background: "var(--cocalc-bg-base, white)",
               boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
               borderRadius: "4px",
               transform: "translateX(10px)",

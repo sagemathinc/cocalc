@@ -10,7 +10,6 @@ import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { KernelSelector } from "@cocalc/frontend/jupyter/select-kernel";
 import { Kernel } from "@cocalc/frontend/jupyter/status";
-import { COLORS } from "@cocalc/util/theme";
 import { useFrameContext } from "../../hooks";
 import { PANEL_STYLE } from "../../tools/panel";
 import {
@@ -97,7 +96,7 @@ function KernelPanel({ actions }: Props) {
           }
         >
           <Button
-            style={{ color: COLORS.GRAY_D, position: "relative", top: "2px" }}
+            style={{ color: "var(--cocalc-text-primary-strong, #434343)", position: "relative", top: "2px" }}
             size="small"
             onClick={() => {
               openJupyterNotebook({ project_id, path });

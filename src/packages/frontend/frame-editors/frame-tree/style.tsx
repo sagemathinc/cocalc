@@ -2,13 +2,14 @@ import type { CSSProperties, ReactNode } from "react";
 import { COLORS } from "@cocalc/util/theme";
 import { path_split } from "@cocalc/util/misc";
 
-export const TITLE_BAR_BORDER = `1px solid ${COLORS.GRAY_DDD}`;
+export const TITLE_BAR_BORDER = `1px solid var(--cocalc-border-light, ${COLORS.GRAY_DDD})`;
 
 /** Shared tab bar style for Ant Design Tabs used in frame editor panels. */
 export const FRAME_TAB_BAR_STYLE: CSSProperties = {
   margin: 0,
   padding: "0 8px",
   borderBottom: TITLE_BAR_BORDER,
+  background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLLL})`,
 } as const;
 
 /**

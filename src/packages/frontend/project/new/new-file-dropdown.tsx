@@ -15,7 +15,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { EXTs } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { keys } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { file_options } = require("@cocalc/frontend/editor");
@@ -108,7 +107,7 @@ export function NewFileDropdown({
           {data.name ? data.name : "No Extension"}
         </span>{" "}
         {ext && ext !== "/" ? (
-          <span style={{ color: COLORS.GRAY }}>(.{ext})</span>
+          <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>(.{ext})</span>
         ) : undefined}
       </>
     );

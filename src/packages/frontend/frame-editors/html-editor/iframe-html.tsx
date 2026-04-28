@@ -36,7 +36,6 @@ import {
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { COLORS } from "@cocalc/util/theme";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { EditorState } from "../frame-tree/types";
 import { raw_url } from "../frame-tree/util";
@@ -321,7 +320,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
           justifyContent: "center",
           height: "100%",
           gap: "16px",
-          color: COLORS.GRAY_M,
+          color: "var(--cocalc-text-primary, #5f5f5f)",
           fontSize: "16pt",
         }}
       >

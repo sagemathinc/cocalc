@@ -6,8 +6,8 @@
 import React from "react";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { Icon, Gap, VisibleMDLG } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 import { Col, Row } from "antd";
+import { COLORS } from "@cocalc/util/theme";
 
 // TODO: Flatten active_file_sort for easy PureComponent use
 interface Props {
@@ -17,9 +17,9 @@ interface Props {
 
 const row_style: React.CSSProperties = {
   cursor: "pointer",
-  color: COLORS.GRAY_M,
-  backgroundColor: "#fafafa",
-  border: "1px solid #eee",
+  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
+  backgroundColor: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLLL})`,
+  border: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_LL})`,
   borderRadius: "4px",
 } as const;
 
@@ -35,8 +35,20 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
     display_name: string | React.JSX.Element,
     marginLeft?,
   ) {
+    const isActive = active_file_sort.get("column_name") === column_name;
     return (
-      <span>
+      <span
+        style={
+          isActive
+            ? {
+                backgroundColor: `var(--cocalc-top-bar-hover, ${COLORS.GRAY_LL})`,
+                borderRadius: "3px",
+                padding: "2px 4px",
+                margin: "-2px -4px",
+              }
+            : undefined
+        }
+      >
         <VisibleMDLG>
           <span style={{ marginLeft }} />
         </VisibleMDLG>
@@ -47,14 +59,14 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
             return sort_by(column_name);
           }}
           style={{
-            color: COLORS.BLUE_DD,
+            color: `var(--cocalc-primary, ${COLORS.BLUE_DD})`,
             fontWeight: "bold",
             whiteSpace: "nowrap",
           }}
         >
           {display_name}
           <Gap />
-          {active_file_sort.get("column_name") === column_name ? (
+          {isActive ? (
             <Icon
               style={inner_icon_style}
               name={
@@ -80,7 +92,7 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
           "starred",
           <Icon
             name="star-filled"
-            style={{ color: COLORS.BLUE_DD, fontSize: "12pt" }}
+            style={{ color: `var(--cocalc-primary, ${COLORS.BLUE_DD})`, fontSize: "12pt" }}
           />,
           "0px",
         )}

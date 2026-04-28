@@ -35,15 +35,17 @@ function guess_file_extension_type(content: string): string {
   return "";
 }
 
-export function file_options(filename: string, content?: string) {
+export function file_options(filename: unknown, content?: string) {
+  const safeFilename = typeof filename === "string" ? filename : "";
   let x;
-  let ext = filename_extension_notilde(filename).toLowerCase();
+  let ext = filename_extension_notilde(safeFilename).toLowerCase();
   if (ext == "" && content != null) {
     // no recognized extension, but have contents
     ext = guess_file_extension_type(content);
   }
   if (ext == "") {
-    x = file_associations[`noext-${path_split(filename).tail.toLowerCase()}`];
+    x =
+      file_associations[`noext-${path_split(safeFilename).tail.toLowerCase()}`];
   } else {
     x = file_associations[ext];
   }
@@ -64,4 +66,4 @@ export function file_options(filename: string, content?: string) {
   return x;
 }
 
-export const UNKNOWN_FILE_TYPE_ICON = "question-circle"
+export const UNKNOWN_FILE_TYPE_ICON = "question-circle";

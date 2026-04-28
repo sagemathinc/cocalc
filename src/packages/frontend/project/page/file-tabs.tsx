@@ -25,13 +25,13 @@ import {
   useSortable,
 } from "@cocalc/frontend/components/sortable-tabs";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { COLORS } from "@cocalc/util/theme";
 import { labels as i18nLabels } from "@cocalc/frontend/i18n";
 import {
   useRecentFiles,
   type OpenedFile,
 } from "@cocalc/frontend/projects/util";
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { file_tab_labels } from "../file-tab-labels";
 import { FileTab, FIXED_PROJECT_TABS } from "./file-tab";
 
@@ -269,11 +269,13 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
             <Button
               type="text"
               size="small"
-              icon={<Icon name="down-circle-o" />}
+              icon={<Icon name="history" />}
               style={{
                 paddingInline: "10px",
                 ...(recentFilesMenuOpen
-                  ? { backgroundColor: COLORS.GRAY_LL }
+                  ? {
+                      backgroundColor: `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})`,
+                    }
                   : {}),
               }}
             />
@@ -297,11 +299,12 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
         >
           <Tabs
             animated={false}
+            className="cc-project-file-tabs"
             renderTabBar={renderTabBar}
             tabBarStyle={{
               minHeight: "36px",
-              background: "#e8e8e8",
-              borderTop: "2px solid lightgrey",
+              background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_L0})`,
+              borderTop: "2px solid transparent",
             }}
             onEdit={onEdit}
             style={{ width: "100%" }}

@@ -15,7 +15,7 @@ export function ResetProjectsConfirmation({
 }) {
   return (
     <Well
-      style={{ marginBottom: "0px", marginTop: "10px", background: "white" }}
+      style={{ marginBottom: "0px", marginTop: "10px", background: "var(--cocalc-bg-base, white)" }}
     >
       Are you sure you want to remove all upgrades that you have contributed to
       these projects?

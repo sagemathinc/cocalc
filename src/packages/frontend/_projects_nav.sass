@@ -7,16 +7,16 @@
 @use 'mixins'
 
 .navbar-default
-  background-color: colors.$COL_TOP_BAR_BG
-  border-color:     colors.$COL_TOP_BAR_BG
+  background-color: var(--cocalc-top-bar-bg, colors.$COL_TOP_BAR_BG)
+  border-color:     var(--cocalc-top-bar-bg, colors.$COL_TOP_BAR_BG)
   border-width:     0 0 0 0
 
 =nav-tab-button-styles
   padding : 0px
   +mixins.disable-user-select
-  color: colors.$COL_TOP_BAR_TEXT
+  color: var(--cocalc-top-bar-text, colors.$COL_TOP_BAR_TEXT)
   &:hover
-    color: colors.$COL_TOP_BAR_TEXT
+    color: var(--cocalc-top-bar-text, colors.$COL_TOP_BAR_TEXT)
 
 
 .smc-top-bar
@@ -30,7 +30,7 @@
   z-index         : 100
   border-radius   : 0
   width           : 100%
-  background-color: colors.$COL_GRAY_L0
+  background-color: var(--cocalc-top-bar-bg, colors.$COL_GRAY_L0)
   > ul > li > a
     +nav-tab-button-styles
 
@@ -41,16 +41,16 @@
 .smc-top-bar.navbar-default .navbar-nav>.active>a:focus,
 .smc-top-bar.navbar-default .navbar-nav>li>a:focus,
 .smc-top-bar.navbar-default .navbar-nav>.active>a:hover
-  background-color : colors.$COL_TOP_BAR_ACTIVE
-  color            : colors.$COL_TOP_BAR_TEXT_ACTIVE
+  background-color : var(--cocalc-bg-elevated, colors.$COL_TOP_BAR_ACTIVE)
+  color            : var(--cocalc-top-bar-text-active, colors.$COL_TOP_BAR_TEXT_ACTIVE)
 
 .smc-top-bar.navbar-default .navbar-nav>li>a:hover
-  background-color : colors.$COL_TOP_BAR_HOVER
-  color            : colors.$COL_TOP_BAR_TEXT
+  background-color : var(--cocalc-top-bar-hover, colors.$COL_TOP_BAR_HOVER)
+  color            : var(--cocalc-top-bar-text, colors.$COL_TOP_BAR_TEXT)
 
 .smc-project-tab-floating
-  background-color    : rgb(255, 255, 255)
-  border              : dotted 1px #9a9a9a
+  background-color    : var(--cocalc-bg-elevated, rgb(255, 255, 255))
+  border              : dotted 1px var(--cocalc-border, #9a9a9a)
   display             : block
   line-height         : normal
   list-style-image    : none
@@ -59,7 +59,7 @@
   z-index             : 100
 
   > a
-    color               : rgb(85, 85, 85)
+    color               : var(--cocalc-text-primary, rgb(85, 85, 85))
     display             : block
     height              : 51px
     line-height         : 20px
@@ -82,4 +82,4 @@
     padding: 2px 10px !important
 
 .cocalc-top-bar-element:hover
-  background-color: colors.$COL_TOP_BAR_HOVER
+  background-color: var(--cocalc-top-bar-hover, colors.$COL_TOP_BAR_HOVER)

@@ -88,7 +88,7 @@ const RENDERERS = {
       key={key}
       value={value.source != null ? value.source : ""}
       options={{ mode: { name: value.mode } }}
-      style={{ background: "white", padding: "10px" }}
+      style={{ background: "var(--cocalc-bg-base, white)", padding: "10px" }}
     />
   ),
 

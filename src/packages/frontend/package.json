@@ -71,7 +71,7 @@
     "@xterm/addon-webgl": "^0.18.0",
     "@xterm/xterm": "^5.5.0",
     "anser": "^2.1.1",
-    "antd": "^5.27.6",
+    "antd": "^5.29.3",
     "antd-img-crop": "^4.27.0",
     "async": "^2.6.3",
     "audio-extensions": "^0.0.0",
@@ -182,7 +182,7 @@
     "test": "jest",
     "depcheck": "pnpx depcheck --ignores cspell,@cspell/dict-typescript,events,@formatjs/cli | grep -Ev '\\.coffee|coffee$'",
     "prepublishOnly": "pnpm test",
-    "update-color-scheme": "node ./update-color-scheme.js",
+
     "clean": "rm -rf dist node_modules i18n/trans/*.compiled.json",
     "i18n:extract": "bash ./i18n/bin/extract.sh",
     "i18n:upload": "bash ./i18n/bin/upload.sh",

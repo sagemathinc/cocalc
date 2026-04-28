@@ -24,7 +24,10 @@ export default function CodeInputPrompt({ element }) {
   });
   return (
     <InputPrompt
-      style={{ textAlign: undefined }}
+      style={{
+        textAlign: undefined,
+        color: "var(--cocalc-primary-light, #80afff)",
+      }}
       type="code"
       exec_count={element.data?.execCount}
       state={element.data?.runState}

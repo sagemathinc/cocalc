@@ -14,7 +14,7 @@ const TOGGLE_STYLE = {
   display: "inline-block",
   marginLeft: "-3em",
   paddingRight: "3em",
-  color: "#666",
+  color: "var(--cocalc-text-secondary, #666)",
   fontSize: "12pt",
 } as CSS;
 

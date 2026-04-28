@@ -51,7 +51,7 @@ export default function Input({
 }: Props) {
   const frame = useFrameContext();
   const [complete, setComplete] = useState<Map<string, any> | undefined>(
-    undefined
+    undefined,
   );
   const actions = useMemo(() => {
     return new Actions(frame, element.id, setComplete);
@@ -80,7 +80,7 @@ export default function Input({
     return () => {
       frame.actions._syncstring.removeListener(
         "before-change",
-        saveEditorValue
+        saveEditorValue,
       );
     };
   }, [element.id]);
@@ -97,7 +97,7 @@ export default function Input({
         style={{
           border: isFocused
             ? `1px solid ${SELECTED_BORDER_COLOR}`
-            : "1px solid rgb(207, 207, 207)",
+            : "1px solid var(--cocalc-border, rgb(207, 207, 207))",
           borderRadius: "2px",
         }}
         is_focused={isFocused}
@@ -274,7 +274,7 @@ class Actions implements EditorActions {
     code: string,
     pos?: { line: number; ch: number } | number,
     id?: string,
-    offset?: any
+    offset?: any,
   ): Promise<boolean> {
     const actions = await this.getJupyterActions();
     const popup = await actions.complete(code, pos, id, offset);
@@ -294,20 +294,20 @@ class Actions implements EditorActions {
   async introspect_at_pos(
     code: string,
     level: 0 | 1,
-    pos: { ch: number; line: number }
+    pos: { ch: number; line: number },
   ): Promise<void> {
     if (code === "") return; // no-op if there is no code (should never happen)
     this.frame.actions.show_recently_focused_frame_of_type(
       "introspect",
       "row",
       false,
-      2 / 3
+      2 / 3,
     );
     const actions = await this.getJupyterActions();
     const introspect = await actions.introspect(
       code,
       level,
-      codemirror_to_jupyter_pos(code, pos)
+      codemirror_to_jupyter_pos(code, pos),
     );
     this.setIntrospect(introspect);
   }

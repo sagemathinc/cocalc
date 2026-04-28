@@ -146,7 +146,7 @@ export function CodeMirrorStatic(props: Props) {
       style = BLURRED_STYLE;
     }
     if (theme == "default") {
-      style.background = "white";
+      style.background = "var(--cocalc-bg-base, white)";
     }
     if (props.options?.lineWrapping != null && !props.options?.lineWrapping) {
       style = { ...style, whiteSpace: "pre" };
@@ -192,7 +192,7 @@ export function CodeMirrorStatic(props: Props) {
     fontSize,
   };
   if (!props.no_border) {
-    divStyle.border = "1px solid rgb(207, 207, 207)";
+    divStyle.border = "1px solid var(--cocalc-border-light, rgb(207, 207, 207))";
   }
   return (
     <div style={divStyle}>
@@ -206,7 +206,7 @@ export function CodeMirrorStatic(props: Props) {
             fontSize: fontSize ?? "14.6666px",
             fontFamily: "monospace",
             border: "0px solid transparent",
-            borderLeft: `10px solid #cfcfcf`,
+            borderLeft: `10px solid var(--cocalc-border, #cfcfcf)`,
           }}
           value={props.value}
           language={props.options?.mode}

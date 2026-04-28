@@ -8,7 +8,7 @@ import { useDebounce } from "../../hooks";
 import { SearchInput } from "../../components";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { EventRecordMap } from "./types";
-import { normalizeLogFilename } from "./utils";
+import { getOpenFilePath } from "./utils";
 
 interface Props {
   search?: string;
@@ -37,9 +37,10 @@ export const LogSearch: React.FC<Props> = ({
       switch (e.get("event")) {
         case "open":
           // `filename` may be a string (legacy) or an object/Map carrying
-          // the path under `.path` (newer clients) — see normalizeLogFilename.
-          const target = normalizeLogFilename(e.get("filename"));
-          if (target) {
+          // the path under `.path` (newer clients). `getOpenFilePath`
+          // delegates to `normalizeLogFilename` and handles all shapes.
+          const target = getOpenFilePath(e.get("filename"));
+          if (target != null) {
             actions.open_file({
               path: target,
               foreground: !info.ctrl_down,

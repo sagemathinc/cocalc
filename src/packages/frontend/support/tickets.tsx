@@ -11,7 +11,7 @@ import openSupport, {
 
 export const SupportTickets: React.FC = () => {
   return (
-    <div style={{ color: "#666", fontSize: "12pt" }}>
+    <div style={{ color: "var(--cocalc-text-secondary, #666)", fontSize: "12pt" }}>
       <p>
         Check the <A href={ticketsURL}>status of your support tickets here</A>.
       </p>
@@ -24,7 +24,7 @@ export const SupportTickets: React.FC = () => {
           cursor: "pointer",
           display: "inline-block",
           padding: "5px",
-          backgroundColor: "rgb(224,224,224)",
+          backgroundColor: "var(--cocalc-bg-hover, rgb(224,224,224))",
         }}
       >
         <Icon name="medkit" /> Help

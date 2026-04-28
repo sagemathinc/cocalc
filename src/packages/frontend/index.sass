@@ -76,19 +76,20 @@
   table
     width: 100%
   // Remove all default row backgrounds (including zebra stripes)
+  // Hierarchy: normal (base/tinted) > open (elevated/lighter) > hover > selected
   .ant-table-row > td
-    background: colors.$COL_WHITE !important
-    border-bottom: 1px solid colors.$COL_GRAY_LLL !important
+    background: var(--cocalc-bg-base, colors.$COL_WHITE) !important
+    border-bottom: 1px solid var(--cocalc-bg-hover, colors.$COL_GRAY_LLL) !important
     transition: none !important
-  // Open files: faint gray background so the user can spot them
+  // Open files: lighter/elevated so they stand out as "active"
   .cc-explorer-row-open > td
-    background-color: colors.$COL_GRAY_LLL !important
-  // Type cell with expanded directory peek: blue background
+    background-color: var(--cocalc-bg-elevated, colors.$COL_GRAY_LLL) !important
+  // Type cell with expanded directory peek
   .ant-table-row > td.cc-explorer-cell-expanded
-    background-color: colors.$COL_BLUE_LLLL !important
-  // Hover: faint blue (kept subtle so DnD drop-target highlight stands out)
+    background-color: var(--cocalc-bg-hover, colors.$COL_BLUE_LLLL) !important
+  // Hover: slightly stronger tint
   .ant-table-row:hover > td
-    background-color: colors.$COL_BLUE_LLLL !important
+    background-color: var(--cocalc-bg-hover, colors.$COL_BLUE_LLLL) !important
     transition: none !important
   // Hover-only icons: download in size column, context menu at row end
   // No transitions — they cause a "trailing" effect during scroll.
@@ -104,20 +105,20 @@
   // The hover variant must come after the hover rule to override the faint hover blue
   .cc-explorer-row-checked > td,
   .cc-explorer-row-checked:hover > td
-    background-color: colors.$COL_BLUE_LLL !important
+    background-color: var(--cocalc-bg-selected, colors.$COL_BLUE_LLL) !important
   // Keyboard-selected row: blue background (matching flyout selection)
   .cc-explorer-row-selected > td,
   .cc-explorer-row-selected:hover > td
-    background-color: colors.$COL_BLUE_LLL !important
+    background-color: var(--cocalc-bg-selected, colors.$COL_BLUE_LLL) !important
   // DnD drop target: folder row being hovered during drag
   // Must override both default bg and hover bg, hence doubled specificity
   .cc-explorer-row-drop-target > td,
   .cc-explorer-row-drop-target:hover > td
-    background-color: colors.$COL_BLUE_LLL !important
+    background-color: var(--cocalc-bg-selected, colors.$COL_BLUE_LLL) !important
   // DnD invalid drop target (e.g. folder onto itself): red tint
   .cc-explorer-row-drop-invalid > td,
   .cc-explorer-row-drop-invalid:hover > td
-    background-color: colors.$COL_ANTD_BG_RED_L !important
+    background-color: var(--cocalc-error-light, colors.$COL_ANTD_BG_RED_L) !important
 
 // Explorer right-click context menu: compact item sizing
 .cc-explorer-context-menu
@@ -134,20 +135,20 @@
 .cc-frame-drag-handle
   cursor: grab
   padding: 0 10px
-  color: colors.$COL_GRAY
+  color: var(--cocalc-text-secondary, colors.$COL_GRAY)
   display: flex
   align-items: center
-  border-right: 1px solid colors.$COL_GRAY_L
+  border-right: 1px solid var(--cocalc-border, colors.$COL_GRAY_L)
   margin-right: 4px
   transition: background 0.15s, color 0.15s
 
   &:hover
-    background: colors.$COL_BLUE_LLLL
-    color: colors.$COL_BLUE_D
+    background: var(--cocalc-bg-hover, colors.$COL_BLUE_LLLL)
+    color: var(--cocalc-text-primary, colors.$COL_BLUE_D)
 
 // DnD: blue dashed border on the frame when hovering its drag handle
 .cc-frame-leaf-container:has(.cc-frame-drag-handle:hover)
-  outline: 2px dashed colors.$COL_BLUE_L
+  outline: 2px dashed var(--cocalc-primary-light, colors.$COL_BLUE_L)
   outline-offset: -2px
 
 // DnD: visual feedback when dragging a frame in the frame editor
@@ -167,14 +168,14 @@ body.cc-file-dragging
     cursor: grabbing !important
 
   [data-folder-drop-path]
-    background-color: rgba(colors.$COL_RUN, 0.06) !important
+    background-color: rgba(var(--cocalc-run-rgb, 56, 158, 13), 0.06) !important
     transition: background-color 0.15s
   // Explorer folder rows: need to target <td> inside the <tr>
   .cc-explorer-table tr[data-folder-drop-path] > td
-    background-color: rgba(colors.$COL_RUN, 0.06) !important
+    background-color: rgba(var(--cocalc-run-rgb, 56, 158, 13), 0.06) !important
   // Project tabs: non-active tabs are cross-project copy targets
   .cc-projects-nav .ant-tabs-tab:not(.ant-tabs-tab-active)
-    background-color: rgba(colors.$COL_RUN, 0.12) !important
+    background-color: rgba(var(--cocalc-run-rgb, 56, 158, 13), 0.12) !important
     transition: background-color 0.15s
 
 .center
@@ -184,6 +185,15 @@ body
   padding-top: 0
   width      : 100vw
   overflow-x : hidden
+
+// Scrollbar styling — responds to dark mode via CSS custom properties
+*
+  scrollbar-color: var(--cocalc-border, #c0c0c0) var(--cocalc-bg-base, transparent)
+  scrollbar-width: thin
+
+// Override Bootstrap's hardcoded hr border color for dark mode
+hr
+  border-top-color: var(--cocalc-border-light, #eee)
 
 div#smc-react-container,
 div#cocalc-webapp-container
@@ -478,11 +488,11 @@ div.cocalc-xtermjs > div.terminal.xterm > div.xterm-viewport
     left: 0
     right: 0
     z-index: 10
-    background: white
+    background: var(--cocalc-bg-base, white)
     max-height: 60%
     overflow-y: auto
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15)
-    border-bottom: 1px solid #ccc
+    border-bottom: 1px solid var(--cocalc-border, #ccc)
     padding: 4px
     .dropzone
       min-height: 40px
@@ -537,23 +547,27 @@ details summary
     display: block
 
 div.cc-project-fixedtab:hover
-  background-color: colors.$COL_BLUE_LLLL
+  background-color: var(--cocalc-top-bar-hover, colors.$COL_BLUE_LLLL)
   cursor: pointer
 
 span.cc-project-fixedtab-close
   flex: 0
   float: right
   font-size: 12px  // same as Antd closable tabs
-  color: colors.$COL_GRAY
+  color: var(--cocalc-text-secondary, colors.$COL_GRAY)
   &:hover
-    background-color: colors.$COL_GRAY_L0
+    background-color: var(--cocalc-top-bar-hover, colors.$COL_GRAY_L0)
 
 span.cc-project-fixedtab-drag:hover
-  background-color: colors.$COL_GRAY_L0
+  background-color: var(--cocalc-top-bar-hover, colors.$COL_GRAY_L0)
   cursor: move
 
+div.cc-project-flyout-file-item
+  background-color: var(--cocalc-bg-base, colors.$COL_WHITE)
+  border-bottom: 1px solid var(--cocalc-bg-hover, colors.$COL_GRAY_LLL)
+
 div.cc-project-flyout-file-item:hover
-  background-color: colors.$COL_BLUE_LLLL
+  background-color: var(--cocalc-bg-hover, colors.$COL_BLUE_LLLL)
 
 // Flyout quick action buttons (cut/copy/delete): hidden by default, visible on hover
 // No transitions — they cause a "trailing" effect during scroll.
@@ -566,4 +580,4 @@ div.cc-project-flyout-file-item
 
 // Flyout type filter: orange highlight when a filter is active
 .cc-flyout-type-filter-active .ant-select-selector
-  background-color: colors.$COL_ANTD_ORANGE !important
+  background-color: var(--cocalc-secondary, colors.$COL_ANTD_ORANGE) !important

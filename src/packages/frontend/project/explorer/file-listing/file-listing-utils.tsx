@@ -12,14 +12,19 @@ import { COLORS } from "@cocalc/util/theme";
 
 import type { FileEntry } from "./types";
 
-const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
-const TIMESTAMP_STYLE = { color: COLORS.TAB, whiteSpace: "nowrap" } as const;
+const DIMMED_STYLE = { color: `var(--cocalc-text-tertiary, ${COLORS.FILE_DIMMED})` } as const;
+const TIMESTAMP_STYLE = {
+  color: `var(--cocalc-text-secondary, ${COLORS.TAB})`,
+  whiteSpace: "nowrap",
+} as const;
 
 export function renderFileIcon(
   record: FileEntry,
   isExpanded?: boolean,
 ): React.ReactNode {
-  const color = record.mask ? COLORS.GRAY_M : COLORS.FILE_ICON;
+  const color = record.mask
+    ? `var(--cocalc-text-tertiary, ${COLORS.GRAY_M})`
+    : `var(--cocalc-primary, ${COLORS.FILE_ICON})`;
   if (record.isdir) {
     return (
       <span style={{ color, verticalAlign: "sub", whiteSpace: "nowrap" }}>
@@ -75,7 +80,9 @@ export function renderFileName(
     overflow: "hidden",
     textOverflow: "ellipsis",
     verticalAlign: "middle",
-    color: record.mask ? COLORS.GRAY_M : COLORS.TAB,
+    color: record.mask
+      ? `var(--cocalc-text-tertiary, ${COLORS.GRAY_M})`
+      : `var(--cocalc-text-primary, ${COLORS.TAB})`,
   };
 
   const extStyle = dimExtensions ? DIMMED_STYLE : undefined;
@@ -125,7 +132,12 @@ export function renderTimestamp(mtime?: number): React.ReactNode {
     );
   } catch {
     return (
-      <span style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}>
+      <span
+        style={{
+          color: `var(--cocalc-text-secondary, ${COLORS.TAB})`,
+          whiteSpace: "nowrap",
+        }}
+      >
         Invalid Date
       </span>
     );
@@ -145,7 +157,10 @@ export function SortIndicator({
   return (
     <Icon
       name={sortDescending ? "caret-down" : "caret-up"}
-      style={{ color: COLORS.ANTD_LINK_BLUE, marginLeft: 4 }}
+      style={{
+        color: `var(--cocalc-primary, ${COLORS.ANTD_LINK_BLUE})`,
+        marginLeft: 4,
+      }}
     />
   );
 }

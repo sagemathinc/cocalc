@@ -21,7 +21,6 @@ import { Tip } from "@cocalc/frontend/components/tip";
 import { labels } from "@cocalc/frontend/i18n";
 
 // Sibling Libraries
-import { COLORS } from "@cocalc/util/theme";
 import { markdown_to_html } from "../index";
 import { MarkdownWidgetActions } from "./actions";
 import * as info from "./info";
@@ -202,7 +201,7 @@ export function MarkdownInput({
           onChange={onChange}
           onKeyDown={keydown}
         />
-        <div style={{ paddingTop: "8px", color: COLORS.GRAY_M }}>
+        <div style={{ paddingTop: "8px", color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           {renderTip()}
         </div>
         <Space style={{ paddingBottom: "5px" }}>

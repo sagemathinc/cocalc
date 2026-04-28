@@ -66,7 +66,7 @@ export default function Projects({ account_id }) {
         <div
           style={{
             margin: "15px 5px 0 0",
-            borderLeft: "5px solid #eee",
+            borderLeft: "5px solid var(--cocalc-border-light, #eee)",
             paddingLeft: "10px",
           }}
         >
@@ -82,7 +82,7 @@ export default function Projects({ account_id }) {
         <div
           style={{
             margin: "15px 5px 0 0",
-            borderLeft: "5px solid #eee",
+            borderLeft: "5px solid var(--cocalc-border-light, #eee)",
             paddingLeft: "10px",
           }}
         >
@@ -111,7 +111,7 @@ function Project({
     <div
       style={{
         display: "flex",
-        borderBottom: "1px solid #eee",
+        borderBottom: "1px solid var(--cocalc-border-light, #eee)",
         padding: "5px 0",
       }}
     >
@@ -130,7 +130,7 @@ function Project({
           </div>
         )}
       </div>
-      <div style={{ flex: 1, color: "#666" }}>
+      <div style={{ flex: 1, color: "var(--cocalc-text-secondary, #666)" }}>
         active <TimeAgo date={last_edited} />, created{" "}
         <TimeAgo date={created} />,{" "}
         <>

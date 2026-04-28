@@ -33,7 +33,6 @@ import {
 } from "@cocalc/util/compute-images";
 import { FALLBACK_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { COLORS } from "@cocalc/util/theme";
 import { ALERT_STYLE } from "../warnings/common";
 import { useProjectState } from "./project-state-hook";
 
@@ -276,10 +275,10 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
                 Upgrade this project's software environment from {oldname} to{" "}
                 {render_upgrade_options()}, or keep it as it is.
                 <br />
-                <span style={{ color: COLORS.GRAY }}>
+                <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
                   You can change this any time in{" "}
                   <A
-                    style={{ color: COLORS.GRAY }}
+                    style={{ color: "var(--cocalc-text-secondary, #808080)" }}
                     href={DOC_CHANGE_SOFTWARE_IMAGE}
                   >
                     Project Settings → Project Control → Software Environment

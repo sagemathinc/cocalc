@@ -29,13 +29,13 @@ import "./output-messages/mime-types/init-frontend";
 // React components that implement parts of the Jupyter notebook.
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { ErrorDisplay, Icon, Text } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
 import { A } from "@cocalc/frontend/components/A";
 import { Loading } from "@cocalc/frontend/components/loading";
 import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import { syncdbPath } from "@cocalc/util/jupyter/names";
-import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
 import type { JupyterActions } from "./browser-actions";
@@ -316,7 +316,8 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           fontSize: "24pt",
           textAlign: "center",
           marginTop: "15px",
-          color: COLORS.GRAY,
+          color: `var(--cocalc-text-secondary, ${COLORS.GRAY})`,
+          background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
         }}
       />
     );
@@ -336,7 +337,8 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
             fontSize: "24pt",
             textAlign: "center",
             marginTop: "15px",
-            color: "#888",
+            color: `var(--cocalc-text-secondary, ${COLORS.GRAY})`,
+            background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
           }}
         />
       );

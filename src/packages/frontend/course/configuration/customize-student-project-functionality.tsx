@@ -340,7 +340,7 @@ export function CustomizeStudentProjectFunctionality({
       <hr />
       <div
         style={{
-          border: "1px solid lightgrey",
+          border: "1px solid var(--cocalc-border-light, lightgray)",
           padding: "10px",
           borderRadius: "5px",
         }}

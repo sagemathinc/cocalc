@@ -45,7 +45,12 @@ function NotificationShell({
   const outer_style: CSS = {
     padding: `${topPaddingIcons} ${sidePaddingIcons}`,
     height: `${pageStyle.height}px`,
-    ...(active ? { backgroundColor: COLORS.TOP_BAR.ACTIVE } : {}),
+    ...(active
+      ? {
+          backgroundColor:
+            "var(--cocalc-editor-titlebar-bg-active, white)",
+        }
+      : {}),
   };
 
   const inner_style: CSS = {

@@ -102,8 +102,9 @@ function deriveFiles(
     })
     .filter((entry: EventRecordMap) => {
       if (searchTerm === "") return true;
-      const fName = getOpenEventFilename(entry, "")!.toLowerCase();
-      return search_match(fName, searchWords);
+      const fName = getOpenEventFilename(entry, undefined);
+      if (fName == null) return false;
+      return search_match(fName.toLowerCase(), searchWords);
     })
     .slice(0, max)
     .map((entry: EventRecordMap) => {
@@ -648,7 +649,10 @@ export function LogFlyout({
               <Button
                 size="small"
                 type="text"
-                style={{ float: "right", color: COLORS.GRAY_M }}
+                style={{
+                  float: "right",
+                  color: "var(--cocalc-text-primary, #5f5f5f)",
+                }}
                 onClick={() => actions?.resetFlyoutLogFilter()}
                 icon={<Icon name="close-circle-filled" />}
               >

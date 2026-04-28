@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -11,18 +11,17 @@ Orchestrates build, page navigation, sync, and zoom controls
 import { useEffect, useRef, useState } from "react";
 
 import { useRedux } from "@cocalc/frontend/app-framework";
-import { COLORS } from "@cocalc/util/theme";
-
 import { Actions } from "./actions";
 import { BuildControls } from "./output-control-build";
 import { PageNavigationControls } from "./output-control-pages";
 import { SyncControls } from "./output-control-sync";
 import { ZoomControls } from "./output-control-zoom";
+import { COLORS } from "@cocalc/util/theme";
 
 const CONTROL_STYLE = {
   padding: "5px 10px",
-  borderBottom: `1px solid ${COLORS.GRAY_L}`,
-  background: COLORS.GRAY_LL,
+  borderBottom: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
+  background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLLL})`,
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",

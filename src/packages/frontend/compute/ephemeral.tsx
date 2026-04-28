@@ -7,7 +7,7 @@ export default function Ephemeral({ setConfig, configuration, loading }) {
   const [help, setHelp] = useState<boolean>(false);
   return (
     <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <div>
           <b>
             <Switch

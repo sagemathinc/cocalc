@@ -20,6 +20,6 @@ register({
     // The borderTop on the hr is just "fighting back" against a dumb thing
     // that is imposed by bootstrap3... (it's in scaffolding.less).  Someday
     // we'll get rid of bootstrap css entirely!
-    return <hr {...attributes} style={{ borderTop: "1px solid #aaa" }} />;
+    return <hr {...attributes} style={{ borderTop: "1px solid var(--cocalc-text-tertiary, #aaa)" }} />;
   },
 });

@@ -9,7 +9,6 @@ import { webapp_client } from "../webapp-client";
 import { AccountActions } from "./actions";
 import { AccountStore } from "./store";
 import { AccountTable } from "./table";
-import { init_dark_mode } from "./dark-mode";
 import { reset_password_key } from "../client/password-reset";
 import { hasRememberMe } from "@cocalc/frontend/misc/remember-me";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -30,7 +29,6 @@ export function init(redux) {
   const actions = redux.createActions("account", AccountActions);
 
   actions._init(store);
-  init_dark_mode(store);
 
   redux.createTable("account", AccountTable);
   redux.getTable("account")._table.on("error", (tableError) => {

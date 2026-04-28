@@ -496,7 +496,7 @@ export function NewFlyout({
         <hr />
         <Tag color={COLORS.GRAY_L}>Filename generator</Tag>
         <SelectorInput
-          style={{ width: "100%", color: COLORS.GRAY }}
+          style={{ width: "100%", color: "var(--cocalc-text-secondary, #808080)" }}
           selected={selected}
           options={NewFilenameFamilies}
           on_change={(family) => actions?.set_new_filename_family(family)}

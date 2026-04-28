@@ -10,7 +10,7 @@ export default function IconElt({ element }: Props) {
   return (
     <Icon
       name={element.data?.icon ?? "square"}
-      style={getStyle(element, { background: "white" })}
+      style={getStyle(element, { background: "var(--cocalc-bg-base, white)" })}
     />
   );
 }

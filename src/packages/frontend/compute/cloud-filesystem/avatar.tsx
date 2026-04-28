@@ -12,11 +12,11 @@ export default function CloudFilesystemAvatar({
     <div style={{ width: "64px", marginBottom: "-20px" }}>
       <Icon
         name={"disk-round"}
-        style={{ fontSize: "30px", color: color ?? "#666" }}
+        style={{ fontSize: "30px", color: color ?? "var(--cocalc-text-secondary, #666)" }}
       />
-      <div style={{ color: "#888" }}>Id: {project_specific_id}</div>
+      <div style={{ color: "var(--cocalc-text-tertiary, #888)" }}>Id: {project_specific_id}</div>
       <div
-        style={{ color: "#888", cursor: "pointer" }}
+        style={{ color: "var(--cocalc-text-tertiary, #888)", cursor: "pointer" }}
         onClick={() => {
           setShowMetrics(!showMetrics);
         }}

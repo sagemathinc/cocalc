@@ -13,7 +13,6 @@ import { CSS, Rendered } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { describe_quota as describeQuota } from "@cocalc/util/licenses/describe-quota";
 import { days_ago as daysAgo, isValidUUID, len } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { CallToSupport } from "@cocalc/frontend/project/call-to-support";
 
 const { Option } = Select;
@@ -92,7 +91,7 @@ export default function SelectLicense(props: Props) {
             message={
               <>
                 <span style={{ fontFamily: "monospace" }}>{id}</span>
-                <span style={{ color: COLORS.GRAY_M }}>
+                <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
                   {title ? " - " + title : ""}
                   <br />
                   <span style={{ whiteSpace: "normal" }}>
@@ -167,7 +166,7 @@ export default function SelectLicense(props: Props) {
               style={{
                 flex: "1 0 0",
                 margin: "5px 0",
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
                 whiteSpace: "nowrap",
               }}
               checked={showAll}

@@ -22,13 +22,13 @@ const STYLE = {
   right: "0px",
   minWidth: "30%",
   zIndex: 100,
-  border: "0.5px solid lightgray",
+  border: "0.5px solid var(--cocalc-border-light, lightgray)",
   borderRadius: "3px",
-  color: "#666",
+  color: "var(--cocalc-text-secondary, #666)",
   padding: "0 5px",
   fontSize: "9pt",
-  background: "#fff",
-  boxShadow: "-2px -2px 2px #ccc",
+  background: "var(--cocalc-bg-base, #fff)",
+  boxShadow: "-2px -2px 2px var(--cocalc-border, #ccc)",
 } as CSSProperties;
 
 interface Props {

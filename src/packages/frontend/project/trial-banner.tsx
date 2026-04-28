@@ -491,7 +491,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
             compact={true}
             showIcon={true}
             countdown={countdown0}
-            style={{ color: COLORS.ANTD_RED }}
+            style={{ color: "var(--cocalc-error, #dc3545)" }}
           />
         </Tag>
       </Tooltip>

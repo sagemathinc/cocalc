@@ -9,6 +9,7 @@ The kernel's logo display
 
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { filename_extension, getRandomColor } from "@cocalc/util/misc";
+import { inDarkMode } from "@cocalc/frontend/account/dark-mode";
 import { CSSProperties, useEffect, useState } from "react";
 import { Spin } from "antd";
 import useClientContext from "@cocalc/frontend/client/context";
@@ -28,6 +29,7 @@ export default function Logo({
   style,
   project_id,
 }: Props) {
+  const isDark = inDarkMode();
   const { client } = useClientContext();
   const fileContext = useFileContext();
   if (project_id == null) {
@@ -36,7 +38,14 @@ export default function Logo({
 
   if (!kernel || !project_id || !client) {
     // probably only happens on share server
-    return <FallbackLogo kernel={kernel} size={size} style={style} />;
+    return (
+      <FallbackLogo
+        kernel={kernel}
+        size={size}
+        style={style}
+        isDark={isDark}
+      />
+    );
   } else {
     return (
       <KernelLogo
@@ -45,6 +54,7 @@ export default function Logo({
         client={client}
         project_id={project_id}
         style={style}
+        isDark={isDark}
       />
     );
   }
@@ -55,17 +65,19 @@ function FallbackLogo({
   size,
   style,
   title,
+  isDark,
 }: {
   kernel: string | null;
   size?;
   style?;
   title?;
+  isDark?: boolean;
 }) {
   return (
     <div
       style={{
         fontSize: size,
-        color: getRandomColor(kernel ?? "unknown"),
+        color: getRandomColor(kernel ?? "unknown", { isDark }),
         display: "inline-block",
         width: size - 5,
         height: size - 5,
@@ -81,11 +93,18 @@ function FallbackLogo({
   );
 }
 
-function KernelLogo({ kernel, size, project_id, style, client }) {
+function KernelLogo({ kernel, size, project_id, style, client, isDark }) {
   const { src, error } = useLogo({ kernel, project_id, client });
 
   if (error || src == "") {
-    return <FallbackLogo kernel={kernel} size={size} title={error} />;
+    return (
+      <FallbackLogo
+        kernel={kernel}
+        size={size}
+        title={error}
+        isDark={isDark}
+      />
+    );
   }
   if (src == null) {
     return <Spin delay={1000} />;

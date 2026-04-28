@@ -27,7 +27,7 @@ register({
             }`,
           }}
         >
-          <hr style={{ borderTop: "1px solid #aaa" }} />
+          <hr style={{ borderTop: "1px solid var(--cocalc-text-tertiary, #aaa)" }} />
         </div>
         {children}
       </div>

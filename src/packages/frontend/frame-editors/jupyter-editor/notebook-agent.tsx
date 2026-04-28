@@ -86,7 +86,7 @@ import type { CSS } from "@cocalc/frontend/app-framework";
 
 /** User messages: slightly darker than the shared default to stand out. */
 const NB_USER_MSG_STYLE: CSS = {
-  background: COLORS.GRAY_LL,
+  background: "var(--cocalc-bg-hover, #e8e8e8)",
   padding: "8px 12px",
   marginBottom: 8,
   whiteSpace: "pre-wrap",
@@ -97,9 +97,9 @@ const NB_USER_MSG_STYLE: CSS = {
 const TOOL_RESULT_STYLE: CSS = {
   marginBottom: 2,
   padding: "2px 12px",
-  background: COLORS.GRAY_LLL,
+  background: "var(--cocalc-bg-elevated, #f5f5f5)",
   fontSize: "0.8em",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
   fontFamily: "monospace",
 };
 
@@ -875,8 +875,8 @@ export function NotebookAgent({
             padding: "3px 12px",
             background: COLORS.YELL_LLL,
             fontSize: "0.85em",
-            color: COLORS.GRAY_M,
-            borderTop: `1px solid ${COLORS.GRAY_L}`,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
+            borderTop: `1px solid var(--cocalc-border, #ccc)`,
           }}
         >
           {editorContextLabel}
@@ -888,8 +888,8 @@ export function NotebookAgent({
         style={{
           flex: "0 0 auto",
           padding: "6px 12px",
-          borderTop: `1px solid ${COLORS.GRAY_L}`,
-          background: COLORS.GRAY_LLL,
+          borderTop: `1px solid var(--cocalc-border, #ccc)`,
+          background: "var(--cocalc-bg-elevated, #f5f5f5)",
           display: "flex",
           alignItems: "center",
           justifyContent: "flex-end",

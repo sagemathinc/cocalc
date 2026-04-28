@@ -13,7 +13,7 @@ export const STYLE_LOADING: React.CSSProperties = {
 export const STYLE_HEADER: React.CSSProperties = {
   margin: "1rem 1rem 0 1rem",
   borderBottom: `1px solid ${COLORS.GRAY}`,
-  color: COLORS.GRAY,
+  color: "var(--cocalc-text-secondary, #808080)",
   fontSize: "inherit",
 } as const;
 
@@ -41,5 +41,5 @@ export const STYLE_PRE: React.CSSProperties = {
 export const STYLE_ERR: React.CSSProperties = {
   ...STYLE_LOG,
   fontWeight: "bold",
-  backgroundColor: COLORS.ANTD_BG_RED_L,
+  backgroundColor: "color-mix(in srgb, var(--cocalc-error, #f5222d) 15%, var(--cocalc-bg-elevated, white))",
 } as const;

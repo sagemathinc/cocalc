@@ -129,7 +129,7 @@ export default function AdminRefund({
           <Form.Item name="notes" label={<div style={labelStyle}>Notes</div>}>
             <Input.TextArea rows={3} />
           </Form.Item>
-          <div style={{ color: "#666" }}>
+          <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
             <Divider>What Happens: more details</Divider>
             The above information will be visible to the user.
             {(service == "credit" || service == "auto-credit") && (

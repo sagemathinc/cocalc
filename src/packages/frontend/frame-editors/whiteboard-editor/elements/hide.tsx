@@ -9,7 +9,7 @@ export default function HiddenElement({ element }: Props) {
   return (
     <Icon
       name={"eye-slash"}
-      style={{ fontSize: element.w - 2, color: "#666" }}
+      style={{ fontSize: element.w - 2, color: "var(--cocalc-text-secondary, #666)" }}
     />
   );
 }

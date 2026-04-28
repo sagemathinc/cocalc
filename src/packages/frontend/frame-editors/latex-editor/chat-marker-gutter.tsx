@@ -98,10 +98,10 @@ export function ChatMarkerGutter({
           cursor: isStale ? "default" : "pointer",
           marginLeft: -9,
           color: isStale
-            ? COLORS.GRAY_L
+            ? `var(--cocalc-border, ${COLORS.GRAY_L})`
             : hasUnread
-              ? COLORS.ANTD_RED
-              : COLORS.GRAY_M,
+              ? `var(--cocalc-error, ${COLORS.ANTD_RED})`
+              : `var(--cocalc-text-tertiary, ${COLORS.GRAY_M})`,
           opacity: isStale ? 0.6 : 1,
         }}
       >
@@ -184,8 +184,12 @@ export function ChatMarkerInlineTail({
               lineHeight: 1.4,
               fontWeight: 500,
               cursor: "pointer",
-              backgroundColor: hasUnread ? COLORS.ANTD_RED : COLORS.GRAY_LL,
-              color: hasUnread ? COLORS.WHITE : COLORS.GRAY_DD,
+              backgroundColor: hasUnread
+                ? `var(--cocalc-error, ${COLORS.ANTD_RED})`
+                : `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})`,
+              color: hasUnread
+                ? `var(--cocalc-text-on-primary, ${COLORS.WHITE})`
+                : `var(--cocalc-text-primary-strong, ${COLORS.GRAY_DD})`,
             }}
           >
             {pillText}
@@ -203,8 +207,8 @@ export function ChatMarkerInlineTail({
               fontSize: "0.85em",
               lineHeight: 1.4,
               fontStyle: "italic",
-              color: COLORS.GRAY_M,
-              backgroundColor: COLORS.GRAY_LL,
+              color: `var(--cocalc-text-tertiary, ${COLORS.GRAY_M})`,
+              backgroundColor: `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})`,
             }}
           >
             resolved
@@ -257,7 +261,9 @@ export function ChatMarkerInlineTail({
               // primary action (turns a chat into a closed TODO), so
               // give it a clearly readable green and a slightly bigger
               // hit target.
-              color: isStale ? COLORS.GRAY_L : COLORS.BS_GREEN_D,
+              color: isStale
+                ? `var(--cocalc-border, ${COLORS.GRAY_L})`
+                : `var(--cocalc-success, ${COLORS.BS_GREEN_D})`,
               fontSize: isStale ? "0.9em" : "1.1em",
               marginLeft: 8,
               padding: "0 4px",

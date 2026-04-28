@@ -27,7 +27,6 @@ import {
   toOllamaModel,
   toUserLLMModelName,
 } from "@cocalc/util/db-schema/llm-utils";
-import { COLORS } from "@cocalc/util/theme";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { ChatActions } from "./actions";
 
@@ -189,7 +188,7 @@ export function RegenerateLLM({
           style={{
             display: "inline",
             whiteSpace: "nowrap",
-            color: COLORS.GRAY_M,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
             ...style,
           }}
         >

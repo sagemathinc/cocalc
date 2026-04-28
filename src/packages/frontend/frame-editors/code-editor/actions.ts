@@ -22,6 +22,7 @@ const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
+import type { TopBarActionsData } from "@cocalc/frontend/project/page/top-tabbar/types";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   Actions as BaseActions,
@@ -173,6 +174,7 @@ export interface CodeEditorState {
   switch_to_files: string[];
   pdf_dark_mode_disabled?: { [id: string]: boolean };
   has_custom_layout: boolean;
+  topBarActionsVersion: number; // bumped when top-bar actions change (for re-render)
 }
 
 export class Actions<
@@ -192,6 +194,34 @@ export class Actions<
   private videoChat: VideoChat;
 
   protected doctype: string = "syncstring";
+
+  // Top bar actions data: registered by the active frame's title bar.
+  // Contains closures so it can't live in Redux — a version counter
+  // in the store signals the top-tabbar to re-read.
+  private _topBarActionsData: TopBarActionsData | null = null;
+
+  public setTopBarActionsData(data: TopBarActionsData | null): void {
+    this._topBarActionsData = data;
+    const cur = this.store?.get("topBarActionsVersion") ?? 0;
+    this.setState({ topBarActionsVersion: cur + 1 });
+  }
+
+  public getTopBarActionsData(): TopBarActionsData | null {
+    return this._topBarActionsData;
+  }
+
+  // editor_spec is needed outside the frame tree (e.g. the top-tabbar
+  // TimeTravel button) to decide whether "time_travel" is supported as a
+  // frame type. FrameTreeEditor registers it on mount.
+  private _editor_spec: any = null;
+
+  public setEditorSpec(spec: any): void {
+    this._editor_spec = spec;
+  }
+
+  public hasFrameType(type: string): boolean {
+    return this._editor_spec?.[type] != null;
+  }
 
   ////////
   // these are for doctype "syncdb":

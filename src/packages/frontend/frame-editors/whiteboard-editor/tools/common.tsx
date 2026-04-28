@@ -1,6 +1,6 @@
 import { Button, Popconfirm, Tooltip } from "antd";
 
-export const SELECTED = "#337ab7";
+export const SELECTED = "var(--cocalc-link, #337ab7)";
 
 export function ResetButton({ onClick }) {
   return (
@@ -12,7 +12,7 @@ export function ResetButton({ onClick }) {
         <Button
           type="text"
           style={{
-            color: "#666",
+            color: "var(--cocalc-text-secondary, #666)",
             margin: "auto",
             padding: 0,
             fontSize: "12px",

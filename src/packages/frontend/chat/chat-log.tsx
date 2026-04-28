@@ -34,7 +34,6 @@ import {
   parse_hashtags,
   plural,
 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import type { ChatActions } from "./actions";
 import Composing from "./composing";
 import { filterMessages } from "./filter-messages";
@@ -511,7 +510,7 @@ function NotShowing({
               actions.clearAllFilters();
             }}
           >
-            <Icon name="close-circle-filled" style={{ color: "#888" }} /> Clear
+            <Icon name="close-circle-filled" style={{ color: "var(--cocalc-text-tertiary, #888)" }} /> Clear
           </Button>
         </div>
       }
@@ -521,8 +520,8 @@ function NotShowing({
 
 const NEW_MESSAGES_DIVIDER_STYLE: CSSProperties = {
   margin: "8px 15px",
-  borderColor: COLORS.ANTD_RED_WARN,
-  color: COLORS.ANTD_RED_WARN,
+  borderColor: "var(--cocalc-error, #f5222d)",
+  color: "var(--cocalc-error, #f5222d)",
   fontSize: "12px",
   fontWeight: 500,
 };

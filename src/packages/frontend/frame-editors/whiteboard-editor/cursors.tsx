@@ -39,7 +39,7 @@ export default function Cursors({ canvasScale, cursors }: Props) {
             style={{
               paddingLeft: "5px",
               paddingTop: "2px",
-              color: "#666",
+              color: "var(--cocalc-text-secondary, #666)",
               fontSize: "10px",
             }}
           >
@@ -58,7 +58,7 @@ export default function Cursors({ canvasScale, cursors }: Props) {
         position: "absolute",
         top: `${-5 - SIZE * v.length}px`,
         height: `${SIZE * v.length}px`,
-        background: "white",
+        background: "var(--cocalc-bg-base, white)",
         opacity: 0.6,
         transform: `scale(${1 / canvasScale})`,
         transformOrigin: "top left",

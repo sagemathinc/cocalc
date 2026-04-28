@@ -42,7 +42,7 @@ import {
   scale_by_display_factors,
 } from "./upgrades";
 
-const BACKGROUNDS = ["white", "#f8f8f8"];
+const BACKGROUNDS = ["white", "var(--cocalc-bg-elevated, #f8f8f8)"];
 
 interface Props {
   editing?: boolean;
@@ -68,7 +68,7 @@ const STATUS_STYLE: CSS = {
 } as const;
 
 export const INPUT_STYLE: CSS = {
-  border: "1px solid lightgrey",
+  border: "1px solid var(--cocalc-border-light, lightgray)",
   borderRadius: "3px",
   padding: "0 5px",
 } as const;
@@ -115,7 +115,7 @@ export const License: React.FC<Props> = (props: Props) => {
         <Row
           key={field}
           style={{
-            borderTop: "1px solid lightgrey",
+            borderTop: "1px solid var(--cocalc-border-light, lightgray)",
             backgroundColor,
             padding: editing ? "15px 10px" : "10px",
           }}
@@ -128,7 +128,7 @@ export const License: React.FC<Props> = (props: Props) => {
     if (typeof edits?.size === "number" && edits.size > 0) {
       const id = license.get("id");
       v.push(
-        <Row key="save" style={{ borderTop: "1px solid lightgrey" }}>
+        <Row key="save" style={{ borderTop: "1px solid var(--cocalc-border-light, lightgray)" }}>
           <Col span={24} style={{ textAlign: "right" }}>
             {render_save_cancel(id)}
           </Col>
@@ -634,7 +634,7 @@ export const License: React.FC<Props> = (props: Props) => {
   return (
     <div
       style={{
-        border: "1px solid lightgrey",
+        border: "1px solid var(--cocalc-border-light, lightgray)",
         borderRadius: "5px",
         padding: "0px",
       }}

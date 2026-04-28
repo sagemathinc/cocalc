@@ -65,7 +65,7 @@ export default function IconSelect({
         style={{
           marginTop: "10px",
           overflowY: "scroll",
-          border: "1px solid lightgrey",
+          border: "1px solid var(--cocalc-border-light, lightgray)",
         }}
       >
         {icons(search, fontSize, (name) => {

@@ -22,7 +22,6 @@ import {
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { sha1, trunc } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { useBookmarkedProjects } from "./use-bookmarked-projects";
 
 const DROPDOWN_WIDTH = 100; // Width reserved for dropdown button + buffer
@@ -79,7 +78,7 @@ function DraggableProjectButton({
         project.avatar_image_tiny ? (
           <Avatar src={project.avatar_image_tiny} size={20} />
         ) : (
-          <Icon name="star-filled" style={{ color: COLORS.STAR }} />
+          <Icon name="star-filled" style={{ color: "var(--cocalc-star, #FFD700)" }} />
         )
       }
       onClick={(e) => onProjectClick(project.project_id, e)}
@@ -352,7 +351,7 @@ export function StarredProjectsBar() {
         {project.description && (
           <div
             style={{
-              color: COLORS.GRAY_L,
+              color: "var(--cocalc-text-tertiary, #c0c0c0)",
               marginBottom: "8px",
               fontSize: "12px",
             }}
@@ -360,7 +359,7 @@ export function StarredProjectsBar() {
             {project.description}
           </div>
         )}
-        <div style={{ fontSize: "12px", color: COLORS.GRAY_L }}>
+        <div style={{ fontSize: "12px", color: "var(--cocalc-text-tertiary, #c0c0c0)" }}>
           <TimeAgo date={project.last_edited} />
         </div>
       </div>
@@ -396,7 +395,7 @@ export function StarredProjectsBar() {
           {project.avatar_image_tiny ? (
             <Avatar src={project.avatar_image_tiny} size={20} />
           ) : (
-            <Icon name="star-filled" style={{ color: COLORS.STAR }} />
+            <Icon name="star-filled" style={{ color: "var(--cocalc-star, #FFD700)" }} />
           )}{" "}
           {project.title}
         </span>
@@ -470,7 +469,7 @@ export function StarredProjectsBar() {
                   >
                     <Button
                       icon={<Icon name="ellipsis" />}
-                      style={{ backgroundColor: "white", marginLeft: "auto" }}
+                      style={{ backgroundColor: "var(--cocalc-bg-base, white)", marginLeft: "auto" }}
                     >
                       +{overflowProjects.length}
                     </Button>

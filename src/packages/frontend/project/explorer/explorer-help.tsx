@@ -17,7 +17,6 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon, type IconName } from "@cocalc/frontend/components/icon";
 import { labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 
 const { Text } = Typography;
 
@@ -259,7 +258,7 @@ function Section({
         )}
       </Text>
       <br />
-      <span style={{ color: COLORS.GRAY_D }}>{children}</span>
+      <span style={{ color: "var(--cocalc-text-primary-strong, #434343)" }}>{children}</span>
     </div>
   );
 }
@@ -291,7 +290,7 @@ export default function ExplorerHelp({ project_id }: Props) {
         <HelpContent project_id={project_id} onClose={() => setOpen(false)} />
       }
     >
-      <Button type="text" size="small" style={{ color: COLORS.ANTD_LINK_BLUE }}>
+      <Button type="text" size="small" style={{ color: "var(--cocalc-link, #1677ff)" }}>
         <Icon name="question-circle" /> {intl.formatMessage(labels.help)}
       </Button>
     </Popover>

@@ -395,6 +395,7 @@ export function TabsContainer({
             }}
           >
             <Tabs
+              className="cc-frame-tree-tabs"
               activeKey={String(activeTab)}
               onChange={handleTabChange}
               items={items}

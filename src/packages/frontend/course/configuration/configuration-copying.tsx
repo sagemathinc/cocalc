@@ -52,7 +52,6 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { isIntlMessage } from "@cocalc/util/i18n";
 import { plural } from "@cocalc/util/misc";
 import { CONFIGURATION_GROUPS, ConfigurationGroup } from "./actions";
-import { COLORS } from "@cocalc/util/theme";
 
 export type CopyConfigurationOptions = {
   [K in ConfigurationGroup]?: boolean;
@@ -127,7 +126,7 @@ export default function ConfigurationCopying({
         </>
       }
     >
-      <div style={{ color: COLORS.GRAY_M }}>
+      <div style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
         <FormattedMessage
           id="course.configuration-copying.info"
           defaultMessage={`Copy configuration from this course to other courses.

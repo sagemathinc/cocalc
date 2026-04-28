@@ -217,7 +217,7 @@ export default function View({
         <>
           {Filter}
           {numHidden > 0 && (
-            <div style={{ marginBottom: "5px", color: "#666" }}>
+            <div style={{ marginBottom: "5px", color: "var(--cocalc-text-secondary, #666)" }}>
               <Icon name="warning" /> Showing {filteredData.length} of{" "}
               {data.length} {plural(data.length, "match", "matches")}
             </div>

@@ -14,7 +14,6 @@ import { Icon, IconName, isIconName } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { cmp, trunc_middle } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { EditorDescription } from "../types";
 import { COMMANDS } from "./commands";
 import { APPLICATION_MENU, SEARCH_COMMANDS } from "./const";
@@ -39,6 +38,8 @@ export class ManageCommands {
   readonly frameEditorName: string;
   readonly toolbarButtons: string[] | null;
   readonly setToolbarButtons: (value: string[] | null) => void;
+  readonly toolbarHidden: boolean;
+  readonly setToolbarHidden: (value: boolean) => void;
   readonly intl: IntlShape;
   readonly formatMessageValues: Parameters<typeof this.intl.formatMessage>[1];
 
@@ -56,6 +57,8 @@ export class ManageCommands {
     frameEditorName,
     toolbarButtons,
     setToolbarButtons,
+    toolbarHidden,
+    setToolbarHidden,
     intl,
   }) {
     this.props = props;
@@ -69,6 +72,8 @@ export class ManageCommands {
     this.frameEditorName = frameEditorName;
     this.toolbarButtons = toolbarButtons;
     this.setToolbarButtons = setToolbarButtons;
+    this.toolbarHidden = toolbarHidden;
+    this.setToolbarHidden = setToolbarHidden;
     this.intl = intl;
     this.formatMessageValues = { br: <br /> };
     //window.x = { manage: this };
@@ -392,10 +397,9 @@ export class ManageCommands {
       );
     }
     let icon;
-    if (!name || !this.editorSettings.get("extra_button_bar")) {
+    if (!name) {
       // do not show toggleable icon if no command name (unnamed submenu
-      // children can't be pinned) or the button bar is completely
-      // disabled (i.e. user doesn't want it at all).
+      // children can't be pinned).
       icon = (
         <div style={{ width, marginRight: "10px", display: "inline-block" }}>
           {this.getCommandIcon(cmd)}
@@ -424,7 +428,9 @@ export class ManageCommands {
               display: "inline-block",
               padding: 0,
               marginRight: "10px",
-              background: isOnButtonBar ? "#ddd" : undefined,
+              background: isOnButtonBar
+                ? "var(--cocalc-bg-hover, #ddd)"
+                : undefined,
             }}
             onClick={(e) => {
               e.preventDefault();
@@ -475,6 +481,16 @@ export class ManageCommands {
   };
 
   menuItem = (name: string) => {
+    // Handle compound keys like "jupyter-run-all-cells/run all cells"
+    const compound = this.resolveCompoundCommand(name);
+    if (compound != null) {
+      return this.commandToMenuItem({
+        name,
+        cmd: compound,
+        key: name,
+        noChildren: true,
+      });
+    }
     const cmd = this.getCommandInfo(name);
     if (cmd == null) {
       return null;
@@ -534,7 +550,7 @@ export class ManageCommands {
             <div
               style={{
                 fontSize: "11px",
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
                 marginTop: "-10px",
                 // special case: button='' explicitly means no label
                 width: cmd.button === "" ? undefined : "50px",
@@ -615,7 +631,7 @@ export class ManageCommands {
           <div
             style={{
               flex: 1,
-              color: "#999",
+              color: "var(--cocalc-text-tertiary, #999)",
               textAlign: "right",
               marginLeft: "50px",
             }}
@@ -701,6 +717,7 @@ export class ManageCommands {
     if (current.includes(name)) {
       this.setToolbarButtons(current.filter((item) => item !== name));
     } else {
+      this.setToolbarHidden(false);
       this.setToolbarButtons(current.concat([name]));
     }
   };
@@ -714,11 +731,12 @@ export class ManageCommands {
   };
 
   removeAllToolbarButtons = () => {
-    this.setToolbarButtons([]);
+    this.setToolbarHidden(true);
   };
 
   resetToolbar = () => {
     this.setToolbarButtons(null);
+    this.setToolbarHidden(false);
   };
 
   // returns the names in order of the button toolbar buttons
@@ -737,6 +755,10 @@ export class ManageCommands {
 
   setToolbarOrder = (order: string[]) => {
     this.setToolbarButtons(order);
+  };
+
+  isToolbarHidden = (): boolean => {
+    return this.toolbarHidden;
   };
 
   // used for sorting

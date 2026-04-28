@@ -78,11 +78,11 @@ export const Headings: React.FC<HeadingsProps> = React.memo(
       // We hide the done column though since it overlaps and we can't
       // sort by that.
       return (
-        <Row style={{ borderBottom: "1px solid lightgray", marginLeft: "8px" }}>
-          <Col xs={1} style={{ color: "#666" }}>
+        <Row style={{ borderBottom: "1px solid var(--cocalc-border-light, lightgray)", marginLeft: "8px" }}>
+          <Col xs={1} style={{ color: "var(--cocalc-text-secondary, #666)" }}>
             Drag
           </Col>
-          <Col xs={7} style={{ color: "#666" }}>
+          <Col xs={7} style={{ color: "var(--cocalc-text-secondary, #666)" }}>
             Description
           </Col>
           <Col xs={1}>
@@ -105,7 +105,7 @@ export const Headings: React.FC<HeadingsProps> = React.memo(
           </Col>
           <Col
             xs={1}
-            style={{ color: "#666", textAlign: "center" }}
+            style={{ color: "var(--cocalc-text-secondary, #666)", textAlign: "center" }}
             className={"visible-sm-inline visible-md-inline visible-lg-inline"}
           >
             Done

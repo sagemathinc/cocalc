@@ -1,6 +1,7 @@
 import { CSS } from "@cocalc/frontend/app-framework";
 import { useActions, useRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
 import type { ChatActions } from "./actions";
 import { ChatPanel } from "./chatroom";
 import type { ChatMessages } from "./types";
@@ -40,7 +41,7 @@ export default function SideChat({
         display: "flex",
         flexDirection: "column",
         minHeight: 0,
-        backgroundColor: "#efefef",
+        backgroundColor: `var(--cocalc-bg-base, ${COLORS.GRAY_LL})`,
         ...style,
       }}
     >

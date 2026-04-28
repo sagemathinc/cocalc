@@ -16,9 +16,9 @@ import { Tasks } from "./types";
 
 const SHOW_DONE_STYLE = {
   fontSize: "12pt",
-  color: "#666",
+  color: "var(--cocalc-text-secondary, #666)",
   padding: "5px 15px",
-  borderBottom: "1px solid lightgrey",
+  borderBottom: "1px solid var(--cocalc-border-light, lightgray)",
 } as const;
 
 export function TasksHistoryViewer({ doc, project_id, path, font_size }) {

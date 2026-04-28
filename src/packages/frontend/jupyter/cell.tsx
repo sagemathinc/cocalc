@@ -21,7 +21,6 @@ import { IS_TOUCH } from "@cocalc/frontend/feature";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { clear_selection } from "@cocalc/frontend/misc/clear-selection";
 import { LLMTools } from "@cocalc/jupyter/types";
-import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
@@ -394,13 +393,13 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         top: 0,
         left: "2px",
         whiteSpace: "nowrap",
-        color: COLORS.GRAY_L,
+        color: "var(--cocalc-text-tertiary, #c0c0c0)",
       };
     } else {
       // Need arbitrarily much horizontal space, so we
       // get our own line.
       style = {
-        color: COLORS.GRAY_L,
+        color: "var(--cocalc-text-tertiary, #c0c0c0)",
         marginBottom: "5px",
         top: 0,
         left: "2px",

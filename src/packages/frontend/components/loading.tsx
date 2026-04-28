@@ -8,6 +8,7 @@ import { useIntl } from "react-intl";
 import FakeProgress from "@cocalc/frontend/components/fake-progress";
 import { TypedMap, useDelayedRender } from "@cocalc/frontend/app-framework";
 import { labels } from "@cocalc/frontend/i18n";
+import { COLORS } from "@cocalc/util/theme";
 import { Icon } from "./icon";
 
 export type Estimate = TypedMap<{
@@ -30,8 +31,8 @@ const LOADING_THEMES: { [keys: string]: CSSProperties } = {
     fontSize: "24pt",
     textAlign: "center",
     marginTop: "15px",
-    color: "#888",
-    background: "white",
+    color: `var(--cocalc-text-secondary, ${COLORS.GRAY})`,
+    background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
   },
 } as const;
 

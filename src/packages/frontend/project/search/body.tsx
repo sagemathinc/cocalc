@@ -42,7 +42,7 @@ import { COLORS } from "@cocalc/util/theme";
 import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 
 const RESULTS_WELL_STYLE: React.CSSProperties = {
-  backgroundColor: "white",
+  backgroundColor: "var(--cocalc-bg-base, white)",
 } as const;
 
 export const ProjectSearchBody: React.FC<{
@@ -489,7 +489,7 @@ function ProjectSearchOutputHeader({ project_id }: { project_id: string }) {
   }
   return (
     <div style={{ wordWrap: "break-word" }}>
-      <div style={{ color: COLORS.GRAY_M, marginTop: "10px" }}>
+      <div style={{ color: "var(--cocalc-text-primary, #5f5f5f)", marginTop: "10px" }}>
         <a
           onClick={() => actions?.set_active_tab("files")}
           style={{ cursor: "pointer" }}
@@ -520,9 +520,9 @@ function ProjectSearchOutputHeader({ project_id }: { project_id: string }) {
 }
 
 const DESC_STYLE: React.CSSProperties = {
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
   marginBottom: "5px",
-  border: "1px solid #eee",
+  border: "1px solid var(--cocalc-border-light, #eee)",
   borderRadius: "5px",
   maxHeight: "300px",
   padding: "15px",
@@ -615,7 +615,7 @@ function ProjectSearchResultLine(_: Readonly<ProjectSearchResultLineProps>) {
         <Snippet
           ext={ext}
           value={description}
-          style={{ color: COLORS.GRAY_D, fontSize: "80%" }}
+          style={{ color: "var(--cocalc-text-primary-strong, #434343)", fontSize: "80%" }}
         />
       </Card>
     );

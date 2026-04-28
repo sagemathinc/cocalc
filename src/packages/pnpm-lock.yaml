@@ -50,6 +50,7 @@ overrides:
   '@xmldom/xmldom@>=0.8.0 <0.8.13': 0.8.13
   '@xmldom/xmldom@>=0.9.0 <0.9.10': 0.9.10
   yaml@>=2.0.0 <2.8.3: 2.8.3
+  dayjs: 1.11.13
   jsondiffpatch@<0.7.2: 0.7.2
   protobufjs@<7.5.5: 7.5.5
   protocol-buffers-schema@<3.6.1: 3.6.1
@@ -230,7 +231,7 @@ importers:
         specifier: ^4.0.9
         version: 4.0.9
       dayjs:
-        specifier: ^1.11.11
+        specifier: 1.11.13
         version: 1.11.13
       events:
         specifier: 3.3.0
@@ -360,13 +361,13 @@ importers:
         version: 6.0.0
       '@ant-design/compatible':
         specifier: ^5.1.1
-        version: 5.1.4(antd@5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(prop-types@15.8.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        version: 5.1.4(antd@5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(prop-types@15.8.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@ant-design/icons':
         specifier: ^6.0.0
         version: 6.0.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@ant-design/v5-patch-for-react-19':
         specifier: ^1.0.3
-        version: 1.0.3(antd@5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        version: 1.0.3(antd@5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@cocalc/assets':
         specifier: workspace:*
         version: link:../assets
@@ -464,11 +465,11 @@ importers:
         specifier: ^2.1.1
         version: 2.3.2
       antd:
-        specifier: ^5.27.6
-        version: 5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: ^5.29.3
+        version: 5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       antd-img-crop:
         specifier: ^4.27.0
-        version: 4.27.0(antd@5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        version: 4.27.0(antd@5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       async:
         specifier: ^2.6.3
         version: 2.6.4
@@ -509,7 +510,7 @@ importers:
         specifier: 4.9.120
         version: 4.9.120
       dayjs:
-        specifier: ^1.11.11
+        specifier: 1.11.13
         version: 1.11.13
       debug:
         specifier: ^4.4.0
@@ -972,7 +973,7 @@ importers:
         version: 6.0.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@ant-design/v5-patch-for-react-19':
         specifier: ^1.0.3
-        version: 1.0.3(antd@5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        version: 1.0.3(antd@5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@cocalc/backend':
         specifier: workspace:*
         version: link:../backend
@@ -998,11 +999,11 @@ importers:
         specifier: ^1.0.22
         version: 1.0.22
       antd:
-        specifier: ^5.27.6
-        version: 5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: ^5.29.3
+        version: 5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       antd-img-crop:
         specifier: ^4.27.0
-        version: 4.27.0(antd@5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        version: 4.27.0(antd@5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
@@ -1016,7 +1017,7 @@ importers:
         specifier: ^6.3.0
         version: 6.6.0
       dayjs:
-        specifier: ^1.11.11
+        specifier: 1.11.13
         version: 1.11.13
       express:
         specifier: ^5.2.1
@@ -1336,7 +1337,7 @@ importers:
         specifier: ^0.8.0
         version: 0.8.0
       dayjs:
-        specifier: ^1.11.11
+        specifier: 1.11.13
         version: 1.11.13
       dot-object:
         specifier: ^2.1.5
@@ -1839,7 +1840,7 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       dayjs:
-        specifier: ^1.11.11
+        specifier: 1.11.13
         version: 1.11.13
       decimal.js-light:
         specifier: ^2.5.1
@@ -2430,10 +2431,6 @@ packages:
 
   '@babel/runtime@7.28.2':
     resolution: {integrity: sha512-KHp2IflsnGywDjBWDkR9iEqiWSpc8GIi0lgTT3mOElT0PP1tG26P4tmFI2YvAdzgq9RGyoHZQEIEdZy6Ec5xCA==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/runtime@7.28.3':
-    resolution: {integrity: sha512-9uIQ10o0WGdpP6GDhXcdOJPJuDgFtIDtN/9+ArJQ2NAfAmiuhTQdzkaTGR33v43GYS2UrSA0eX2pPPHoFVvpxA==}
     engines: {node: '>=6.9.0'}
 
   '@babel/runtime@7.29.2':
@@ -3988,8 +3985,8 @@ packages:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
 
-  '@rc-component/qrcode@1.0.1':
-    resolution: {integrity: sha512-g8eeeaMyFXVlq8cZUeaxCDhfIYjpao0l9cvm5gFwKXy/Vm1yDWV7h2sjH5jHYzdFedlVKBpATFB1VKMrHzwaWQ==}
+  '@rc-component/qrcode@1.1.1':
+    resolution: {integrity: sha512-LfLGNymzKdUPjXUbRP+xOhIWY4jQ+YMj5MmWAcgcAq1Ij8XP7tRmAXqyuv96XvLUBE/5cA8hLFl9eO1JQMujrA==}
     engines: {node: '>=8.x'}
     peerDependencies:
       react: '>=16.9.0'
@@ -5351,8 +5348,8 @@ packages:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
 
-  antd@5.27.6:
-    resolution: {integrity: sha512-70HrjVbzDXvtiUQ5MP1XdNudr/wGAk9Ivaemk6f36yrAeJurJSmZ8KngOIilolLRHdGuNc6/Vk+4T1OZpSjpag==}
+  antd@5.29.3:
+    resolution: {integrity: sha512-3DdbGCa9tWAJGcCJ6rzR8EJFsv2CtyEbkVabZE14pfgUHfCicWCj0/QzQVLDYg8CPfQk9BH7fHCoTXHTy7MP/A==}
     peerDependencies:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
@@ -6571,9 +6568,6 @@ packages:
 
   dayjs@1.11.13:
     resolution: {integrity: sha512-oaMBel6gjolK862uaPQOVTA7q3TZhuSvuMQAAglQDOWYO9A91IrAOUJEyKVlqJlHE0vq5p5UXxzdPfMH/x6xNg==}
-
-  dayjs@1.11.19:
-    resolution: {integrity: sha512-t5EcLVS6QPBNqM2z8fakk/NKel+Xzshgt8FFKAn+qwlD1pzZWxh0nVCrvFK7ZDb6XucZeF9z8C7CBWTRIVApAw==}
 
   debounce@1.2.1:
     resolution: {integrity: sha512-XRRe6Glud4rd/ZGQfiV1ruXSfbvfJedlV9Y6zOlP+2K04vBYiJEte6stfFkCP03aMnY5tsipamumUjL14fofug==}
@@ -10172,8 +10166,8 @@ packages:
       react: '>=16.11.0'
       react-dom: '>=16.11.0'
 
-  rc-field-form@2.7.0:
-    resolution: {integrity: sha512-hgKsCay2taxzVnBPZl+1n4ZondsV78G++XVsMIJCAoioMjlMQR9YwAp7JZDIECzIu2Z66R+f4SFIRrO2DjDNAA==}
+  rc-field-form@2.7.1:
+    resolution: {integrity: sha512-vKeSifSJ6HoLaAB+B8aq/Qgm8a3dyxROzCtKNCsBQgiverpc4kWDQihoUwzUj+zNWJOykwSY4dNX3QrGwtVb9A==}
     engines: {node: '>=8.x'}
     peerDependencies:
       react: '>=16.9.0'
@@ -10244,7 +10238,7 @@ packages:
     engines: {node: '>=8.x'}
     peerDependencies:
       date-fns: '>= 2.x'
-      dayjs: '>= 1.x'
+      dayjs: 1.11.13
       luxon: '>= 3.x'
       moment: '>= 2.x'
       react: '>=16.9.0'
@@ -10350,8 +10344,8 @@ packages:
       react: '*'
       react-dom: '*'
 
-  rc-upload@4.9.2:
-    resolution: {integrity: sha512-nHx+9rbd1FKMiMRYsqQ3NkXUv7COHPBo3X1Obwq9SWS6/diF/A0aJ5OHubvwUAIDs+4RMleljV0pcrNUc823GQ==}
+  rc-upload@4.11.0:
+    resolution: {integrity: sha512-ZUyT//2JAehfHzjWowqROcwYJKnZkIUGWaTE/VogVrepSl7AFNbQf4+zGfX4zl9Vrj/Jm8scLO0R6UlPDKK4wA==}
     peerDependencies:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
@@ -12388,10 +12382,10 @@ snapshots:
     dependencies:
       '@ant-design/fast-color': 3.0.0
 
-  '@ant-design/compatible@5.1.4(antd@5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(prop-types@15.8.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@ant-design/compatible@5.1.4(antd@5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(prop-types@15.8.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@ctrl/tinycolor': 3.6.1
-      antd: 5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      antd: 5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
       dayjs: 1.11.13
       lodash.camelcase: 4.3.0
@@ -12409,7 +12403,7 @@ snapshots:
   '@ant-design/cssinjs-utils@1.1.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@ant-design/cssinjs': 1.24.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
@@ -12428,7 +12422,7 @@ snapshots:
 
   '@ant-design/fast-color@2.0.6':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
 
   '@ant-design/fast-color@3.0.0': {}
 
@@ -12438,7 +12432,7 @@ snapshots:
     dependencies:
       '@ant-design/colors': 7.2.1
       '@ant-design/icons-svg': 4.4.2
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -12455,16 +12449,16 @@ snapshots:
 
   '@ant-design/react-slick@1.1.2(react@19.1.1)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       json2mq: 0.2.0
       react: 19.1.1
       resize-observer-polyfill: 1.5.1
       throttle-debounce: 5.0.2
 
-  '@ant-design/v5-patch-for-react-19@1.0.3(antd@5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@ant-design/v5-patch-for-react-19@1.0.3(antd@5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
-      antd: 5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      antd: 5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
 
@@ -13099,8 +13093,6 @@ snapshots:
   '@babel/runtime@7.27.6': {}
 
   '@babel/runtime@7.28.2': {}
-
-  '@babel/runtime@7.28.3': {}
 
   '@babel/runtime@7.29.2': {}
 
@@ -14883,12 +14875,12 @@ snapshots:
 
   '@rc-component/async-validator@5.0.4':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
 
   '@rc-component/color-picker@2.0.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@ant-design/fast-color': 2.0.6
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -14896,18 +14888,18 @@ snapshots:
 
   '@rc-component/context@1.4.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
 
   '@rc-component/mini-decimal@1.1.0':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
 
   '@rc-component/mutate-observer@1.1.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -14915,22 +14907,21 @@ snapshots:
 
   '@rc-component/portal@1.1.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
 
-  '@rc-component/qrcode@1.0.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@rc-component/qrcode@1.1.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
-      '@babel/runtime': 7.28.3
-      classnames: 2.5.1
+      '@babel/runtime': 7.29.2
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
 
   '@rc-component/tour@1.15.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/portal': 1.1.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@rc-component/trigger': 2.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
@@ -14940,7 +14931,7 @@ snapshots:
 
   '@rc-component/trigger@2.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/portal': 1.1.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
       rc-motion: 2.9.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -16490,15 +16481,15 @@ snapshots:
 
   ansi-styles@5.2.0: {}
 
-  antd-img-crop@4.27.0(antd@5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+  antd-img-crop@4.27.0(antd@5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      antd: 5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      antd: 5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
       react-easy-crop: 5.5.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       tslib: 2.8.1
 
-  antd@5.27.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+  antd@5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
       '@ant-design/colors': 7.2.1
       '@ant-design/cssinjs': 1.24.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -16506,10 +16497,10 @@ snapshots:
       '@ant-design/fast-color': 2.0.6
       '@ant-design/icons': 5.6.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@ant-design/react-slick': 1.1.2(react@19.1.1)
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/color-picker': 2.0.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@rc-component/mutate-observer': 1.1.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@rc-component/qrcode': 1.0.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@rc-component/qrcode': 1.1.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@rc-component/tour': 1.15.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@rc-component/trigger': 2.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
@@ -16521,7 +16512,7 @@ snapshots:
       rc-dialog: 9.6.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-drawer: 7.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-dropdown: 4.2.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      rc-field-form: 2.7.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      rc-field-form: 2.7.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-image: 7.12.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-input: 1.8.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-input-number: 9.5.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -16545,7 +16536,7 @@ snapshots:
       rc-tooltip: 6.4.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-tree: 5.13.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-tree-select: 5.27.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      rc-upload: 4.9.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      rc-upload: 4.11.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
@@ -17929,8 +17920,6 @@ snapshots:
     optional: true
 
   dayjs@1.11.13: {}
-
-  dayjs@1.11.19: {}
 
   debounce@1.2.1: {}
 
@@ -21215,7 +21204,7 @@ snapshots:
       d3: 7.9.0
       d3-sankey: 0.12.3
       dagre-d3-es: 7.0.13
-      dayjs: 1.11.19
+      dayjs: 1.11.13
       dompurify: 3.4.0
       katex: 0.16.22
       khroma: 2.1.0
@@ -22359,7 +22348,7 @@ snapshots:
 
   rc-cascader@3.34.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-select: 14.16.8(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-tree: 5.13.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22369,7 +22358,7 @@ snapshots:
 
   rc-checkbox@3.5.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -22377,7 +22366,7 @@ snapshots:
 
   rc-collapse@3.9.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-motion: 2.9.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22386,7 +22375,7 @@ snapshots:
 
   rc-dialog@9.6.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/portal': 1.1.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
       rc-motion: 2.9.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22396,7 +22385,7 @@ snapshots:
 
   rc-drawer@7.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/portal': 1.1.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
       rc-motion: 2.9.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22406,16 +22395,16 @@ snapshots:
 
   rc-dropdown@4.2.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/trigger': 2.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
 
-  rc-field-form@2.7.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+  rc-field-form@2.7.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/async-validator': 5.0.4
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -22436,7 +22425,7 @@ snapshots:
 
   rc-image@7.12.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/portal': 1.1.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
       rc-dialog: 9.6.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22447,7 +22436,7 @@ snapshots:
 
   rc-input-number@9.5.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/mini-decimal': 1.1.0
       classnames: 2.5.1
       rc-input: 1.8.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22457,7 +22446,7 @@ snapshots:
 
   rc-input@1.8.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -22465,7 +22454,7 @@ snapshots:
 
   rc-mentions@2.20.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/trigger': 2.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
       rc-input: 1.8.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22477,7 +22466,7 @@ snapshots:
 
   rc-menu@9.16.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/trigger': 2.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
       rc-motion: 2.9.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22488,7 +22477,7 @@ snapshots:
 
   rc-motion@2.9.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -22496,7 +22485,7 @@ snapshots:
 
   rc-notification@5.6.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-motion: 2.9.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22505,7 +22494,7 @@ snapshots:
 
   rc-overflow@1.4.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-resize-observer: 1.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22514,7 +22503,7 @@ snapshots:
 
   rc-pagination@5.1.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -22522,7 +22511,7 @@ snapshots:
 
   rc-picker@4.11.3(date-fns@2.30.0)(dayjs@1.11.13)(moment@2.30.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/trigger': 2.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
       rc-overflow: 1.4.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22537,7 +22526,7 @@ snapshots:
 
   rc-progress@4.0.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -22545,7 +22534,7 @@ snapshots:
 
   rc-rate@2.13.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -22553,7 +22542,7 @@ snapshots:
 
   rc-resize-observer@1.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -22562,7 +22551,7 @@ snapshots:
 
   rc-segmented@2.7.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-motion: 2.9.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22571,7 +22560,7 @@ snapshots:
 
   rc-select@14.16.8(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/trigger': 2.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
       rc-motion: 2.9.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22583,7 +22572,7 @@ snapshots:
 
   rc-slider@11.1.9(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -22591,7 +22580,7 @@ snapshots:
 
   rc-steps@6.0.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -22599,7 +22588,7 @@ snapshots:
 
   rc-switch@4.1.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -22607,7 +22596,7 @@ snapshots:
 
   rc-table@7.54.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/context': 1.4.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
       rc-resize-observer: 1.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22618,7 +22607,7 @@ snapshots:
 
   rc-tabs@15.7.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-dropdown: 4.2.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-menu: 9.16.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22630,7 +22619,7 @@ snapshots:
 
   rc-textarea@1.10.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-input: 1.8.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-resize-observer: 1.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22640,7 +22629,7 @@ snapshots:
 
   rc-tooltip@6.4.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       '@rc-component/trigger': 2.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22649,7 +22638,7 @@ snapshots:
 
   rc-tree-select@5.27.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-select: 14.16.8(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-tree: 5.13.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22659,7 +22648,7 @@ snapshots:
 
   rc-tree@5.13.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-motion: 2.9.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -22667,9 +22656,9 @@ snapshots:
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
 
-  rc-upload@4.9.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+  rc-upload@4.11.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
@@ -22692,7 +22681,7 @@ snapshots:
 
   rc-virtual-list@3.19.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.29.2
       classnames: 2.5.1
       rc-resize-observer: 1.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rc-util: 5.44.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)

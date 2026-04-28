@@ -303,7 +303,7 @@ export default function MultiMarkdownInput({
                 onClick={() => setEditBarPopover(false)}
                 name="times"
                 style={{
-                  color: COLORS.GRAY_M,
+                  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
                   marginTop: "5px",
                 }}
               />
@@ -324,8 +324,8 @@ export default function MultiMarkdownInput({
           ? undefined
           : {
               overflow: "hidden",
-              background: "white",
-              color: "black",
+              background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
+              color: `var(--cocalc-text-primary, ${COLORS.GRAY_DD})`,
               ...(focused ? FOCUSED_STYLE : BLURED_STYLE),
             }),
       }}
@@ -347,8 +347,8 @@ export default function MultiMarkdownInput({
         {!fixedMode && (
           <div
             style={{
-              background: "white",
-              color: COLORS.GRAY_M,
+              background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
+              color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
               ...(mode == "editor" || hideHelp
                 ? {
                     float: "right",
@@ -368,8 +368,8 @@ export default function MultiMarkdownInput({
                         value: "menu",
                         style: {
                           backgroundColor: editBarPopover
-                            ? COLORS.GRAY_L
-                            : "white",
+                            ? "var(--cocalc-bg-hover, " + COLORS.GRAY_L + ")"
+                            : "var(--cocalc-bg-base, " + COLORS.WHITE + ")",
                           paddingLeft: 10,
                           paddingRight: 10,
                         },
@@ -476,12 +476,18 @@ export default function MultiMarkdownInput({
             style={
               minimal
                 ? { background: undefined, backgroundColor: undefined }
-                : undefined
+                : {
+                    background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
+                    backgroundColor: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
+                  }
             }
             pageStyle={
               minimal
                 ? { background: undefined, padding: 0 }
-                : { padding: "5px 15px" }
+                : {
+                    padding: "5px 15px",
+                    background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
+                  }
             }
             minimal={minimal}
             height={height}

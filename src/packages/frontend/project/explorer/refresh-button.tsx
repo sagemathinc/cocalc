@@ -13,7 +13,6 @@ import { useIntl } from "react-intl";
 
 import { Icon, Tip } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   onClick?: () => void;
@@ -31,8 +30,8 @@ export function RefreshButton({ onClick }: Props) {
         type="text"
         size="small"
         style={{
-          background: COLORS.YELL_LLL,
-          color: "black",
+          background: "color-mix(in srgb, var(--cocalc-warning, #FFA500) 15%, var(--cocalc-bg-elevated, white))",
+          color: "var(--cocalc-text-primary, black)",
           borderRadius: 4,
           whiteSpace: "nowrap",
           marginLeft: 6,

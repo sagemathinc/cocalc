@@ -15,7 +15,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { COLORS } from "@cocalc/util/theme";
 
 const DISK_INFO_PAGE = "https://doc.cocalc.com/howto/disk-space-warning.html";
 const DISMISS_TIME_MS = 3 * 60 * 1000;
@@ -124,7 +123,7 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
       style={{ border: "none" }}
       showIcon
       message={
-        <b style={{ color: COLORS.GRAY_M }}>
+        <b style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           This project is running out of disk space ({disk_free} MB free of{" "}
           {quotas.disk_quota} MB)
         </b>

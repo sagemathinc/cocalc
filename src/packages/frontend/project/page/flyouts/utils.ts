@@ -13,7 +13,6 @@ import { CSS, useMemo } from "@cocalc/frontend/app-framework";
 import { DirectoryListingEntry } from "@cocalc/frontend/project/explorer/types";
 import { capitalize, getRandomColor, hexColorToRGBA } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
-import { COLORS } from "@cocalc/util/theme";
 import { BORDER_WIDTH_PX } from "./consts";
 import { FlyoutActiveMode, FlyoutLogDeduplicate, FlyoutLogMode } from "./state";
 
@@ -44,14 +43,18 @@ export const GROUP_STYLE: CSS = {
   marginTop: "5px",
 } as const;
 
-export function deterministicColor(group: string) {
+export function deterministicColor(group: string, isDark: boolean) {
   return group === ""
-    ? COLORS.GRAY_L
-    : getRandomColor(group, { diff: 30, min: 185, max: 245 });
+    ? "var(--cocalc-border)"
+    : getRandomColor(group, { diff: 30, isDark });
 }
 
-export function randomBorder(group: string, side: "left" | "bottom"): CSS {
-  const col = deterministicColor(group);
+export function randomBorder(
+  group: string,
+  side: "left" | "bottom",
+  isDark: boolean,
+): CSS {
+  const col = deterministicColor(group, isDark);
   return fileItemBorder(col, side);
 }
 
@@ -93,7 +96,7 @@ export function fileItemStyle(
   const base = {
     ...fileItemBorder(col, "left"),
   };
-  return masked ? { ...base, color: COLORS.FILE_DIMMED } : base;
+  return masked ? { ...base, color: "var(--cocalc-text-tertiary, #959595)" } : base;
 }
 
 export function fileItemBorder(color: string, side: "left" | "top" | "bottom") {

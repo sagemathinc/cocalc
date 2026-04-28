@@ -943,8 +943,8 @@ function CodingAgentCore({
           style={{
             flex: "0 0 auto",
             padding: "6px 12px",
-            borderTop: `1px solid ${COLORS.GRAY_L}`,
-            background: COLORS.GRAY_LLL,
+            borderTop: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
+            background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLLL})`,
             display: "flex",
             alignItems: "center",
             justifyContent: "flex-end",
@@ -1009,10 +1009,10 @@ function CodingAgentCore({
           style={{
             flex: "0 0 auto",
             padding: "3px 12px",
-            background: COLORS.YELL_LLL,
+            background: `var(--cocalc-bg-selected, ${COLORS.YELL_LLL})`,
             fontSize: "0.85em",
-            color: COLORS.GRAY_M,
-            borderTop: `1px solid ${COLORS.GRAY_L}`,
+            color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
+            borderTop: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
           }}
         >
           {editorContextLabel}

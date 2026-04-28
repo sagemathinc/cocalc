@@ -12,7 +12,6 @@ import { register_file_editor } from "@cocalc/frontend/project-file";
 import { Markdown } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { keys, filename_extension } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { Button, Well } from "@cocalc/frontend/antd-bootstrap";
 
 const hdf_file =
@@ -91,7 +90,7 @@ const DataGeneric: React.FC<Props> = React.memo((props: Props) => {
       return <Markdown value={`**Hint**: ${hint}`} />;
     }
     return (
-      <span style={{ color: COLORS.GRAY }}>
+      <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
         You may be able to use this file from another program, for example, as a
         data file that is manipulated using a Jupyter notebook.
       </span>

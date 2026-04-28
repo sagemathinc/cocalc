@@ -136,7 +136,7 @@ export function getProjectTableColumns(
                   style={{
                     cursor: "pointer",
                     fontSize: "18px",
-                    color: COLORS.GRAY_M,
+                    color: "var(--cocalc-text-primary, #5f5f5f)",
                   }}
                 >
                   <Icon name={isExpanded ? "minus-square" : "plus-square"} />
@@ -153,7 +153,7 @@ export function getProjectTableColumns(
           style={{
             marginLeft: "12px",
             fontSize: "18px",
-            color: COLORS.YELL_LL,
+            color: "var(--cocalc-warning, #fddc7f)",
           }}
         />
       ),
@@ -234,7 +234,7 @@ export function getProjectTableColumns(
                     style={{
                       marginRight: "6px",
                       fontSize: "14px",
-                      color: COLORS.GRAY_M,
+                      color: "var(--cocalc-text-primary, #5f5f5f)",
                     }}
                   />
                 )}

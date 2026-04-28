@@ -20,6 +20,6 @@ export default function getStyle(element: Element): CSSProperties {
       : undefined,
     borderRadius: "3px",
     padding: "5px",
-    background: "white",
+    background: "var(--cocalc-bg-hover, white)",
   };
 }

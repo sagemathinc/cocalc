@@ -129,7 +129,7 @@ export default function ToolPanel<Params>({
                 <Preview {...params} />
               </div>
               {!showEditParams && (
-                <div style={{ color: "#666" }}>
+                <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
                   ({id == selected ? "click" : "double click"} to
                   customize)
                 </div>
@@ -174,7 +174,7 @@ export default function ToolPanel<Params>({
     >
       {AlternateTop == null && (
         <>
-          <div style={{ textAlign: "center", color: "#666", fontSize: "14px" }}>
+          <div style={{ textAlign: "center", color: "var(--cocalc-text-secondary, #666)", fontSize: "14px" }}>
             {TOOLS[tool].tip}
           </div>
           <Tooltip title={TOOLS[tool].tip} mouseEnterDelay={0.7}>
@@ -233,7 +233,7 @@ function EditParams({ params, set, Preview, editableParams, style, onClose }) {
     >
       <CloseX
         on_close={onClose}
-        style={{ color: "#666", fontSize: "12px", marginTop: "-5px" }}
+        style={{ color: "var(--cocalc-text-secondary, #666)", fontSize: "12px", marginTop: "-5px" }}
       />
       <div
         style={{
@@ -256,7 +256,7 @@ function EditParams({ params, set, Preview, editableParams, style, onClose }) {
           />
           <div
             style={{
-              color: "#666",
+              color: "var(--cocalc-text-secondary, #666)",
               marginLeft: "5px",
               fontSize: "9pt",
               paddingTop: "6px",
@@ -279,7 +279,7 @@ function EditParams({ params, set, Preview, editableParams, style, onClose }) {
           <Tooltip title="Opacity: 1 is solid; less than 1 is transparent">
             <div
               style={{
-                color: "#666",
+                color: "var(--cocalc-text-secondary, #666)",
                 marginLeft: "5px",
                 fontSize: "9pt",
                 paddingTop: "6px",

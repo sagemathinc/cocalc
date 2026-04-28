@@ -256,8 +256,8 @@ export default function Stopwatch(props: StopwatchProps) {
           fontSize: "16px",
           marginTop: "25px",
           width: "100%",
-          color: props.label ? "#444" : "#999",
-          borderBottom: "1px solid #999",
+          color: props.label ? "var(--cocalc-text-primary, #444)" : "var(--cocalc-text-tertiary, #999)",
+          borderBottom: "1px solid var(--cocalc-text-tertiary, #999)",
           marginBottom: "10px",
         }}
         onClick={() => setEditingLabel(true)}
@@ -355,7 +355,7 @@ export default function Stopwatch(props: StopwatchProps) {
           padding: "15px",
         }}
       >
-        <div style={{ float: "right", fontSize: "24px", color: "#666" }}>
+        <div style={{ float: "right", fontSize: "24px", color: "var(--cocalc-text-secondary, #666)" }}>
           {props.countdown != null ? (
             <Tooltip title="Countdown Timer" mouseEnterDelay={1}>
               <Icon name="hourglass-half" />

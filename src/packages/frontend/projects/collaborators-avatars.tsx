@@ -26,7 +26,7 @@ const AVATARS_CONTAINER_STYLE: CSS = {
 const AVATAR_WRAPPER_STYLE: CSS = {
   display: "inline-block",
   marginLeft: "-10px",
-  border: "2px solid white",
+  border: "2px solid var(--cocalc-bg-base, white)",
   borderRadius: "50%",
   lineHeight: 0,
 } as const;

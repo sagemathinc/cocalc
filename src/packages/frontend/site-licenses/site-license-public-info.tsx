@@ -30,7 +30,6 @@ import { useProjectState } from "@cocalc/frontend/project/page/project-state-hoo
 import Export from "@cocalc/frontend/purchases/export";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import { cmp, plural, trunc, unreachable } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import {
   LicenseStatus,
@@ -128,7 +127,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     await Promise.all(
       Object.keys(site_licenses).map(async function (license_id) {
         try {
-          if(!isValidUUID(license_id)) {
+          if (!isValidUUID(license_id)) {
             return;
           }
           const info = await site_license_public_info(license_id, force);
@@ -477,7 +476,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         <Button
           type={isFlyout ? "link" : "default"}
           style={
-            isFlyout ? { padding: 0, color: COLORS.ANTD_RED_WARN } : undefined
+            isFlyout ? { padding: 0, color: "var(--cocalc-error)" } : undefined
           }
         >
           <Icon name="times" />

@@ -2,10 +2,9 @@ import { CSS } from "@cocalc/frontend/app-framework";
 import { useBottomScroller } from "@cocalc/frontend/app-framework/use-bottom-scroller";
 import { Paragraph } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { COLORS } from "@cocalc/util/theme";
 
 const STYLE = {
-  border: "1px solid lightgrey",
+  border: "1px solid var(--cocalc-border-light, lightgray)",
   borderRadius: "5px",
   margin: "5px 0",
   padding: "10px",
@@ -14,7 +13,7 @@ const STYLE = {
   fontSize: "85%",
   fontFamily: "monospace",
   whiteSpace: "pre-wrap",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
 } as const;
 
 interface Props {

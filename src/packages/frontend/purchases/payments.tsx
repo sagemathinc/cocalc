@@ -415,7 +415,7 @@ function PaymentDetails({ paymentIntent, account_id, onFinished }) {
                 style={{
                   margin: "auto",
                   maxWidth: "800px",
-                  background: "white",
+                  background: "var(--cocalc-bg-base, white)",
                   padding: "30px 0",
                 }}
               >

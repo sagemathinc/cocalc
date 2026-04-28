@@ -76,7 +76,7 @@ export default function CSV({
       )}
       itemContent={(index) => {
         const style = {
-          border: "1px solid #eee",
+          border: "1px solid var(--cocalc-border-light, #eee)",
           padding: "0 5px",
           height: "30px",
           background: rowBackground({ index }),

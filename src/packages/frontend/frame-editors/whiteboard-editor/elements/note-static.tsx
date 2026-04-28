@@ -8,7 +8,7 @@ export const STYLE = {
   borderBottomRightRadius: "60px 5px",
   boxShadow: "1px 5px 7px rgb(33 33 33 / 70%)",
   width: "100%",
-  border: "1px solid lightgrey",
+  border: "1px solid var(--cocalc-border-light, lightgray)",
   overflow: "hidden",
 } as CSSProperties;
 

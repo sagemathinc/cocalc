@@ -10,15 +10,16 @@ import { CloseX } from "./close-x";
 
 const ACTIVITY_STYLE = {
   float: "right",
-  backgroundColor: "white",
+  backgroundColor: "var(--cocalc-bg-elevated, white)",
+  color: "var(--cocalc-text-primary, black)",
   position: "absolute",
   right: "25px",
   top: "65px",
-  border: "1px solid #ccc",
+  border: "1px solid var(--cocalc-border, #ccc)",
   padding: "10px",
   zIndex: 10,
   borderRadius: "5px",
-  boxShadow: "3px 3px 3px #ccc",
+  boxShadow: "3px 3px 3px var(--cocalc-border-light, #ccc)",
 } as CSS;
 
 const ACTIVITY_ITEM_STYLE = {

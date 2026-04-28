@@ -23,7 +23,7 @@ const TRUNCATE_LENGTH = 50;
 const file_use_style: CSS = {
   cursor: "pointer",
   width: "100%",
-  color: "#666",
+  color: "var(--cocalc-text-secondary, #666)",
 };
 
 interface Props {
@@ -102,7 +102,7 @@ export class FileUseInfo extends Component<Props, {}> {
         >
           {name}
         </span>
-        <span style={{ color: !this.props.mask ? "#999" : undefined }}>
+        <span style={{ color: !this.props.mask ? "var(--cocalc-text-tertiary, #999)" : undefined }}>
           {ext === "" ? "" : `.${ext}`}
         </span>
       </span>
@@ -112,7 +112,7 @@ export class FileUseInfo extends Component<Props, {}> {
   render_project(): Rendered {
     return (
       <ProjectTitle
-        style={{ background: "white", padding: "0px 5px", borderRadius: "3px" }}
+        style={{ background: "var(--cocalc-bg-base, white)", padding: "0px 5px", borderRadius: "3px" }}
         key="project"
         project_id={this.props.info.get("project_id")}
       />
@@ -144,14 +144,15 @@ export class FileUseInfo extends Component<Props, {}> {
   render(): Rendered {
     const style = misc.copy(file_use_style);
     if (this.props.info.get("notify")) {
-      style.background = "#ffffea"; // very light yellow
+      style.background =
+        "color-mix(in srgb, var(--cocalc-warning, #ffffea) 15%, var(--cocalc-bg-elevated, #fefefe))";
     } else {
       style.background = this.props.info.get("is_unread")
-        ? "#f4f4f4"
-        : "#fefefe";
+        ? "var(--cocalc-bg-hover, #f4f4f4)"
+        : "var(--cocalc-bg-elevated, #fefefe)";
     }
     if (this.props.cursor) {
-      misc.merge(style, { background: "#08c", color: "white" });
+      misc.merge(style, { background: "var(--cocalc-link, #08c)", color: "white" });
     }
     return (
       <Grid style={style} onClick={(e) => this.open(e)}>

@@ -61,7 +61,7 @@ import { Upgrades } from "@cocalc/util/upgrades/quota";
 const { Text } = Typography;
 
 const ROW_STYLE: CSS = {
-  border: "1px solid #eee",
+  border: "1px solid var(--cocalc-border-light, #eee)",
   padding: "5px",
   margin: "5px",
   borderRadius: "3px",
@@ -74,7 +74,7 @@ const UNIT_STYLE: CSS = {
 
 function render_explanation(s): React.JSX.Element {
   return (
-    <span style={{ color: "#888" }}>
+    <span style={{ color: "var(--cocalc-text-tertiary, #888)" }}>
       <Gap /> - {s}
     </span>
   );

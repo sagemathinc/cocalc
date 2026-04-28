@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -30,11 +30,11 @@ import {
 } from "antd";
 import type { MouseEventHandler } from "react";
 
-import { inDarkMode } from "@cocalc/frontend/account/dark-mode";
 import { Gap } from "@cocalc/frontend/components/gap";
 import { r_join } from "@cocalc/frontend/components/r_join";
-import { COLORS } from "@cocalc/util/theme";
+import { type ColorTheme } from "@cocalc/util/theme";
 import { CSS } from "./app-framework";
+import { useColorTheme } from "./app/theme-context";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
 // only four in antd, and it we can't automatically collapse them down in a meaningful
@@ -71,11 +71,14 @@ const BS_STYLE_TO_TYPE: {
 
 export type ButtonSize = "large" | "small" | "xsmall";
 
-function parse_bsStyle(props: {
-  bsStyle?: ButtonStyle;
-  style?: React.CSSProperties;
-  disabled?: boolean;
-}): {
+function parse_bsStyle(
+  props: {
+    bsStyle?: ButtonStyle;
+    style?: React.CSSProperties;
+    disabled?: boolean;
+  },
+  theme: ColorTheme,
+): {
   type: "primary" | "default" | "dashed" | "link" | "text";
   style: React.CSSProperties;
   danger?: boolean;
@@ -89,32 +92,32 @@ function parse_bsStyle(props: {
       : (BS_STYLE_TO_TYPE[props.bsStyle] ?? "default");
 
   let style: React.CSSProperties | undefined = undefined;
-  // antd has no analogue of "success" & "warning", it's not clear to me what
-  // it should be so for now just copy the style from react-bootstrap.
-  if (!inDarkMode()) {
-    if (props.bsStyle === "warning") {
-      // antd has no analogue of "warning", it's not clear to me what
-      // it should be so for
-      // now just copy the style.
-      style = {
-        backgroundColor: COLORS.BG_WARNING,
-        borderColor: "#eea236",
-        color: "#ffffff",
-      };
-    } else if (props.bsStyle === "success") {
-      style = {
-        backgroundColor: "#5cb85c",
-        borderColor: "#4cae4c",
-        color: "#ffffff",
-      };
-    } else if (props.bsStyle == "info") {
-      style = {
-        backgroundColor: "rgb(91, 192, 222)",
-        borderColor: "rgb(70, 184, 218)",
-        color: "#ffffff",
-      };
-    }
+  // antd has no analogue of "success", "warning", or "info", so we apply
+  // colors from our theme.
+  if (props.bsStyle === "warning") {
+    style = {
+      backgroundColor: theme.colorWarning,
+      borderColor: theme.colorWarning,
+      color: theme.textOnPrimary,
+    };
+  } else if (props.bsStyle === "success") {
+    style = {
+      backgroundColor: theme.colorSuccess,
+      borderColor: theme.colorSuccess,
+      color: theme.textOnPrimary,
+    };
+  } else if (props.bsStyle == "info") {
+    style = {
+      backgroundColor: theme.colorInfo,
+      borderColor: theme.colorInfo,
+      color: theme.textOnPrimary,
+    };
+  } else if (props.bsStyle === "primary") {
+    // If it's primary, we just let antd handle it with colorPrimary,
+    // which is set in context.tsx to theme.primary.
+    style = {};
   }
+
   if (props.disabled && style != null) {
     style.opacity = 0.65;
   }
@@ -149,9 +152,10 @@ export const Button = (props: {
   placement?;
   block?: boolean;
 }) => {
+  const theme = useColorTheme();
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
-  const { type, style, danger, ghost, loading } = parse_bsStyle(props);
+  const { type, style, danger, ghost, loading } = parse_bsStyle(props, theme);
   let size: "middle" | "large" | "small" | undefined = undefined;
   if (props.bsSize == "large") {
     size = "large";
@@ -161,7 +165,7 @@ export const Button = (props: {
     size = "small";
   }
   if (props.active) {
-    style.backgroundColor = "#d4d4d4";
+    style.backgroundColor = theme.bgHover;
     style.boxShadow = "inset 0 3px 5px rgb(0 0 0 / 13%)";
   }
   const btn = (
@@ -247,7 +251,10 @@ export function Well(props: {
   onMouseDown?;
 }) {
   let style: React.CSSProperties = {
-    ...{ backgroundColor: "white", border: "1px solid #e3e3e3" },
+    ...{
+      backgroundColor: "var(--cocalc-bg-base)",
+      border: "1px solid var(--cocalc-border-light)",
+    },
     ...props.style,
   };
   return (
@@ -480,8 +487,10 @@ export function Alert(props: AlertProps) {
   );
 }
 
+// No hardcoded header colors — let Ant Design's theme system handle them
+// so dark mode works automatically via ConfigProvider.
 const PANEL_DEFAULT_STYLES: { header: CSS } = {
-  header: { color: COLORS.GRAY_DD, backgroundColor: COLORS.GRAY_LLL },
+  header: {},
 } as const;
 
 export function Panel(props: {
@@ -496,7 +505,10 @@ export function Panel(props: {
   onClick?;
   size?: "small";
 }) {
-  const style: CSS = { ...{ marginBottom: "20px" }, ...props.style };
+  const style: CSS = {
+    marginBottom: "20px",
+    ...props.style,
+  };
 
   const styles = {
     ...PANEL_DEFAULT_STYLES,

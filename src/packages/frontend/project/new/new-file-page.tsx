@@ -35,7 +35,6 @@ import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activit
 import { ACTIVITY_BAR_KEY } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { PathNavigator } from "../explorer/path-navigator";
 import { useAvailableFeatures } from "../use-available-features";
 import { FileTypeSelector } from "./file-type-selector";
@@ -236,7 +235,7 @@ export default function NewFilePage(props: Props) {
         </Row>
         <Row>
           <Col sm={24}>
-            <div style={{ color: COLORS.GRAY_M, fontSize: "12pt" }}>
+            <div style={{ color: "var(--cocalc-text-primary, #5f5f5f)", fontSize: "12pt" }}>
               <FormattedMessage
                 id="project.new.new-file-page.upload.description"
                 defaultMessage={`You can drop one or more files here or on the Explorer file listing.
@@ -443,7 +442,7 @@ export default function NewFilePage(props: Props) {
         <Col sm={12}>
           <Paragraph
             style={{
-              color: COLORS.GRAY_M,
+              color: "var(--cocalc-text-primary, #5f5f5f)",
               fontSize: "16px",
             }}
           >
@@ -498,7 +497,7 @@ export default function NewFilePage(props: Props) {
           {file_creation_error && renderError()}
           <Paragraph
             style={{
-              color: COLORS.GRAY_M,
+              color: "var(--cocalc-text-primary, #5f5f5f)",
               fontSize: "16px",
               marginTop: "15px",
             }}

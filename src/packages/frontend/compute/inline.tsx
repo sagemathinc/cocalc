@@ -8,8 +8,9 @@ This may get more sophisticated, e.g., clickable link, hover for status, etc.
 import { useEffect, useState } from "react";
 import getTitle from "./get-title";
 import { Spin, Tooltip } from "antd";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
-import { PROJECT_COLOR } from "./select-server";
+import { getHomeBaseColor } from "./select-server";
 import { trunc_middle } from "@cocalc/util/misc";
 
 interface Props {
@@ -35,6 +36,8 @@ export default function ComputeServer({
   computeServer,
   colorLabel,
 }: Props) {
+  const colorTheme = useColorTheme();
+  const homeBaseColor = getHomeBaseColor(colorTheme);
   const [server, setServer] = useState<null | {
     title: string;
     color: string;
@@ -60,7 +63,7 @@ export default function ComputeServer({
     if (!id) {
       setServer({
         title: "Home Base",
-        color: PROJECT_COLOR,
+        color: homeBaseColor,
         project_specific_id: 0,
       });
       return;
@@ -72,7 +75,7 @@ export default function ComputeServer({
         console.warn(err);
       }
     })();
-  }, [id, computeServer]);
+  }, [id, computeServer, homeBaseColor]);
 
   if (colorOnly) {
     return (

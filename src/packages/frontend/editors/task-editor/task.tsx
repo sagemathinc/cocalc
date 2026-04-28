@@ -56,7 +56,7 @@ export default function Task({
   const style = {
     margin: "2px 5px",
     paddingTop: "5px",
-    background: "white",
+    background: "var(--cocalc-bg-base, white)",
     borderRadius: "8px",
   } as CSSProperties;
   if (editing_desc) {
@@ -74,7 +74,7 @@ export default function Task({
     style.background = "#d9534f";
     style.color = "#fff";
   } else if (task.get("done")) {
-    style.color = "#888";
+    style.color = "var(--cocalc-text-tertiary, #888)";
   }
   if (font_size != null) {
     style.fontSize = `${font_size}px`;
@@ -138,7 +138,7 @@ export default function Task({
         </Col>
         <Col sm={1}>
           {" "}
-          <span style={{ fontSize: "10pt", color: "#666" }}>
+          <span style={{ fontSize: "10pt", color: "var(--cocalc-text-secondary, #666)" }}>
             <DueDate
               actions={actions}
               read_only={read_only}
@@ -150,7 +150,7 @@ export default function Task({
           </span>
         </Col>
         <Col sm={1}>
-          <span style={{ fontSize: "10pt", color: "#666" }}>
+          <span style={{ fontSize: "10pt", color: "var(--cocalc-text-secondary, #666)" }}>
             <Changed last_edited={task.get("last_edited")} />
           </span>
         </Col>

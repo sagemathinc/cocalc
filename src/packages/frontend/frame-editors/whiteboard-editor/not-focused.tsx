@@ -167,11 +167,11 @@ const HINT = {
   bottom: "-38px",
   overflow: "visible",
   width: "150px",
-  background: "white",
-  border: "1px solid #ccc",
+  background: "var(--cocalc-bg-base, white)",
+  border: "1px solid var(--cocalc-border, #ccc)",
   padding: "5px",
   borderRadius: "3px",
-  boxShadow: "3px 3px 3px #ccc",
+  boxShadow: "3px 3px 3px var(--cocalc-border, #ccc)",
 } as CSSProperties;
 
 async function select(id, e, frame) {

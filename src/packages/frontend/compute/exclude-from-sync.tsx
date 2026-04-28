@@ -34,7 +34,7 @@ export default function ExcludeFromSync({
 
   return (
     <div style={style}>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <b>
           <Switch
             size="small"
@@ -99,7 +99,7 @@ export default function ExcludeFromSync({
           }
         />
       )}
-      <div style={{ color: "#666" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
         Fast local directories exist only on the compute server and{" "}
         <b>are NOT backed up in any way</b>. They persist until the compute
         server is deleted or deprovisioned.

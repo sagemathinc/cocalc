@@ -145,7 +145,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
       return (
         <>
           <hr />
-          <div style={{ color: COLORS.GRAY }}>
+          <div style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
             Some features are not available, because this project runs a small{" "}
             <A href={CUSTOM_SOFTWARE_HELP_URL}>customized stack of software</A>.
             To enable all features, please create a new project using the
@@ -184,7 +184,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
     function render_debug_info(conf): Rendered {
       if (conf != null && DEBUG) {
         return (
-          <pre style={{ fontSize: "9px", color: "black" }}>
+          <pre style={{ fontSize: "9px", color: "var(--cocalc-text-primary, black)" }}>
             {JSON.stringify(conf, undefined, 2)}
           </pre>
         );

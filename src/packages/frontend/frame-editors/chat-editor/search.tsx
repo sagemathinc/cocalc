@@ -6,7 +6,7 @@ function Preview({ id, content }) {
   return (
     <>
       <TimeAgo
-        style={{ float: "right", color: "#888" }}
+        style={{ float: "right", color: "var(--cocalc-text-tertiary, #888)" }}
         date={parseFloat(id)}
       />
       <StaticMarkdown

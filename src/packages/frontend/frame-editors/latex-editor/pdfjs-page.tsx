@@ -87,7 +87,7 @@ export default function Page({
         style={{
           height: `${viewport.height}px`,
           width: `${viewport.width}px`,
-          background: "white",
+          background: "var(--cocalc-bg-base, white)",
           margin: "auto",
         }}
         onDoubleClick={(event) => {

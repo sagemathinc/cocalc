@@ -29,6 +29,7 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import useAppContext from "@cocalc/frontend/app/use-context";
 import { Icon, IconName, r_join } from "@cocalc/frontend/components";
 import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -98,6 +99,7 @@ const TAB_MENU_LABELS = {
 };
 
 export type FixedTab =
+  | "home"
   | "active"
   | "files"
   | "new"
@@ -117,7 +119,7 @@ type FixedTabs = {
   [name in FixedTab]: {
     label: string | ReactNode | IntlMessage;
     icon: IconName;
-    flyout: (props: {
+    flyout?: (props: {
       project_id: string;
       wrap: (content: React.JSX.Element, style?: CSS) => React.JSX.Element;
       flyoutWidth: number;
@@ -125,6 +127,7 @@ type FixedTabs = {
     flyoutTitle?: string | ReactNode | IntlMessage;
     noAnonymous?: boolean;
     noFullPage?: boolean; // if true, then this tab can't be opened in a full page
+    noFlyout?: boolean; // if true, clicking opens full page instead of flyout
   };
 };
 
@@ -132,6 +135,16 @@ type FixedTabs = {
 // Disabling them.  If anyone complaints or likes them, I can make them an option.
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
+  home: {
+    label: defineMessage({
+      id: "project.page.file-tab.home",
+      defaultMessage: "Home",
+    }),
+    icon: "home",
+    noAnonymous: false,
+    noFlyout: true,
+    noFullPage: true,
+  },
   active: {
     label: labels.tabs,
     flyoutTitle: "File Tabs",
@@ -252,6 +265,7 @@ export function FileTab(props: Readonly<Props>) {
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
   const intl = useIntl();
+  const { isDark } = useAppContext();
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [actionsExpanded, setActionsExpanded] = useState(false);
   const { onCoCalcDocker } = useProjectContext();
@@ -319,7 +333,10 @@ export function FileTab(props: Readonly<Props>) {
         });
       }
     } else if (name != null) {
-      if (flyout != null && FIXED_PROJECT_TABS[flyout].noFullPage) {
+      if (flyout != null && FIXED_PROJECT_TABS[flyout].noFlyout) {
+        // this tab has no flyout — always open as full page
+        setActiveTab(name);
+      } else if (flyout != null && FIXED_PROJECT_TABS[flyout].noFullPage) {
         // this tab can't be opened in a full page
         actions?.toggleFlyout(flyout);
       } else if (flyout != null && actBar !== "both") {
@@ -456,11 +473,14 @@ export function FileTab(props: Readonly<Props>) {
 
     const color =
       flyout === active_flyout
-        ? COLORS.PROJECT.FIXED_LEFT_ACTIVE
+        ? `var(--cocalc-top-bar-text-active, ${COLORS.PROJECT.FIXED_LEFT_ACTIVE})`
         : active_flyout == null
-          ? COLORS.GRAY_L
-          : COLORS.GRAY_L0;
-    const bg = flyout === active_flyout ? COLORS.GRAY_L0 : undefined;
+          ? `var(--cocalc-text-secondary, ${COLORS.GRAY_L})`
+          : `var(--cocalc-text-secondary, ${COLORS.GRAY_L0})`;
+    const bg =
+      flyout === active_flyout
+        ? `var(--cocalc-top-bar-hover, ${COLORS.GRAY_L0})`
+        : undefined;
 
     return (
       <div
@@ -494,7 +514,11 @@ export function FileTab(props: Readonly<Props>) {
   } else {
     // highlight info tab if there is at least one alert
     if (status_alerts.length > 0) {
-      style = { backgroundColor: COLORS.ANTD_BG_RED_L };
+      style = {
+        backgroundColor: isDark
+          ? "rgba(var(--cocalc-error-rgb, 255, 77, 79), 0.14)"
+          : "rgba(var(--cocalc-error-rgb, 255, 77, 79), 0.08)",
+      };
     } else {
       style = { flex: "none" };
     }
@@ -503,7 +527,7 @@ export function FileTab(props: Readonly<Props>) {
   // how to read: default color -> style for component -> override color if there is activity
   const icon_style: CSSProperties = {
     marginRight: "2px",
-    color: COLORS.FILE_ICON,
+    color: "var(--cocalc-primary, rgb(66, 139, 202))",
     ...props.iconStyle,
     ...(has_activity ? { color: "orange" } : undefined),
   };
@@ -732,7 +756,13 @@ export function FileTab(props: Readonly<Props>) {
         >
           {intl.formatMessage(labels.actions)} <Icon name="caret-down" />
         </AntdButton>
-        <div style={{ color: COLORS.GRAY, marginTop: 4, fontSize: "85%" }}>
+        <div
+          style={{
+            color: "var(--cocalc-text-secondary, #808080)",
+            marginTop: 4,
+            fontSize: "85%",
+          }}
+        >
           <Icon name="info-circle" />{" "}
           {intl.formatMessage(TAB_MENU_LABELS.popoverHint)}
         </div>
@@ -774,7 +804,7 @@ const LABEL_STYLE: CSS = {
   whiteSpace: "nowrap",
 } as const;
 
-const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+const DIMMED_STYLE = { color: "var(--cocalc-text-tertiary, #959595)" } as const;
 
 const FULLPATH_LABEL_STYLE: CSS = {
   // using a full path for the label instead of just a filename

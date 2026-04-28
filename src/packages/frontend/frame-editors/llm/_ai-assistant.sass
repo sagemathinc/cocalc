@@ -7,17 +7,51 @@
 
 // Chat/Agent mode toggle (Segmented control in side chat)
 .cc-chat-mode-toggle
-  // Container around the toggle — no padding, flush against content
   padding: 0
-  border-bottom: 1px solid colors.$COL_GRAY_L
-  background: colors.$COL_GRAY_LLL
+  border-bottom: 1px solid var(--cocalc-border-light, colors.$COL_GRAY_LL)
+  background: var(--cocalc-top-bar-bg, colors.$COL_TOP_BAR_BG)
+
+  .ant-segmented
+    margin: 0
+    padding: 0
+    border-radius: 0
+    background: transparent
+    box-shadow: none
+
+  .ant-segmented-group
+    gap: 0
+
+  .ant-segmented-thumb,
+  .ant-segmented-item-selected
+    background: var(--cocalc-editor-titlebar-bg-active, colors.$COL_TOP_BAR_ACTIVE) !important
+    border-radius: 0
+    box-shadow: none !important
 
   .ant-segmented-item
     margin: 0
+    border-radius: 0
+    color: var(--cocalc-top-bar-text, colors.$COL_TOP_BAR_TEXT)
 
-  // When assistant mode is active, highlight the selected segment
-  &.cc-chat-mode-assistant .ant-segmented-item-selected
-    background: colors.$COL_AI_ASSISTANT_BG !important
+    &:hover
+      color: var(--cocalc-top-bar-text-active, colors.$COL_TOP_BAR_TEXT_ACTIVE)
+
+  .ant-segmented-item-selected
+    color: var(--cocalc-top-bar-text-active, colors.$COL_TOP_BAR_TEXT_ACTIVE)
+
+  &.cc-chat-mode-assistant
+    .ant-segmented-thumb,
+    .ant-segmented-item-selected
+      background: var(--cocalc-ai-bg, colors.$COL_AI_ASSISTANT_BG) !important
+
+    .ant-segmented-item-selected
+      color: var(--cocalc-ai-text, colors.$COL_AI_ASSISTANT_TXT)
+
+  .ant-segmented-item-label
+    min-height: 32px
+    padding: 6px 12px
+    display: inline-flex
+    align-items: center
+    gap: 6px
 
 // App agent writefile blocks — height-limited, scaled relative to parent font
 .cc-agent-writefile-blocks

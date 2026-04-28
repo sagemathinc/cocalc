@@ -114,7 +114,7 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
   const style_inner: CSS = {
     ...{
       padding: "40px 70px",
-      backgroundColor: "white",
+      backgroundColor: "var(--cocalc-bg-base, white)",
       overflowY: "auto",
     },
     ...{
@@ -125,7 +125,7 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
   };
 
   return (
-    <div className="smc-vfill" style={{ backgroundColor: "#eee" }}>
+    <div className="smc-vfill" style={{ backgroundColor: "var(--cocalc-bg-hover, #eee)" }}>
       <Path is_current={is_current} path={path} project_id={project_id} />
       <div
         style={style}

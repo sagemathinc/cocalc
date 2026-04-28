@@ -20,6 +20,7 @@ import {
   useIsMountedRef,
   useRedux,
 } from "@cocalc/frontend/app-framework";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import {
   HelpIcon,
   Icon,
@@ -36,7 +37,6 @@ import usePinchToZoom, {
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { list_alternatives, seconds_ago } from "@cocalc/util/misc";
 import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
-import { COLORS } from "@cocalc/util/theme";
 import { Actions, Actions as LatexEditorActions } from "./actions";
 import { dblclick } from "./mouse-click";
 import { SyncHighlight } from "./pdfjs-annotation";
@@ -84,6 +84,7 @@ export function PDFJS({
   onZoom,
 }: PDFJSProps) {
   const { desc } = useFrameContext();
+  const { isDark: isDarkMode } = useColorTheme();
 
   // Get the dark mode disabled state for this specific frame from Redux store
   // This allows toggle_pdf_dark_mode action to control dark mode per frame
@@ -273,13 +274,14 @@ export function PDFJS({
           justifyContent: "center",
           height: "100%",
           gap: "16px",
-          color: COLORS.GRAY_M,
+          color: "var(--cocalc-text-primary, #5f5f5f)",
           fontSize: "16pt",
         }}
       >
         <div>PDF file does not exist</div>
         {typeof (actions as any).build === "function" && (
           <Button
+            className={isDarkMode ? "cc-dark-chrome-button-primary" : undefined}
             type="primary"
             size="large"
             loading={building}
@@ -943,7 +945,7 @@ export function PDFJS({
     return (
       <div
         style={{
-          backgroundColor: "white",
+          backgroundColor: "var(--cocalc-bg-base, white)",
           margin: "15px",
           overflowY: "auto",
         }}
@@ -969,7 +971,7 @@ export function PDFJS({
         width: "100%",
         cursor,
         textAlign: "center",
-        backgroundColor: !loaded ? "white" : BG_COL,
+        backgroundColor: !loaded ? "var(--cocalc-bg-base, white)" : BG_COL,
         // Disable browser's native touch behaviors to allow our pinch-to-zoom to work
         touchAction: "none",
         WebkitTouchCallout: "none",

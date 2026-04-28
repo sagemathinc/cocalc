@@ -78,10 +78,10 @@ export function ResolvedThreadPanel({ actions, account_id, at }: Props) {
       style={{
         margin: "5px 10px",
         padding: "12px 16px",
-        background: COLORS.GRAY_LL,
-        border: `1px solid ${COLORS.GRAY_L}`,
+        background: `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})`,
+        border: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
         borderRadius: 6,
-        color: COLORS.GRAY_DD,
+        color: `var(--cocalc-text-primary-strong, ${COLORS.GRAY_DD})`,
         display: "flex",
         alignItems: "center",
         gap: 12,
@@ -89,11 +89,19 @@ export function ResolvedThreadPanel({ actions, account_id, at }: Props) {
     >
       <Icon
         name="check-circle"
-        style={{ color: COLORS.GRAY_M, fontSize: "1.1em" }}
+        style={{
+          color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
+          fontSize: "1.1em",
+        }}
       />
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 500 }}>This chat is resolved.</div>
-        <div style={{ fontSize: "0.9em", color: COLORS.GRAY_M }}>
+        <div
+          style={{
+            fontSize: "0.9em",
+            color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
+          }}
+        >
           Resolved by {resolverName} on {resolvedDateText}. Replies are disabled
           — start a new thread to continue the discussion at a fresh location.
         </div>

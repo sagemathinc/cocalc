@@ -9,7 +9,6 @@ import { useIntl } from "react-intl";
 import { DropdownMenu, Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { ProjectActions } from "@cocalc/frontend/project_store";
-import { COLORS } from "@cocalc/util/theme";
 import { Configuration } from "./explorer";
 import { EXTs as ALL_FILE_BUTTON_TYPES } from "./file-listing/utils";
 
@@ -69,7 +68,7 @@ export const NewButton: React.FC<Props> = (props: Props) => {
         <span style={{ whiteSpace: "nowrap" }}>
           <Icon name={data.icon} />{" "}
           <span style={{ textTransform: "capitalize" }}>{data.name} </span>{" "}
-          <span style={{ color: COLORS.GRAY_D }}>(.{ext})</span>
+          <span style={{ color: "var(--cocalc-text-primary-strong, #434343)" }}>(.{ext})</span>
         </span>
       ),
     };

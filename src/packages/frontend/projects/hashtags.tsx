@@ -15,7 +15,7 @@ export const STYLE: React.CSSProperties = {
   maxHeight: "18ex",
   overflowY: "auto",
   overflowX: "hidden",
-  border: "1px solid lightgrey",
+  border: "1px solid var(--cocalc-border-light, lightgray)",
   padding: "5px",
   background: COLORS.GRAY_LLL,
   borderRadius: "5px",

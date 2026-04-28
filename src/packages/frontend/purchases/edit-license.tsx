@@ -237,7 +237,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
               style={{ margin: "15px 0" }}
             />
           )}
-          <div style={{ marginBottom: "15px", color: "#666" }}>
+          <div style={{ marginBottom: "15px", color: "var(--cocalc-text-secondary, #666)" }}>
             {isSubscription && (
               <Alert
                 showIcon
@@ -277,7 +277,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
                       </div>
                     )}
                   <hr />
-                  <div style={{ color: "#666" }}>
+                  <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
                     This is a subscription license, so editing it may impact the
                     cost of your subscription going forward. The new
                     subscription cost will be computed at the current rates.

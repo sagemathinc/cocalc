@@ -78,7 +78,7 @@
   flex: 1 0 auto
   > div,
   > nav
-    background-color: colors.$COL_GRAY_LLL
+    background-color: var(--cocalc-bg-elevated, colors.$COL_GRAY_LLL)
     border-radius: 3px
 
 // The !important below are because we are directly overriding
@@ -92,7 +92,7 @@
 
 .cc-path-navigator,
 .cc-project-flyout-path-navigator
-  color: colors.$COL_BS_BLUE_TEXT
+  color: var(--cocalc-primary, colors.$COL_BS_BLUE_TEXT)
   span
     cursor: pointer
 
@@ -112,10 +112,10 @@
     margin-left: 2px
 
 .cc-path-navigator-history
-  color: colors.$COL_GRAY
+  color: var(--cocalc-text-secondary, colors.$COL_GRAY)
 .cc-path-navigator-active
   font-weight: bold
-  color: black
+  color: var(--cocalc-text-primary, colors.$COL_GRAY_D)
 
 .cc-custom-image-desc
   h1
@@ -134,15 +134,32 @@ li.cc-project-home-recent-files
   &:hover
     background-color: colors.$COL_GRAY_LLL
 
+div.cc-project-flyout-dragbar
+  background-color: var(--cocalc-drag-bar, transparent)
 div.cc-project-flyout-dragbar:hover
-  background-color: colors.$COL_GRAY_L
+  background-color: var(--cocalc-drag-bar-hover, colors.$COL_GRAY_L)
 
 .cc-project-log-history-entry:hover
   cursor: pointer
   background-color: colors.$COL_GRAY_LLL
 
-.cc-project-flyout-files-panel,
+.cc-project-flyout-files-panel
+  .ant-collapse-header
+    background-color: var(--cocalc-bg-elevated, colors.$COL_GRAY_LL)
+    color: var(--cocalc-text-primary, colors.$COL_GRAY_D)
+  .ant-collapse-content
+    background-color: var(--cocalc-bg-base, colors.$COL_GRAY_LLLL)
+    border-top-color: var(--cocalc-border-light, colors.$COL_GRAY_L0) !important
+  .ant-collapse-content-box
+    padding: 0 !important
+
 .cc-project-flyout-settings-panel
+  .ant-collapse-header
+    background-color: var(--cocalc-bg-elevated, colors.$COL_GRAY_LL)
+    color: var(--cocalc-text-primary, colors.$COL_GRAY_D)
+  .ant-collapse-content
+    background-color: var(--cocalc-bg-base, colors.$COL_GRAY_LLLL)
+    border-top-color: var(--cocalc-border-light, colors.$COL_GRAY_L0) !important
   .ant-collapse-content-box
     padding: 0 !important
 

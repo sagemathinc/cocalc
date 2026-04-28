@@ -49,6 +49,7 @@ import { LLMCellContextSelector } from "@cocalc/frontend/jupyter/llm/cell-contex
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
 import { PREVIEW_BOX } from "@cocalc/frontend/project/page/home-page/ai-generate-document";
@@ -66,7 +67,6 @@ import {
   plural,
   smallIntegerToEnglishWord,
 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import NBViewer from "../nbviewer/nbviewer";
 import {
   CellContextContent,
@@ -128,6 +128,7 @@ export function AIGenerateCodeCell({
   showAICellGen,
   llmTools,
 }: AIGenerateCodeCellProps) {
+  const { isDark } = useColorTheme();
   const intl = useIntl();
   const { actions: project_actions } = useProjectContext();
   const { project_id, path } = useFrameContext();
@@ -420,7 +421,7 @@ export function AIGenerateCodeCell({
           <Flex>{ex} </Flex>
           <Flex>
             {tags.map((tag) => (
-              <Tag key={tag} color={getRandomColor(tag)}>
+              <Tag key={tag} color={getRandomColor(tag, { isDark })}>
                 {tag}
               </Tag>
             ))}
@@ -685,7 +686,7 @@ export function AIGenerateCodeCell({
           <Button
             onClick={() => setShowAICellGen(null)}
             type="text"
-            style={{ float: "right", color: COLORS.GRAY_M }}
+            style={{ float: "right", color: "var(--cocalc-text-primary, #5f5f5f)" }}
           >
             <Icon name="times" />
           </Button>

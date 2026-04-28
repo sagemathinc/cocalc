@@ -79,7 +79,7 @@ render({ type: "tags", editable: true }, ({ field, obj }) => {
         {!adding && (
           <Button
             type="text"
-            style={{ color: "#888" }}
+            style={{ color: "var(--cocalc-text-tertiary, #888)" }}
             onClick={() => setAdding(true)}
           >
             Add...

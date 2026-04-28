@@ -149,7 +149,7 @@ function VersionHint({ value }: { value: string }) {
     error = undefined;
   }
   return (
-    <div style={{ marginTop: "15px", color: "#666" }}>
+    <div style={{ marginTop: "15px", color: "var(--cocalc-text-secondary, #666)" }}>
       Your browser version:{" "}
       <CopyToClipBoard
         style={{

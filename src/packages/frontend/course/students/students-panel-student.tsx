@@ -27,7 +27,6 @@ import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
 import { User } from "@cocalc/frontend/users";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { search_match, search_split, trunc_middle } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
 import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "../common";
 import {
@@ -212,7 +211,7 @@ export function Student({
     }
     if (!hasAccount) {
       return (
-        <span style={{ color: COLORS.GRAY_M }}>
+        <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           <FormattedMessage
             id="course.students-panel-student.last_active.no_account"
             defaultMessage="(has not created account yet)"
@@ -278,7 +277,7 @@ export function Student({
         }
         tip={tip}
       >
-        <span style={{ color: COLORS.GRAY_M, cursor: "pointer" }}>
+        <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)", cursor: "pointer" }}>
           <Icon name={icon} /> {description}
           {state}
         </span>
@@ -656,7 +655,7 @@ export function Student({
           </h6>
         </Col>
         <Col md={4}>
-          <h6 style={{ color: "#666", overflow: "hidden" }}>
+          <h6 style={{ color: "var(--cocalc-text-secondary, #666)", overflow: "hidden" }}>
             {render_student_email()}
           </h6>
         </Col>

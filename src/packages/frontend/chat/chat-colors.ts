@@ -1,24 +1,31 @@
 /*
- * Centralized color constants for the chat UI.
- *
- * All chat-specific colors should be defined here so they can be
- * updated in one place.
+ *  This file is part of CoCalc: Copyright © 2026 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+/*
+ * Centralized color constants for the chat UI.
+ *
+ * Uses CSS custom properties so that colors respond to the active theme
+ * (light or dark mode). Falls back to THEME_DEFAULT values.
+ */
+
+import { THEME_DEFAULT } from "@cocalc/util/theme";
+
 // Viewer's own messages (blue bubble)
-export const VIEWER_BG = "#46b1f6";
-export const VIEWER_COLOR = "#fff";
+export const VIEWER_BG = `var(--cocalc-chat-viewer-bg, ${THEME_DEFAULT.chatViewerBg})`;
+export const VIEWER_COLOR = `var(--cocalc-text-on-primary, ${THEME_DEFAULT.chatViewerText})`;
 export const VIEWER_DARKER_BG = "#3a9de0"; // for nested elements like history
 export const VIEWER_SECONDARY = "rgba(255,255,255,0.85)";
 
 // Other users' messages (gray bubble)
-export const OTHER_BG = "#f8f8f8";
-export const OTHER_COLOR = "#000";
-export const OTHER_SECONDARY = "#888";
+export const OTHER_BG = `var(--cocalc-chat-other-bg, ${THEME_DEFAULT.chatOtherBg})`;
+export const OTHER_COLOR = `var(--cocalc-text-primary, ${THEME_DEFAULT.chatOtherText})`;
+export const OTHER_SECONDARY = `var(--cocalc-text-tertiary, ${THEME_DEFAULT.textTertiary})`;
 
 // Shared UI colors used across chat components
-export const CHAT_SECONDARY_TEXT = "#888"; // sender names, timestamps, muted text
-export const CHAT_BUTTON_TEXT = "#555"; // buttons in other users' messages
-export const CHAT_COMPOSING_TEXT = "#666";
-export const CHAT_SELECTED_BORDER = "#66bb6a";
-export const CHAT_ERROR_RED = "#b71c1c";
+export const CHAT_SECONDARY_TEXT = `var(--cocalc-text-tertiary, ${THEME_DEFAULT.textTertiary})`;
+export const CHAT_BUTTON_TEXT = `var(--cocalc-text-secondary, ${THEME_DEFAULT.textSecondary})`;
+export const CHAT_COMPOSING_TEXT = `var(--cocalc-text-secondary, ${THEME_DEFAULT.textSecondary})`;
+export const CHAT_SELECTED_BORDER = `var(--cocalc-success, ${THEME_DEFAULT.colorSuccess})`;
+export const CHAT_ERROR_RED = `var(--cocalc-error, ${THEME_DEFAULT.colorError})`;

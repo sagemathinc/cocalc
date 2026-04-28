@@ -45,7 +45,6 @@ import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { checkRequiredSSO } from "@cocalc/util/auth-check-required-sso";
 import { keys, startswith } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { AccountState } from "../types";
 import { DeleteAccount } from "../delete-account";
@@ -332,7 +331,7 @@ export function AccountSettings(props: Readonly<Props>) {
       <Row
         style={{
           marginTop: "15px",
-          borderTop: "1px solid #ccc",
+          borderTop: "1px solid var(--cocalc-border, #ccc)",
           paddingTop: "15px",
         }}
       >
@@ -380,7 +379,7 @@ export function AccountSettings(props: Readonly<Props>) {
     return (
       <div>
         <hr key="hr0" />
-        <h5 style={{ color: COLORS.GRAY_M }}>
+        <h5 style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           {intl.formatMessage({
             id: "account.settings.sso.account_is_linked",
             defaultMessage: blockedStrategyName
@@ -453,7 +452,7 @@ export function AccountSettings(props: Readonly<Props>) {
     return (
       <div>
         <hr key="hr0" />
-        <h5 style={{ color: COLORS.GRAY_M }}>{heading}</h5>
+        <h5 style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>{heading}</h5>
         <Space size={[10, 10]} wrap style={{ marginBottom: "10px" }}>
           {btns}
         </Space>
@@ -557,7 +556,7 @@ export function AccountSettings(props: Readonly<Props>) {
     }
     const style: React.CSSProperties = { padding: "10px 20px" };
     if (terms_checkbox) {
-      style.border = "2px solid #ccc";
+      style.border = "2px solid var(--cocalc-border, #ccc)";
     } else {
       style.border = "2px solid red";
     }

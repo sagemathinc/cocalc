@@ -145,7 +145,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
           autoFocus={do_focus_points}
           onChange={(e) => set_points(parseFloat(`${(e as any).target.value}`))}
           style={{
-            color: "#666",
+            color: "var(--cocalc-text-secondary, #666)",
             width: "10ex",
             marginLeft: "5px",
             fontSize: "14px",
@@ -187,7 +187,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
             width: `${grade_id.length <= 6 ? 72 : 180}px`,
             marginLeft: "10px",
             paddingLeft: "5px",
-            color: "#666",
+            color: "var(--cocalc-text-secondary, #666)",
             fontSize: "14px",
             height: "32px",
           }}
@@ -235,11 +235,11 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
   let background: string;
   let color: string;
   if (value == "" || value == "readonly") {
-    color = "#000";
-    background = "#eee";
+    color = "var(--cocalc-text-primary, #000)";
+    background = "var(--cocalc-bg-hover, #eee)";
   } else {
     color = "#fff";
-    background = "#337ab7";
+    background = "var(--cocalc-link, #337ab7)";
   }
   return (
     <div style={{ width: "100%", background, color, padding: "3px" }}>

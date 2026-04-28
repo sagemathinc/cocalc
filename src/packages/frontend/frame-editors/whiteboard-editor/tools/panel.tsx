@@ -21,7 +21,7 @@ export const PANEL_STYLE: CSS = {
   boxShadow: "0 0 5px grey",
   borderRadius: "3px",
   margin: "10px",
-  background: "white",
+  background: "var(--cocalc-bg-base, white)",
 } as const;
 
 interface Props {
@@ -52,8 +52,8 @@ export default function Panel({
         type="text"
         size="small"
         style={{
-          color: "#888",
-          background: minimizedTools ? undefined : "#eee",
+          color: "var(--cocalc-text-tertiary, #888)",
+          background: minimizedTools ? undefined : "var(--cocalc-bg-hover, #eee)",
         }}
         onClick={() => {
           setMinimizedTools?.(!minimizedTools);

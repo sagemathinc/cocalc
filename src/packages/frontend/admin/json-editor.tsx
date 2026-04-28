@@ -10,7 +10,6 @@ import { useIntl } from "react-intl";
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import { labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 
 const { Paragraph } = Typography;
 
@@ -74,7 +73,7 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
   }
 
   const style: CSS = {
-    ...(!focused && { color: COLORS.GRAY, cursor: "pointer" }),
+    ...(!focused && { color: "var(--cocalc-text-secondary, #808080)", cursor: "pointer" }),
     width: "100%",
   };
 

@@ -56,7 +56,6 @@ import {
 } from "@cocalc/util/consts/ui";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { ConfigureName } from "./configure-name";
 import { License } from "./license";
 import { publicShareUrl, shareServerUrl } from "./util";
@@ -344,7 +343,7 @@ export default function Configure(props: Props) {
           )}
         </Col>
         <Col span={12}>
-          <Paragraph style={{ color: COLORS.GRAY_M, fontSize: FONTSIZE_TOP }}>
+          <Paragraph style={{ color: "var(--cocalc-text-primary, #5f5f5f)", fontSize: FONTSIZE_TOP }}>
             You make files or directories{" "}
             <A href={server}>
               <b>
@@ -361,7 +360,7 @@ export default function Configure(props: Props) {
       </Row>
       {sharingOptionsState !== "private" ? (
         <Row gutter={GUTTER}>
-          <Col span={12} style={{ color: COLORS.GRAY_M }}>
+          <Col span={12} style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
             <Space direction="vertical">
               <div>
                 <Title level={4}>
