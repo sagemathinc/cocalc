@@ -247,10 +247,15 @@ export class ConatSocketClient extends ConatSocketBase {
     //
     // An earlier attempt wrapped this in waitForInterest(statusSubject)
     // with backoff polling, mirroring cocalc-ai/main.  In our cluster
-    // tests that introduces a 1/8 stress flake, because the polling
-    // generates clustered interest-lookup traffic that competes with
-    // cluster sync convergence on the same client connection.  Doing
-    // the retry locally on the request itself avoids that: each
+    // tests that introduces a 1/8 stress flake.  Root cause: clustered
+    // waitForInterestInLinks() races a local interest check against
+    // remote-link interest checks and returns the first answer, even
+    // a `false` from the local check (see core/server.ts
+    // waitForInterestInLinks).  With a short per-attempt timeout, the
+    // local "no interest" branch can win and abort the remote-link
+    // waiter before remote interest is observed, perturbing
+    // cross-node socket selection in exactly the cluster.test we saw.
+    // Doing the retry locally on the request itself avoids that: each
     // attempt is a normal core request, the 503 fast-path returns
     // immediately when there's no responder, and we just sleep and
     // retry without involving the cluster interest layer.
