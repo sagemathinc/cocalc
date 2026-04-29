@@ -205,7 +205,11 @@ export class ConatSocketClient extends ConatSocketBase {
   };
 
   private handleConnected = (mesg) => {
-    if (this.state == "ready" || this.state == "closed") {
+    // Only accept "connected" while we are actively connecting.  Any other
+    // state means the reply is stale: state == "ready" already handshook,
+    // state == "disconnected" or "closed" means the session has been torn
+    // down -- a delayed reply must not promote the socket back to ready.
+    if (this.state != "connecting") {
       return;
     }
     const rawAttempt = mesg.headers?.[SOCKET_HEADER_CONNECT_ATTEMPT];
@@ -277,12 +281,14 @@ export class ConatSocketClient extends ConatSocketBase {
   // `timeoutMs` for the matching `connected` reply (which lands in
   // processMessages and flips state to "ready").  If we time out, retry
   // with a longer budget.
+  //
+  // Only loop while state == "connecting".  If base.disconnect() flipped
+  // us to "disconnected", reconnect logic in base will start a fresh
+  // connect via base.connect() which calls run() again -- this loop must
+  // not keep publishing on a torn-down attempt.
   private waitForConnected = async () => {
     let timeoutMs = 500;
-    while (
-      (this.state as any) != "closed" &&
-      (this.state as any) != "ready"
-    ) {
+    while (this.state == "connecting") {
       this.sendConnectCommand();
       try {
         await once(this, "ready", timeoutMs);

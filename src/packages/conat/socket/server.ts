@@ -220,19 +220,26 @@ export class ConatSocketServer extends ConatSocketBase {
     } else if (cmd == "connect") {
       // Dedicated connect-control handshake: instead of replying to the
       // client's request inbox, publish a `connected` control message to the
-      // client subject the client has already subscribed to.  By the time we
-      // reach here the new-connection branch above has already awaited
-      // waitForInterest(socket.clientSubject), so the publish is delivered
-      // through the same path the rest of the socket lifetime uses.  This
-      // avoids coupling the connect step to generic request/reply machinery
+      // client subject the client has already subscribed to.  This avoids
+      // coupling the connect step to generic request/reply machinery
       // (inboxes, reply subscriptions, request timeouts), which is
       // particularly fragile across cluster nodes.
-      this.client.publishSync(socket.clientSubject, null, {
+      //
+      // Use async publish with waitForInterest:true, not publishSync: the
+      // new-connection branch above only awaits waitForInterest on the
+      // FIRST connect for a given socket; retry connects (where this.sockets
+      // already has the entry) skip that wait, so a fire-and-forget publish
+      // here could be dropped if the client's subscription has not yet been
+      // re-established post-reconnect.  noThrow keeps it fire-and-forget at
+      // the call site but the publish itself blocks for interest.
+      this.client.publish(socket.clientSubject, null, {
         headers: {
           [SOCKET_HEADER_CMD]: "connected",
           [SOCKET_HEADER_CONNECT_ATTEMPT]:
             mesg.headers?.[SOCKET_HEADER_CONNECT_ATTEMPT],
         },
+        waitForInterest: true,
+        noThrow: true,
       });
     } else {
       mesg.respondSync({ error: `unknown command - '${cmd}'` });
