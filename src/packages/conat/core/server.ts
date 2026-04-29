@@ -279,19 +279,15 @@ export class ConatServer extends EventEmitter {
       // tiny control-plane messages where transport negotiation + zlib
       // overhead is pure cost.
       //
-      // perMessageDeflate stays in threshold-1<<30 mode by default rather
-      // than `false`, even though the cocalc-ai/main upstream does set it
-      // to `false`.  Empirically, `perMessageDeflate: false` on top of
-      // this branch's stack still loses queued pre-connect writes in
-      // basic.test.ts "client first, then server" -- there is additional
-      // plumbing on cocalc-ai/main (suspected: sequential await handleMesg
-      // + publishQueue + transport-scoped liveness 8b5668f83e + idle stats
-      // suppression 8f2ae20611) that we have not yet identified as a
-      // minimal sufficient set.  Sequential await alone or with
-      // publishQueue both regressed cluster.test.ts cross-cluster connect
-      // when tried here, so we keep the threshold workaround.  The threshold
-      // already eliminates per-message zlib cost; what we lose vs `false`
-      // is just the ws-extension's send-pipeline overhead, which is small.
+      // perMessageDeflate is fully OFF by default on this branch (the
+      // follow-up branch to PR #8869).  The shipped PR keeps it in
+      // threshold-1<<30 mode because plain `false` exposed multiple
+      // ordering/timing races at once -- this branch is the dedicated
+      // correctness project to make `false` boring before re-merging.
+      // Companion changes live in socket/client.ts (local getServerId
+      // retry loop, no clustered waitForInterest) and any further
+      // ordering fixes for binary chunked publish + core-stream
+      // permission timeout.
       //
       // `socketIoCompressionEnabled()` is an operational escape hatch:
       // set COCALC_CONAT_SOCKET_IO_COMPRESSION=1 (or true/yes) at process
@@ -299,9 +295,7 @@ export class ConatServer extends EventEmitter {
       // threshold) for benchmarking or rollback without a redeploy.
       transports: ["websocket" as const],
       httpCompression: socketIoCompression,
-      perMessageDeflate: socketIoCompression
-        ? true
-        : { threshold: 1 << 30 },
+      perMessageDeflate: socketIoCompression,
     };
     this.log(socketioOptions);
     if (httpServer) {

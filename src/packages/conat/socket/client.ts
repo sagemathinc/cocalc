@@ -230,15 +230,61 @@ export class ConatSocketClient extends ConatSocketBase {
     if (this.loadBalancer != null) {
       logger.debug("getting server id from load balancer");
       id = await this.loadBalancer(this.subject);
-    } else {
-      logger.debug("getting server id from socket server");
-      const resp = await this.client.request(
-        serverStatusSubject(this.subject),
-        null,
-      );
-      ({ id } = resp.data);
+      this.serverId = id;
+      return;
     }
-    this.serverId = id;
+
+    // Local retry loop, deliberately NOT using waitForInterest:
+    //
+    // Without retry, run() calls getServerId() -> core request publishes
+    // -> sees count == 0 (server hasn't started listening yet) -> throws
+    // 503 immediately -> run() catches -> disconnect() schedules a
+    // reconnect after RECONNECT_DELAY (500ms). The "client created
+    // before server" pattern in basic.test.ts then loses most of a
+    // small request budget to that reconnect penalty.  Particularly
+    // visible when perMessageDeflate is off, since the deflate
+    // extension's async send pipeline previously masked the timing.
+    //
+    // An earlier attempt wrapped this in waitForInterest(statusSubject)
+    // with backoff polling, mirroring cocalc-ai/main.  In our cluster
+    // tests that introduces a 1/8 stress flake, because the polling
+    // generates clustered interest-lookup traffic that competes with
+    // cluster sync convergence on the same client connection.  Doing
+    // the retry locally on the request itself avoids that: each
+    // attempt is a normal core request, the 503 fast-path returns
+    // immediately when there's no responder, and we just sleep and
+    // retry without involving the cluster interest layer.
+    //
+    // Bound the loop on this.state == "connecting" so disconnect /
+    // close tears it down.  Per-attempt timeout is short so a hang on
+    // a half-connected server doesn't burn the whole reconnect budget
+    // on one request.
+    let delayMs = 50;
+    while (this.state == "connecting") {
+      try {
+        logger.debug("getting server id from socket server");
+        const resp = await this.client.request(
+          serverStatusSubject(this.subject),
+          null,
+          { timeout: 500 },
+        );
+        if (this.state != "connecting") {
+          return;
+        }
+        this.serverId = resp.data.id;
+        return;
+      } catch (err) {
+        // 503 = no responder yet (server not listening); retry.
+        // 408 = our short timeout fired; retry.
+        // anything else: surface to run(), which will disconnect+reconnect.
+        const code = (err as any)?.code;
+        if (code !== 503 && code !== 408) {
+          throw err;
+        }
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+      delayMs = Math.min(500, Math.round(delayMs * 1.3));
+    }
   };
 
   // Drives the client subscription loop.  Started concurrently with
@@ -310,6 +356,10 @@ export class ConatSocketClient extends ConatSocketBase {
     this.connectAttempts.clear();
     try {
       await this.getServerId();
+      if (this.serverId == null) {
+        // closed/disconnected mid-getServerId
+        return;
+      }
       logger.silly("run: getting subscription");
       // subscribeSync so we are already buffering inbound messages by the
       // time we publish the `connect` control message.  The server's
