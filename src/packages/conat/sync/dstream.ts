@@ -183,11 +183,20 @@ export class DStream<T = any> extends EventEmitter {
       if (n < this.messages.length) {
         return this.messages[n];
       }
-      const v = Object.keys(this.saved);
-      if (n < v.length + this.messages.length) {
-        return this.saved[n - this.messages.length];
+      // `this.saved` is a map keyed by seq number (NOT array index).
+      // Use Object.values so we get positional access regardless of the
+      // actual seq values.  Without this, get() returns undefined for
+      // recently-saved entries that haven't been mirrored back from the
+      // changefeed yet, which is a transient state that becomes visible
+      // under perMessageDeflate:false where save() resolves before the
+      // changefeed delivers.
+      const savedValues = Object.values(this.saved);
+      if (n < savedValues.length + this.messages.length) {
+        return savedValues[n - this.messages.length];
       }
-      return Object.values(this.local)[n - this.messages.length - v.length];
+      return Object.values(this.local)[
+        n - this.messages.length - savedValues.length
+      ];
     }
   };
 
