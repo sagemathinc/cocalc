@@ -77,6 +77,20 @@ import { sysApi, sysApiSubject, type SysConatServer } from "./sys";
 
 const logger = getLogger("conat:core:server");
 
+// Operational escape hatch for the router compression setting (see
+// socketioOptions below).  Compression is OFF by default on the
+// control-plane hot path -- most conat traffic is tiny messages where
+// compression negotiation + zlib overhead is pure cost.  Set
+// `COCALC_CONAT_SOCKET_IO_COMPRESSION=1` (or `true`/`yes`) at process
+// start to flip it back on without a redeploy, e.g. for benchmarking
+// or to roll back in production if a regression is suspected.
+function socketIoCompressionEnabled(): boolean {
+  const value = `${process.env.COCALC_CONAT_SOCKET_IO_COMPRESSION ?? ""}`
+    .trim()
+    .toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
 const DEFAULT_AUTOSCAN_INTERVAL = 15_000;
 const DEFAULT_LONG_AUTOSCAN_INTERVAL = 60_000;
 
@@ -254,23 +268,40 @@ export class ConatServer extends EventEmitter {
     // when restarting the server.
     let adapter: any = undefined;
 
+    const socketIoCompression = socketIoCompressionEnabled();
     const socketioOptions = {
       maxHttpBufferSize: MAX_PAYLOAD,
       path,
       adapter,
-      // Effectively skip per-message compression: most conat traffic is tiny
-      // control-plane messages, so a 1 GiB threshold means messages never hit
-      // zlib while keeping the socket.io extension active. (Setting
-      // perMessageDeflate: false outright triggers a socket.io code path that
-      // breaks message ordering on our backend conat tests -- even with the
-      // dedicated connect-control handshake, dataQueue/flushDataQueue,
-      // publishQueue, Message.respond fire-and-forget safety, persist
-      // stream-initialized error wakeup, and CoreStream waitForLocalPublish
-      // all in place, the basic.test.ts "client first, then server" path
-      // still loses the queued pre-connect writes.  cocalc-ai must rely on
-      // additional plumbing not yet backported here -- defer until we've
-      // identified it.)
-      perMessageDeflate: { threshold: 1 << 30 },
+      // Conat clients always force websocket transport, so make the server
+      // explicit about that and disable the long-poll fallback +
+      // HTTP-level gzip on the router hot path -- most conat traffic is
+      // tiny control-plane messages where transport negotiation + zlib
+      // overhead is pure cost.
+      //
+      // perMessageDeflate stays in threshold-1<<30 mode by default rather
+      // than `false`, even though the cocalc-ai/main upstream does set it
+      // to `false`.  Empirically, `perMessageDeflate: false` on top of
+      // this branch's stack still loses queued pre-connect writes in
+      // basic.test.ts "client first, then server" -- there is additional
+      // plumbing on cocalc-ai/main (suspected: sequential await handleMesg
+      // + publishQueue + transport-scoped liveness 8b5668f83e + idle stats
+      // suppression 8f2ae20611) that we have not yet identified as a
+      // minimal sufficient set.  Sequential await alone or with
+      // publishQueue both regressed cluster.test.ts cross-cluster connect
+      // when tried here, so we keep the threshold workaround.  The threshold
+      // already eliminates per-message zlib cost; what we lose vs `false`
+      // is just the ws-extension's send-pipeline overhead, which is small.
+      //
+      // `socketIoCompressionEnabled()` is an operational escape hatch:
+      // set COCALC_CONAT_SOCKET_IO_COMPRESSION=1 (or true/yes) at process
+      // start to flip to full perMessageDeflate (default 1024-byte
+      // threshold) for benchmarking or rollback without a redeploy.
+      transports: ["websocket" as const],
+      httpCompression: socketIoCompression,
+      perMessageDeflate: socketIoCompression
+        ? true
+        : { threshold: 1 << 30 },
     };
     this.log(socketioOptions);
     if (httpServer) {
