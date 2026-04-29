@@ -169,8 +169,14 @@ export function server({
           socket.emit("stream-initialized");
         } catch (err) {
           error = `${err}`;
-          errorCode = err.code;
+          errorCode =
+            err.code ??
+            (error.includes("permission denied") ? 403 : undefined);
           socket.write(null, { headers: { error, code: errorCode } });
+          // Wake any pending `await once(socket, "stream-initialized")`
+          // waiters in the request handler below so they re-check `error`
+          // and rethrow instead of stalling to the request timeout.
+          socket.emit("stream-initialized");
         }
       }
     });

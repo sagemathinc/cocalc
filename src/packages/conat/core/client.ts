@@ -2076,21 +2076,27 @@ export class Message<T = any> extends MessageData<T> {
     return this.client.publishSync(subject, mesg, opts);
   };
 
-  respond = async (
+  respond = (
     mesg,
     opts: PublishOptions = {},
   ): Promise<{ bytes: number; count: number }> => {
     const subject = this.respondSubject();
     if (!subject) {
-      return { bytes: 0, count: 0 };
+      return Promise.resolve({ bytes: 0, count: 0 });
     }
-    return await this.client.publish(subject, mesg, {
+    const promise = this.client.publish(subject, mesg, {
       // we *always* wait for interest for async respond, since
       // it is by far the most likely situation where it wil be needed, due
       // to inboxes when users first sign in.
       waitForInterest: true,
       ...opts,
     });
+    // Many request handlers use mesg.respond(...) fire-and-forget.  Keep
+    // awaited callers seeing failures, but prevent cleanup races from
+    // becoming process-level unhandled rejections when the caller
+    // intentionally ignores the returned promise.
+    promise.catch(() => undefined);
+    return promise;
   };
 }
 
