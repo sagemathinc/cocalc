@@ -262,7 +262,14 @@ export class ConatServer extends EventEmitter {
       // control-plane messages, so a 1 GiB threshold means messages never hit
       // zlib while keeping the socket.io extension active. (Setting
       // perMessageDeflate: false outright triggers a socket.io code path that
-      // breaks message ordering on our backend conat tests.)
+      // breaks message ordering on our backend conat tests -- even with the
+      // dedicated connect-control handshake, dataQueue/flushDataQueue,
+      // publishQueue, Message.respond fire-and-forget safety, persist
+      // stream-initialized error wakeup, and CoreStream waitForLocalPublish
+      // all in place, the basic.test.ts "client first, then server" path
+      // still loses the queued pre-connect writes.  cocalc-ai must rely on
+      // additional plumbing not yet backported here -- defer until we've
+      // identified it.)
       perMessageDeflate: { threshold: 1 << 30 },
     };
     this.log(socketioOptions);
