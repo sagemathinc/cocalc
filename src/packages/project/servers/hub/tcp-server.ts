@@ -7,7 +7,7 @@
 
 import { writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
-import * as uuid from "uuid";
+import { v4 as uuidv4 } from "uuid";
 import enableMessagingProtocol, {
   CoCalcSocket,
 } from "@cocalc/backend/tcp/enable-messaging-protocol";
@@ -58,7 +58,7 @@ async function handleConnection(socket: CoCalcSocket) {
     return;
   }
 
-  socket.id = uuid.v4();
+  socket.id = uuidv4();
   socket.heartbeat = new Date(); // obviously working now
   enableMessagingProtocol(socket);
 

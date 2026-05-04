@@ -39,6 +39,7 @@ export default function SideChat({
         width: "100%",
         display: "flex",
         flexDirection: "column",
+        minHeight: 0,
         backgroundColor: "#efefef",
         ...style,
       }}

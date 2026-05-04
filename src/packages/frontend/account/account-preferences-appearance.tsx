@@ -23,7 +23,10 @@ import {
   ACCESSIBILITY_ICON,
   DARK_MODE_ICON,
 } from "@cocalc/util/consts/ui";
-import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
+import {
+  DARK_MODE_DEFAULTS,
+  DEFAULT_EDITOR_THEME,
+} from "@cocalc/util/db-schema/accounts";
 import { COLORS } from "@cocalc/util/theme";
 import {
   DARK_MODE_KEYS,
@@ -362,7 +365,7 @@ export function AccountPreferencesAppearance() {
       {renderAccessibilityPanel()}
       <EditorSettingsColorScheme
         size="small"
-        theme={editor_settings?.get("theme") ?? "default"}
+        theme={editor_settings?.get("theme") ?? DEFAULT_EDITOR_THEME}
         on_change={(value) => on_change_editor_settings("theme", value)}
         editor_settings={editor_settings}
         font_size={font_size}

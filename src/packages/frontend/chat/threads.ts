@@ -2,10 +2,11 @@
 Utility helpers for deriving thread metadata from the chat message list.
 */
 
-import { React } from "@cocalc/frontend/app-framework";
+import { React, redux, useRedux } from "@cocalc/frontend/app-framework";
+import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 
 import type { ChatMessageTyped, ChatMessages } from "./types";
-import { newest_content } from "./utils";
+import { anchorIdOf, formerAnchorIdOf, newest_content } from "./utils";
 
 export const ALL_THREADS_KEY = "__ALL_THREADS__";
 
@@ -19,6 +20,12 @@ export interface ThreadListItem {
   // the lastread timestamp (ms epoch) for the given account, if set
   lastReadTimestamp: number | undefined;
   rootMessage?: ChatMessageTyped;
+  // True iff the root message has been marked resolved (LaTeX
+  // collaborative-TODO flow). Resolved threads are excluded from the
+  // main list and shown in a separate "Resolved" section.
+  resolved?: boolean;
+  // ms-epoch when the thread was resolved, if known.
+  resolvedAt?: number;
 }
 
 export type ThreadSectionKey =
@@ -26,7 +33,8 @@ export type ThreadSectionKey =
   | "today"
   | "yesterday"
   | "last7days"
-  | "older";
+  | "older"
+  | "resolved";
 
 export interface ThreadSection<T extends ThreadListItem = ThreadListItem> {
   key: ThreadSectionKey;
@@ -122,6 +130,19 @@ export function useThreadList(
           unreadCount = Math.max(entry.messageCount - readCount, 0);
         }
       }
+      const resolvedRaw = entry.rootMessage?.get("resolved");
+      const resolved = resolvedRaw != null;
+      let resolvedAt: number | undefined;
+      if (resolved) {
+        const atRaw =
+          typeof (resolvedRaw as any).get === "function"
+            ? (resolvedRaw as any).get("at")
+            : (resolvedRaw as any).at;
+        if (typeof atRaw === "string") {
+          const parsed = Date.parse(atRaw);
+          if (Number.isFinite(parsed)) resolvedAt = parsed;
+        }
+      }
       items.push({
         key: entry.key,
         label: deriveThreadLabel(entry.rootMessage, entry.key),
@@ -130,12 +151,82 @@ export function useThreadList(
         unreadCount,
         lastReadTimestamp,
         rootMessage: entry.rootMessage,
+        resolved,
+        resolvedAt,
       });
     }
 
     items.sort((a, b) => b.newestTime - a.newestTime);
     return items;
   }, [messages, account_id]);
+}
+
+/**
+ * Filter threads down to those *actively* anchored at the given id. An
+ * "anchor" is a source-document location (jupyter cell UUID, LaTeX marker
+ * hash, etc.) that an editor associates with a thread by stamping `id` on
+ * the root message. Resolved threads are excluded — see
+ * `useResolvedAnchoredThreads` for those.
+ */
+export function useAnchoredThreads(
+  project_id: string,
+  path: string,
+  anchorId: string,
+): {
+  anchoredThreads: ThreadListItem[];
+  totalMessages: number;
+  totalUnread: number;
+} {
+  const account_id = redux.getStore("account")?.get_account_id();
+  const chatPath = chatFile(path);
+  const chatMessages = useRedux(["messages"], project_id, chatPath);
+  const allThreads = useThreadList(chatMessages, account_id);
+  const anchoredThreads = React.useMemo(
+    () => allThreads.filter((t) => anchorIdOf(t.rootMessage) === anchorId),
+    [allThreads, anchorId],
+  );
+  const totalMessages = React.useMemo(
+    () => anchoredThreads.reduce((s, t) => s + t.messageCount, 0),
+    [anchoredThreads],
+  );
+  const totalUnread = React.useMemo(
+    () => anchoredThreads.reduce((s, t) => s + t.unreadCount, 0),
+    [anchoredThreads],
+  );
+  return { anchoredThreads, totalMessages, totalUnread };
+}
+
+/**
+ * Threads whose root message is *resolved* AND whose former anchor matches
+ * `anchorId`. Used by stale-marker rendering: a `% chat: <hash>` marker in
+ * the source whose hash matches a resolved thread is "stale" — the
+ * conversation is over, and the marker is leftover (typically because it
+ * lived in a sub-file that wasn't open at resolve time). Returns
+ * `hasResolved: true` so callers can decide rendering without iterating.
+ */
+export function useResolvedAnchoredThreads(
+  project_id: string,
+  path: string,
+  anchorId: string,
+): {
+  resolvedThreads: ThreadListItem[];
+  hasResolved: boolean;
+} {
+  const account_id = redux.getStore("account")?.get_account_id();
+  const chatPath = chatFile(path);
+  const chatMessages = useRedux(["messages"], project_id, chatPath);
+  const allThreads = useThreadList(chatMessages, account_id);
+  const resolvedThreads = React.useMemo(
+    () =>
+      allThreads.filter(
+        (t) => t.resolved && formerAnchorIdOf(t.rootMessage) === anchorId,
+      ),
+    [allThreads, anchorId],
+  );
+  return {
+    resolvedThreads,
+    hasResolved: resolvedThreads.length > 0,
+  };
 }
 
 export function deriveThreadLabel(
@@ -163,13 +254,11 @@ export function deriveThreadLabel(
   return "Untitled Thread";
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 interface GroupOptions {
   now?: number;
 }
 
-type RecencyKey = Exclude<ThreadSectionKey, "pinned">;
+type RecencyKey = Exclude<ThreadSectionKey, "pinned" | "resolved">;
 
 const RECENCY_SECTIONS: { key: RecencyKey; title: string }[] = [
   { key: "today", title: "Today" },
@@ -178,16 +267,16 @@ const RECENCY_SECTIONS: { key: RecencyKey; title: string }[] = [
   { key: "older", title: "Older" },
 ];
 
-function recencyKeyForDelta(delta: number): RecencyKey {
-  if (delta < DAY_MS) {
-    return "today";
-  }
-  if (delta < 2 * DAY_MS) {
-    return "yesterday";
-  }
-  if (delta < 7 * DAY_MS) {
-    return "last7days";
-  }
+function recencyKeyForTime(threadTime: number, now: number): RecencyKey {
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  if (threadTime >= startOfToday.getTime()) return "today";
+  const startOfYesterday = new Date(startOfToday);
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+  if (threadTime >= startOfYesterday.getTime()) return "yesterday";
+  const startOf7DaysAgo = new Date(startOfToday);
+  startOf7DaysAgo.setDate(startOf7DaysAgo.getDate() - 6);
+  if (threadTime >= startOf7DaysAgo.getTime()) return "last7days";
   return "older";
 }
 
@@ -199,8 +288,13 @@ export function groupThreadsByRecency<
   }
   const now = options.now ?? Date.now();
   const sections: ThreadSection<T>[] = [];
-  const pinned = threads.filter((thread) => !!thread.isPinned);
-  const remainder = threads.filter((thread) => !thread.isPinned);
+  // Resolved threads are pulled out and shown in their own section at the
+  // very bottom — never pinned/today/etc., never affecting recency
+  // counts. The chatroom dims them visually.
+  const resolved = threads.filter((thread) => thread.resolved);
+  const live = threads.filter((thread) => !thread.resolved);
+  const pinned = live.filter((thread) => !!thread.isPinned);
+  const remainder = live.filter((thread) => !thread.isPinned);
   if (pinned.length > 0) {
     sections.push({ key: "pinned", title: "Pinned", threads: pinned });
   }
@@ -211,8 +305,7 @@ export function groupThreadsByRecency<
     older: [],
   };
   for (const thread of remainder) {
-    const delta = now - thread.newestTime;
-    const key = recencyKeyForDelta(delta);
+    const key = recencyKeyForTime(thread.newestTime, now);
     buckets[key].push(thread);
   }
   for (const def of RECENCY_SECTIONS) {
@@ -220,6 +313,18 @@ export function groupThreadsByRecency<
     if (list.length > 0) {
       sections.push({ key: def.key, title: def.title, threads: list });
     }
+  }
+  if (resolved.length > 0) {
+    // Resolved threads sort newest-resolved first so the most recently
+    // closed TODO is visible without expanding too far.
+    const sortedResolved = [...resolved].sort(
+      (a, b) => (b.resolvedAt ?? 0) - (a.resolvedAt ?? 0),
+    );
+    sections.push({
+      key: "resolved",
+      title: "Resolved",
+      threads: sortedResolved,
+    });
   }
   return sections;
 }

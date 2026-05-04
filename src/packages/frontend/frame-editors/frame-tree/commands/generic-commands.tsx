@@ -1325,25 +1325,76 @@ addCommands({
     onClick: ({}) => {},
     children: ({ frameTypeCommands }) => frameTypeCommands(false),
   },
-  reset_local_view_state: {
+  layout: {
+    alwaysShow: true,
     icon: "layout",
     group: "frame_types",
-    isVisible: ({ props }) =>
-      // always show it, except for the LateX Editor: there we have classic_layout and new_layout
-      props.editor_actions == null ||
-      !(props.editor_actions instanceof LatexEditorActions),
-    title: defineMessage({
-      id: "command.generic.reset_local_view_state.title",
-      defaultMessage: "Reset the layout of all frames to the default",
-    }),
     label: defineMessage({
-      id: "command.generic.reset_local_view_state.label",
-      defaultMessage: "Default Layout",
+      id: "command.generic.layout.label",
+      defaultMessage: "Layout",
+      description:
+        "Submenu label for frame layout commands (reset, save, load) in the editor's app menu",
     }),
-    button: defineMessage({
-      id: "command.generic.reset_local_view_state.button",
-      defaultMessage: "Default",
-    }),
+    onClick: ({}) => {},
+    children: [
+      {
+        name: "reset_local_view_state",
+        icon: "undo",
+        label: defineMessage({
+          id: "command.generic.layout.default.label",
+          defaultMessage: "Load Default",
+          description:
+            "Menu entry to reset the frame editor layout to the built-in default",
+        }),
+        title: defineMessage({
+          id: "command.generic.layout.default.title",
+          defaultMessage: "Reset the layout of all frames to the default",
+          description: "Tooltip for resetting the frame editor layout",
+        }),
+        onClick: ({ props }) => {
+          props.actions.reset_frame_tree?.();
+        },
+      },
+      {
+        name: "save_custom_layout",
+        icon: "save",
+        label: defineMessage({
+          id: "command.generic.layout.save.label",
+          defaultMessage: "Save Current",
+          description:
+            "Menu entry to save the current frame layout as the user's custom layout for this file type",
+        }),
+        title: defineMessage({
+          id: "command.generic.layout.save.title",
+          defaultMessage:
+            "Save the current frame layout as your custom layout for this file type",
+          description: "Tooltip for saving the current frame layout",
+        }),
+        onClick: ({ props }) => {
+          props.actions.save_custom_layout?.();
+        },
+      },
+      {
+        name: "load_custom_layout",
+        icon: "layout",
+        label: defineMessage({
+          id: "command.generic.layout.load_custom.label",
+          defaultMessage: "Load Custom",
+          description:
+            "Menu entry to load the user's previously saved custom frame layout; disabled when no custom layout exists",
+        }),
+        title: defineMessage({
+          id: "command.generic.layout.load_custom.title",
+          defaultMessage:
+            "Load your previously saved custom layout for this file type",
+          description: "Tooltip for loading a saved custom frame layout",
+        }),
+        disabled: ({ props }) => !props.actions.store?.get("has_custom_layout"),
+        onClick: ({ props }) => {
+          props.actions.load_custom_layout?.();
+        },
+      },
+    ],
   },
   new_layout: {
     icon: "layout",

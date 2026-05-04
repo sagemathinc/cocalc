@@ -32,6 +32,7 @@ export function useLanguageModelSetting(
   const haveMistral = useTypedRedux("customize", "mistral_enabled");
   const haveAnthropic = useTypedRedux("customize", "anthropic_enabled");
   const haveXAI = useTypedRedux("customize", "xai_enabled");
+  const haveZAI = useTypedRedux("customize", "zai_enabled");
 
   const enabledLLMs: LLMServicesAvailable = useMemo(() => {
     const projectsStore = redux.getStore("projects");
@@ -44,6 +45,7 @@ export function useLanguageModelSetting(
     haveMistral,
     haveAnthropic,
     haveXAI,
+    haveZAI,
   ]);
 
   const llm: LanguageService = useMemo(() => {

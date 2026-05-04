@@ -13,7 +13,7 @@ interface RunAllPopoverProps {
   open: boolean;
   onOpenChange: (next: boolean) => void;
   type: "primary" | "default";
-  content: ReactNode;
+  content: ReactNode | (() => ReactNode);
   ariaLabel: string;
 }
 

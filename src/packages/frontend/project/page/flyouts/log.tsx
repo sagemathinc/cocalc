@@ -30,7 +30,10 @@ import {
   EventRecordMap,
   to_search_string,
 } from "@cocalc/frontend/project/history/types";
-import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
+import {
+  getOpenEventFilename,
+  handleFileEntryClick,
+} from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
 import {
@@ -83,7 +86,7 @@ function deriveFiles(
     .valueSeq()
     .filter(
       (entry: EventRecordMap) =>
-        entry.getIn(["event", "filename"]) &&
+        getOpenEventFilename(entry, undefined) != null &&
         entry.getIn(["event", "event"]) === "open",
     )
     .sort((a, b) => getTime(b) - getTime(a))
@@ -91,20 +94,21 @@ function deriveFiles(
       // pick all files if not deduplicated
       if (!deduplicate) return true;
       // otherwise, we check if the filename already appeared in the sorted list
-      const fn = entry.getIn(["event", "filename"]);
+      const fn = getOpenEventFilename(entry, undefined);
+      if (fn == null) return false;
       if (dedupe.includes(fn)) return false;
       dedupe.push(fn);
       return true;
     })
     .filter((entry: EventRecordMap) => {
       if (searchTerm === "") return true;
-      const fName = entry.getIn(["event", "filename"], "").toLowerCase();
+      const fName = getOpenEventFilename(entry, "")!.toLowerCase();
       return search_match(fName, searchWords);
     })
     .slice(0, max)
     .map((entry: EventRecordMap) => {
       return {
-        filename: entry.getIn(["event", "filename"]),
+        filename: getOpenEventFilename(entry, "") as string,
         time: entry.get("time"),
         account_id: entry.get("account_id"),
       };
@@ -146,9 +150,9 @@ function isProjectEvent(event: string, entry: EventRecordMap): boolean {
 
 function isFileEvent(event: string, entry: EventRecordMap): boolean {
   if (event === "open") {
-    if (typeof entry.getIn(["event", "filename"]) === "string") {
-      return true;
-    }
+    // Older entries store `filename` as a string; newer ones store
+    // `{ ext, path, editorId }`. Both count as a file event.
+    return getOpenEventFilename(entry, undefined) != null;
   }
   return false;
 }

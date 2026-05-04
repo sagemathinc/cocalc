@@ -17,16 +17,20 @@ import {
   Popconfirm,
   Popover,
   Progress,
+  Segmented,
+  Switch,
   Tooltip,
   Typography,
 } from "antd";
 import * as immutable from "immutable";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import ProgressEstimate from "../components/progress-estimate";
 import { jupyter as jupyterI18n, labels } from "../i18n";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
+import { SwitchToMinimalButton, SwitchToRegularButton } from "./minimal/frame-type-toggle";
+import MinimalNotebookHelp from "./minimal/minimal-help";
 import { ALERT_COLS } from "./usage";
 
 const KERNEL_NAME_STYLE: CSS = {
@@ -80,6 +84,12 @@ interface KernelProps {
   computeServerId?: number;
   is_fullscreen?: boolean;
   compact?: boolean;
+  /** Minimal notebook layout controls */
+  minimalLayout?: "wide" | "comfortable" | "narrow";
+  zenMode?: boolean;
+  onLayoutChange?: (layout: "wide" | "comfortable" | "narrow") => void;
+  onZenModeChange?: (zen: boolean) => void;
+  availableLayouts?: readonly ("wide" | "comfortable" | "narrow")[];
 }
 
 export function Kernel({
@@ -90,6 +100,11 @@ export function Kernel({
   computeServerId,
   is_fullscreen,
   compact,
+  minimalLayout,
+  zenMode,
+  onLayoutChange,
+  onZenModeChange,
+  availableLayouts,
 }: KernelProps) {
   const intl = useIntl();
   const name = actions.name;
@@ -125,6 +140,77 @@ export function Kernel({
       setIsSpawarning(true);
     }
   }, [backend_state]);
+
+  // In the compact (minimal) status bar, hide the Code/CPU/RAM progress bars
+  // when the row is too narrow to fit all controls. We compare the natural
+  // widths of the left and right groups against the available container
+  // width. Hysteresis: once hidden, only reshow when the container is at
+  // least 5px wider than the width at which we had to hide.
+  const containerElRef = useRef<HTMLDivElement | null>(null);
+  const leftElRef = useRef<HTMLDivElement | null>(null);
+  const rightElRef = useRef<HTMLDivElement | null>(null);
+  const [hideUsageBars, setHideUsageBars] = useState(false);
+  const hideWidthRef = useRef<number | null>(null);
+  const hideUsageBarsRef = useRef(hideUsageBars);
+  hideUsageBarsRef.current = hideUsageBars;
+
+  const measureCompactFit = React.useCallback(() => {
+    const container = containerElRef.current;
+    const left = leftElRef.current;
+    const right = rightElRef.current;
+    if (!container || !left || !right) return;
+    const GAP_PX = 6; // container has gap: 6px between children
+    const containerWidth = container.clientWidth;
+    // offsetWidth reflects the rendered width (may already be shrunk if
+    // flex children with flex-shrink:1 collapsed under pressure). scrollWidth
+    // reflects the natural content width — taking the max gives us the
+    // "would need" width that's robust to internal shrinkage.
+    const leftWidth = Math.max(left.offsetWidth, left.scrollWidth);
+    const rightWidth = Math.max(right.offsetWidth, right.scrollWidth);
+    const needed = leftWidth + rightWidth + GAP_PX * 2;
+    if (!hideUsageBarsRef.current) {
+      if (needed > containerWidth) {
+        hideWidthRef.current = containerWidth;
+        setHideUsageBars(true);
+      }
+    } else {
+      const threshold = hideWidthRef.current ?? 0;
+      if (containerWidth > threshold + 5) {
+        setHideUsageBars(false);
+      }
+    }
+  }, []);
+
+  // Callback ref for the container — sets up ResizeObserver here because
+  // React fires this callback during commit, when all sibling refs in the
+  // same JSX tree (left + right groups) are already attached. Using a
+  // useEffect instead would race: the effect can run before this callback
+  // fires, with all refs still null.
+  const observerCleanupRef = useRef<(() => void) | null>(null);
+  const containerRefCallback = React.useCallback(
+    (el: HTMLDivElement | null) => {
+      observerCleanupRef.current?.();
+      observerCleanupRef.current = null;
+      containerElRef.current = el;
+      if (!el) return;
+      measureCompactFit();
+      const raf = requestAnimationFrame(measureCompactFit);
+      const ro = new ResizeObserver(measureCompactFit);
+      ro.observe(el);
+      if (leftElRef.current) ro.observe(leftElRef.current);
+      if (rightElRef.current) ro.observe(rightElRef.current);
+      observerCleanupRef.current = () => {
+        cancelAnimationFrame(raf);
+        ro.disconnect();
+      };
+    },
+    [measureCompactFit],
+  );
+  // Also remeasure after hideUsageBars flips — the layout changed, so the
+  // threshold vs available-width comparison needs to re-run.
+  useLayoutEffect(() => {
+    measureCompactFit();
+  }, [hideUsageBars, measureCompactFit]);
 
   // render functions start there
 
@@ -230,7 +316,6 @@ export function Kernel({
   }
 
   function render_trust() {
-    if (compact) return;
     if (IS_MOBILE) return;
     if (trust) {
       return (
@@ -238,8 +323,8 @@ export function Kernel({
           style={{
             display: "flex",
             color: COLORS.GRAY_M,
-            paddingLeft: "5px",
-            borderLeft: "1px solid gray",
+            paddingLeft: compact ? 0 : "5px",
+            borderLeft: compact ? "none" : "1px solid gray",
           }}
         >
           Trusted
@@ -249,8 +334,8 @@ export function Kernel({
       return (
         <div
           style={{
-            paddingRight: "5px",
-            borderRight: "1px solid gray",
+            paddingRight: compact ? 0 : "5px",
+            borderRight: compact ? "none" : "1px solid gray",
           }}
         >
           <Tooltip
@@ -510,7 +595,6 @@ export function Kernel({
   // or if the memory usage is eating up almost all of the reminining (shared) memory.
 
   function renderUsage() {
-    if (compact) return;
     if (kernel == null) return;
 
     if (computeServerId) {
@@ -518,27 +602,21 @@ export function Kernel({
       return;
     }
 
-    const style: CSS = {
-      display: "flex",
-      borderLeft: `1px solid ${COLORS.GRAY}`,
-      cursor: "pointer",
-    };
-    const pstyle: CSS = {
-      margin: "2px",
-      width: "100%",
-      position: "relative",
-      top: "-1px",
-    };
-    const usage_style: CSS = KERNEL_USAGE_STYLE;
-
     if (isSpwarning) {
+      const usage_style: CSS = KERNEL_USAGE_STYLE;
+      const pstyle: CSS = {
+        margin: "2px",
+        width: compact ? "80px" : "175px",
+        position: "relative",
+        top: "-3px",
+      };
       // we massively overestimate: 15s for python and co, and 30s for sage and julia
       const s =
         kernel.startsWith("sage") || kernel.startsWith("julia") ? 30 : 15;
       return (
         <div style={{ ...usage_style, display: "flex" }}>
           <ProgressEstimate
-            style={{ ...pstyle, width: "175px", top: "-3px" }}
+            style={pstyle}
             seconds={s}
           />
         </div>
@@ -561,6 +639,26 @@ export function Kernel({
       100 * (usage.cpu_runtime / expected_cell_runtime),
     );
 
+    const style: CSS = {
+      display: "flex",
+      width: compact ? "300px" : undefined,
+      flex: compact ? undefined : 1,
+      borderLeft: `1px solid ${COLORS.GRAY}`,
+      cursor: "pointer",
+      alignItems: compact ? "center" : undefined,
+    };
+    const pstyle: CSS = {
+      margin: compact ? "0 2px" : "2px",
+      width: "100%",
+      position: "relative",
+      top: compact ? 0 : "-1px",
+    };
+    const trailColor = compact ? COLORS.GRAY_LL : "white";
+    const showLabel = is_fullscreen || compact;
+    const usage_style: CSS = compact
+      ? { ...KERNEL_USAGE_STYLE, borderRight: "none", margin: "0 4px", paddingRight: 0, alignItems: "center" }
+      : KERNEL_USAGE_STYLE;
+
     return (
       <div style={style}>
         {runProgress != null && (
@@ -573,8 +671,8 @@ export function Kernel({
             }
           >
             <div style={usage_style}>
-              {is_fullscreen ? (
-                <span style={{ marginRight: "5px" }}>Code</span>
+              {showLabel ? (
+                <span style={{ marginRight: "5px", color: COLORS.GRAY_M }}>Code</span>
               ) : (
                 ""
               )}
@@ -583,30 +681,30 @@ export function Kernel({
                 showInfo={false}
                 percent={runProgress}
                 size="small"
-                trailColor="white"
+                trailColor={trailColor}
               />
             </div>
           </Tooltip>
         )}
         <div style={usage_style}>
-          {is_fullscreen ? <span style={{ marginRight: "5px" }}>CPU</span> : ""}
+          {showLabel ? <span style={{ marginRight: "5px", color: COLORS.GRAY_M }}>CPU</span> : ""}
           <Progress
             style={pstyle}
             showInfo={false}
             percent={cpu_val}
             size="small"
-            trailColor="white"
+            trailColor={trailColor}
             strokeColor={ALERT_COLS[usage.time_alert]}
           />
         </div>
         <div style={usage_style}>
-          {is_fullscreen ? <span style={{ marginRight: "5px" }}>RAM</span> : ""}
+          {showLabel ? <span style={{ marginRight: "5px", color: COLORS.GRAY_M }}>RAM</span> : ""}
           <Progress
             style={pstyle}
             showInfo={false}
             percent={usage.mem_pct}
             size="small"
-            trailColor="white"
+            trailColor={trailColor}
             strokeColor={ALERT_COLS[usage.mem_alert]}
           />
         </div>
@@ -718,6 +816,7 @@ export function Kernel({
   if (compact) {
     return (
       <div
+        ref={containerRefCallback}
         style={{
           overflow: "hidden",
           width: "100%",
@@ -730,55 +829,75 @@ export function Kernel({
           ...style,
         }}
       >
-        <div>{renderLogo()}</div>
+        {/* Left: logo + kernel + state + trusted */}
         <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
+          ref={leftElRef}
+          style={{ display: "flex", alignItems: "center", gap: "6px", flex: "0 0 auto" }}
         >
+          <div>{renderLogo()}</div>
           {body}
           {renderKernelState()}
         </div>
-        {!read_only &&
-          backend_state === "running" &&
-          kernel_state === "busy" && (
-            <Tooltip
-              title={intl.formatMessage({
-                id: "jupyter.status.interrupt_tooltip",
-                defaultMessage: "Interrupt the running computation",
-              })}
-            >
-              <Button
-                size="small"
-                onClick={() => actions.signal("SIGINT")}
-              >
-                <Icon name="stop" /> Stop
-              </Button>
-            </Tooltip>
-          )}
-        {!read_only && backend_state === "running" && (
-          <Popconfirm
-            title={intl.formatMessage(jupyterI18n.editor.halt_kernel_confirm)}
-            onConfirm={() => actions.shutdown()}
-            okText={intl.formatMessage(labels.halt)}
-            cancelText={intl.formatMessage(labels.cancel)}
+        <div style={{ flex: 1 }} />
+        {/* Right: bars + controls */}
+        {onLayoutChange && (
+          <div
+            ref={rightElRef}
+            style={{ display: "inline-flex", alignItems: "center", gap: "8px", flex: "0 0 auto" }}
           >
-            <Button size="small">
-              <Icon name="PoweroffOutlined" /> Halt
-            </Button>
-          </Popconfirm>
-        )}
-        {!read_only && kernel != null && !no_kernel && (
-          <Button
-            size="small"
-            onClick={() => void actions.confirm_restart()}
-          >
-            <Icon name="redo" /> Restart
-          </Button>
+            {!hideUsageBars && renderTip(get_kernel_name(), renderUsage())}
+            {!hideUsageBars && (
+              <div style={{ borderLeft: `1px solid ${COLORS.GRAY_L}`, height: "18px" }} />
+            )}
+            <Segmented
+              size="small"
+              className="minimal-status-segmented"
+              value={minimalLayout ?? "comfortable"}
+              onChange={(v) => onLayoutChange(v as "wide" | "comfortable" | "narrow")}
+              options={[
+                {
+                  value: "wide",
+                  label: (
+                    <Tooltip title="Full width">
+                      <Icon name="column-width" />
+                    </Tooltip>
+                  ),
+                },
+                {
+                  value: "comfortable",
+                  disabled: !availableLayouts?.includes("comfortable"),
+                  label: (
+                    <Tooltip title="Comfortable width">
+                      <Icon name="pic-centered" rotate="90" />
+                    </Tooltip>
+                  ),
+                },
+                {
+                  value: "narrow",
+                  disabled: !availableLayouts?.includes("narrow"),
+                  label: (
+                    <Tooltip title="Narrow, centered">
+                      <Icon name="vertical-align-middle" rotate="90" />
+                    </Tooltip>
+                  ),
+                },
+              ].filter(o => availableLayouts?.includes(o.value as any) ?? true)}
+            />
+            {onZenModeChange && (
+              <Tooltip title={zenMode ? "Show code cells" : "Hide code cells"}>
+                <span
+                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
+                  onClick={() => onZenModeChange(!zenMode)}
+                >
+                  <Switch size="small" checked={zenMode} />
+                  <span style={{ userSelect: "none" }}>Zen</span>
+                </span>
+              </Tooltip>
+            )}
+            <div style={{ borderLeft: `1px solid ${COLORS.GRAY_L}`, height: "18px" }} />
+            <MinimalNotebookHelp />
+            <SwitchToRegularButton />
+          </div>
         )}
       </div>
     );
@@ -814,6 +933,7 @@ export function Kernel({
             {renderTip(get_kernel_name(), renderUsage())}
           </div>
         )}
+        {!IS_MOBILE && <SwitchToMinimalButton />}
       </div>
     </div>
   );

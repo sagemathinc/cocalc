@@ -23,12 +23,32 @@ duplicated handler code in the LaTeX and RMD/QMD action classes.
 
 import { dkv, type DKV } from "@cocalc/conat/sync/dkv";
 
+import { server_time } from "./client";
+
 interface BuildState {
   buildId: string;
   status: "running" | "stopping" | "finished";
   aggregate?: number;
   force?: boolean;
+  /**
+   * Server-clock ms when this state was written (`webapp_client.server_time()`).
+   * Used by late joiners to detect stranded "running" entries (originator
+   * crashed / stream lost its "done" event) instead of joining and hanging
+   * forever. Sourced from the shared server clock so peers with skewed
+   * local wall clocks don't mis-classify live builds as stale. Optional for
+   * backwards compatibility with older clients.
+   */
+  startedAt?: number;
 }
+
+/**
+ * Maximum age of a "running" DKV entry we're willing to join as a late
+ * joiner. The latex backend enforces a 15-minute hard timeout on the job
+ * itself; anything older than that plus a generous safety margin is
+ * definitely stranded (the originator's `publishBuildFinished` never ran)
+ * and re-joining would just hang us the same way.
+ */
+const STALE_RUNNING_ENTRY_MS = 20 * 60 * 1000;
 
 export interface BuildCoordinatorCallbacks {
   /** Format-specific build function called when joining a remote build. */
@@ -143,11 +163,36 @@ export class BuildCoordinator {
   // -- Event handlers (replace duplicated code in LaTeX/RMD/QMD actions) --
 
   private handleBuildStart(state: BuildState): void {
-    const { buildId, aggregate, force } = state;
-    if (!this.callbacks.isBuilding() && buildId !== this._localBuildId) {
-      this._remoteBuildId = buildId;
-      void this.joinBuild(aggregate, force);
+    const { buildId, aggregate, force, startedAt } = state;
+    if (this.callbacks.isBuilding() || buildId === this._localBuildId) {
+      return;
     }
+    // Stranded-entry protection: if an entry claims to be "running" for
+    // longer than the backend could possibly have kept the job alive,
+    // the originator must have died without publishing "finished".
+    // Joining would re-run the same hang. Treat the entry as terminal,
+    // publish "finished" so peers clear too, and skip the join.
+    const now = server_time().getTime();
+    if (
+      typeof startedAt === "number" &&
+      now - startedAt > STALE_RUNNING_ENTRY_MS
+    ) {
+      console.warn(
+        `BuildCoordinator: ignoring stale "running" DKV entry for ${this.path} (age=${Math.round((now - startedAt) / 1000)}s, buildId=${buildId})`,
+      );
+      // Re-read before writing: a newer build from another client may
+      // have overwritten the entry between our change event and this
+      // set(). Only publish the terminal state if the stale buildId is
+      // still the current one — otherwise we'd stomp a fresh "running"
+      // with "finished" and make peers skip joining the real build.
+      const current = this.dkv?.get(this.path);
+      if (current?.buildId === buildId && current.status === "running") {
+        this.dkv?.set(this.path, { ...current, status: "finished" });
+      }
+      return;
+    }
+    this._remoteBuildId = buildId;
+    void this.joinBuild(aggregate, force);
   }
 
   private handleBuildFinished(buildId: string): void {
@@ -219,12 +264,14 @@ export class BuildCoordinator {
     aggregate: number | undefined,
     force?: boolean,
   ): void {
+    const startedAt = server_time().getTime();
     const doPublish = () => {
       this.dkv?.set(this.path, {
         buildId,
         status: "running",
         aggregate,
         force,
+        startedAt,
       });
     };
     if (this.dkv) {
@@ -305,10 +352,12 @@ export class BuildCoordinator {
     // Detach change listener before closing the ref-counted DKV.
     // The DKV may stay alive if other editors in the same project
     // still hold references — without this, stale listeners accumulate.
-    if (this.changeHandler && this.dkv) {
-      this.dkv.off("change", this.changeHandler);
+    const dkv = this.dkv;
+    this.dkv = undefined;
+    if (this.changeHandler && dkv) {
+      dkv.off("change", this.changeHandler);
       this.changeHandler = undefined;
     }
-    this.dkv?.close();
+    dkv?.close();
   }
 }

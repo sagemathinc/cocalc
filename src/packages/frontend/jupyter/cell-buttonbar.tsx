@@ -31,6 +31,7 @@ import {
   RUN_ALL_CELLS_ABOVE_ICON,
   RUN_ALL_CELLS_BELOW_ICON,
 } from "./consts";
+import { CellChatButton } from "./cell-chat-button";
 import { LLMCellTool } from "./llm/cell-tool";
 
 interface Props {
@@ -296,6 +297,13 @@ export const CellButtonBar: React.FC<Props> = React.memo(
         {renderCodeBarLLMButtons()}
         {renderMarkdownEditButton()}
         {renderCodeBarFormatButton()}
+        {actions && !actions.is_closed() && (
+          <CellChatButton
+            cellId={id}
+            project_id={project_id}
+            path={path}
+          />
+        )}
         {renderDropdownMenu()}
         <CellIndexNumber index={index} />
       </div>

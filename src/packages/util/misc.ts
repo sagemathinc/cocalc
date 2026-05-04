@@ -2452,8 +2452,8 @@ export function sanitize_html_attributes($, node): void {
     if (attr == null) {
       continue;
     }
-    const attrName = (attr as Attr).name;
-    const attrValue = (attr as Attr).value;
+    const attrName = (attr as any).name;
+    const attrValue = (attr as any).value;
     const lowerName = attrName?.toLowerCase() ?? "";
     // Remove whitespace and control characters (ASCII 0-31) from value for checking
     const normalizedValue =

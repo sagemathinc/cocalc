@@ -75,6 +75,7 @@ export function AgentMessages({
 
   return (
     <div
+      className="cocalc-force-scrollbar"
       style={{
         ...MESSAGES_STYLE,
         ...(fontSize != null ? { fontSize: `${fontSize}px` } : undefined),

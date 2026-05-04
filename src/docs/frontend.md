@@ -458,6 +458,29 @@ packages/frontend/frame-editors/
 └── ...                  ← 20+ more editor types
 ```
 
+## Browser Console Debugging
+
+In dev mode (`DEBUG=true`), the global `cc` (or `cocalc`) object is available
+in the browser console. Defined in `packages/frontend/client/console.ts`.
+
+```javascript
+cc.redux          // AppRedux singleton — access any store or actions
+cc.client         // WebappClient singleton
+cc.conat          // Conat client
+cc.misc           // @cocalc/util/misc utilities
+cc.immutable      // Immutable.js library
+cc.schema         // @cocalc/util/schema
+cc.current        // Current editor info
+
+// Examples:
+cc.redux.getStore("account").get("editor_settings")?.toJS()
+cc.redux.getTable("account").set({editor_settings: {buttons: {"py-cm": {save: true}}}})
+cc.redux.getProjectActions("project-id").open_file({path: "foo.py"})
+```
+
+**Note:** If `cc` is undefined in Chrome DevTools, make sure the console
+context is set to **top** (not an iframe).
+
 ## Authentication
 
 Wait for auth to complete before accessing account data:

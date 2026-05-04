@@ -19,12 +19,12 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import {
-  DragHandle,
   SortableItem,
   SortableList,
 } from "@cocalc/frontend/components/sortable-list";
@@ -35,6 +35,23 @@ import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
+import { computeSectionBlocks, buildBlockLookup } from "./minimal/section-blocks";
+import { MinimalMinimap } from "./minimal/minimal-minimap";
+import { MiniTOC } from "./minimal/mini-toc";
+import type { SectionBlock } from "./minimal/types";
+
+/** Extract the section title from a section block's heading cell. */
+function getSectionTitle(
+  block: SectionBlock | undefined,
+  cells: immutable.Map<string, any>,
+): string {
+  if (!block || block.headingLevel === 0) return "";
+  const startCell = cells.get(block.startCellId);
+  const input = startCell?.get("input") ?? "";
+  const firstLine = input.split("\n").find((l: string) => /^#{1,4}\s/.test(l.trimStart()));
+  return firstLine?.replace(/^#+\s*/, "").trim() ?? "";
+}
+
 
 interface StableHtmlContextType {
   enabled?: boolean;
@@ -92,6 +109,10 @@ interface CellListProps {
   llmTools?: LLMTools;
   computeServerId?: number;
   read_only?: boolean;
+  cellViewMode?: "default" | "minimal";
+  minimalLayout?: "wide" | "comfortable" | "narrow";
+  zenMode?: boolean;
+  frameHeight?: number;
 }
 
 export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
@@ -122,6 +143,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     llmTools,
     computeServerId,
     read_only,
+    cellViewMode = "default",
+    minimalLayout,
+    zenMode,
+    frameHeight,
   } = props;
 
   const cellListDivRef = useRef<any>(null);
@@ -177,6 +202,17 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     cellListDivRef.current = node;
     frameActions.current?.set_cell_list_div(node);
   }, []);
+
+  // Toggle native scrollbar visibility reactively when cellViewMode changes
+  useEffect(() => {
+    const node = cellListDivRef.current;
+    if (!node) return;
+    if (cellViewMode === "minimal") {
+      node.classList.add("minimap-hide-scrollbar");
+    } else {
+      node.classList.remove("minimap-hide-scrollbar");
+    }
+  }, [cellViewMode]);
 
   const saveScroll = useCallback(() => {
     if (use_windowed_list) {
@@ -431,18 +467,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (index == null) {
       index = cell_list.indexOf(id) ?? 0;
     }
-    const dragHandle = actions?.store.is_cell_editable(id) ? (
-      <DragHandle
-        id={id}
-        style={{
-          position: "relative",
-          left: 0,
-          top: 0,
-          color: "#aaa",
-        }}
-      />
-    ) : undefined;
-
     return (
       <div key={id}>
         <Cell
@@ -472,9 +496,22 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           computeServerId={computeServerId}
           isFirst={isFirst}
           isLast={isLast}
-          dragHandle={dragHandle}
+          showDragHandle={!!actions?.store.is_cell_editable(id)}
           read_only={read_only}
           isDragging={isDragging}
+          cellViewMode={cellViewMode}
+          blockInfo={blockLookup?.get(id)}
+          blockCellIds={sectionBlocks && blockLookup?.has(id) ? sectionBlocks[blockLookup.get(id)!.blockIndex]?.cellIds : undefined}
+          headingLevel={sectionBlocks && blockLookup?.has(id) ? sectionBlocks[blockLookup.get(id)!.blockIndex]?.headingLevel ?? 0 : 0}
+          isLastBlock={sectionBlocks && blockLookup?.has(id) ? blockLookup.get(id)!.blockIndex === sectionBlocks.length - 1 : false}
+          sectionCollapsed={sectionBlocks != null && blockLookup?.has(id) ? collapsedSections.has(sectionBlocks[blockLookup.get(id)!.blockIndex]?.startCellId) : false}
+          onToggleSection={sectionBlocks != null && blockLookup?.has(id) ? () => toggleSection(sectionBlocks[blockLookup.get(id)!.blockIndex]?.startCellId) : undefined}
+          sectionTitle={sectionBlocks && blockLookup?.has(id) ? getSectionTitle(sectionBlocks[blockLookup.get(id)!.blockIndex], cells) : undefined}
+          blockHighlighted={blockLookup?.has(id) ? hoveredBlockIndex === blockLookup.get(id)!.blockIndex : false}
+          onHoverBlock={blockLookup?.has(id) ? (hover: boolean) => setHoveredBlockIndex(hover ? blockLookup.get(id)!.blockIndex : null) : undefined}
+          minimalLayout={minimalLayout}
+          zenMode={zenMode}
+          frameHeight={frameHeight}
         />
       </div>
     );
@@ -558,11 +595,67 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
 
   const cellListResize = useResizeObserver({ ref: cellListDivRef });
+  const viewportIncrease = 2 * Math.max(1000, cellListResize.height ?? 0);
   useEffect(() => {
     for (const key in scrollOrResize) {
       scrollOrResize[key]();
     }
   }, [cellListResize]);
+
+  const sectionBlocks = useMemo(() => {
+    if (cellViewMode !== "minimal" || cell_list == null || cells == null) return null;
+    return computeSectionBlocks(cell_list, cells);
+  }, [cellViewMode, cell_list, cells]);
+
+  const blockLookup = useMemo(() => {
+    if (sectionBlocks == null) return null;
+    return buildBlockLookup(sectionBlocks);
+  }, [sectionBlocks]);
+
+  // Track which sections are collapsed by their heading cell ID (stable across edits)
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [hoveredBlockIndex, setHoveredBlockIndex] = useState<number | null>(null);
+  // Current block index for mini TOC — always set when sections exist
+  const [currentBlockIndex, setCurrentBlockIndex] = useState<number>(0);
+  const toggleSection = useCallback((startCellId: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(startCellId)) {
+        next.delete(startCellId);
+      } else {
+        next.add(startCellId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Update current block index on scroll (for mini TOC)
+  useEffect(() => {
+    if (cellViewMode !== "minimal" || !sectionBlocks || !blockLookup || !cell_list) return;
+    const el = cellListDivRef.current;
+    if (!el) return;
+    const update = () => {
+      // Find the first visible cell by checking DOM elements
+      const items = el.querySelectorAll("[data-item-index]");
+      let topIndex = 0;
+      for (const item of items) {
+        const rect = (item as HTMLElement).getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        if (rect.bottom > elRect.top + 2) {
+          topIndex = parseInt((item as HTMLElement).getAttribute("data-item-index") ?? "0");
+          break;
+        }
+      }
+      const id = cell_list.get(topIndex);
+      if (!id) return;
+      const info = blockLookup.get(id);
+      if (!info) return;
+      setCurrentBlockIndex(info.blockIndex);
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    return () => el.removeEventListener("scroll", update);
+  }, [cellViewMode, sectionBlocks, blockLookup, cell_list, cellListDivRef.current]);
 
   if (cell_list == null) {
     return render_loading();
@@ -580,9 +673,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             ref={virtuosoRef}
             onClick={actions != null && complete != null ? on_click : undefined}
             topItemCount={0}
+            increaseViewportBy={viewportIncrease}
             style={{
               fontSize: `${font_size}px`,
               flex: 1,
+              minHeight: 0,
               overflowX: "hidden",
             }}
             totalCount={cell_list.size + EXTRA_BOTTOM_CELLS}
@@ -666,11 +761,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       <StableHtmlContext.Provider value={{ cellListDivRef, scrollOrResize }}>
         <div
           key="cells"
-          className="smc-vfill"
+          className={`smc-vfill cocalc-force-scrollbar${cellViewMode === "minimal" ? " minimap-hide-scrollbar" : ""}`}
           style={{
             fontSize: `${font_size}px`,
             paddingLeft: "5px",
             flex: 1,
+            minHeight: 0,
             overflowY: "auto",
             overflowX: "hidden",
           }}
@@ -698,7 +794,9 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           <div
             style={{
               background: "white",
-              boxShadow: "8px 8px 4px 4px #ccc",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
+              borderRadius: "4px",
+              transform: "translateX(10px)",
               fontSize: `${font_size}px`,
             }}
           >
@@ -733,7 +831,33 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         disableMarkdownCodebar: true,
       }}
     >
-      {body}
+      <div style={{ display: "flex", flexDirection: "row", flex: 1, minHeight: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, position: "relative" }}>
+          {body}
+          {cellViewMode === "minimal" && !zenMode && minimalLayout !== "wide" && sectionBlocks != null && (
+            <StickyMiniTOC
+              sectionBlocks={sectionBlocks}
+              currentBlockIndex={currentBlockIndex}
+              cells={cells}
+              minimalLayout={minimalLayout}
+              fontSize={font_size}
+              actions={!read_only ? actions : undefined}
+            />
+          )}
+        </div>
+        {cellViewMode === "minimal" && cell_list != null && frameHeight != null && (
+          <MinimalMinimap
+            cellList={cell_list}
+            cells={cells}
+            collapsedSections={collapsedSections}
+            scrollerRef={cellListDivRef}
+            cellHeights={virtuosoHeightsRef}
+            height={frameHeight}
+            curId={cur_id}
+            selIds={sel_ids}
+          />
+        )}
+      </div>
     </FileContext.Provider>
   );
 };
@@ -776,6 +900,67 @@ export function DivTempHeight({ children, height }) {
   return (
     <div ref={divRef} style={style}>
       {children}
+    </div>
+  );
+}
+
+import {
+  OUTPUT_FLEX_DEFAULT,
+  CODE_FLEX_DEFAULT,
+  COLUMN_TRANSITION,
+} from "./minimal/styles";
+
+/** Floating mini TOC anchored to the left spacer column */
+function StickyMiniTOC({
+  sectionBlocks,
+  currentBlockIndex,
+  cells,
+  minimalLayout,
+  fontSize,
+  actions,
+}: {
+  sectionBlocks: SectionBlock[];
+  currentBlockIndex: number;
+  cells: immutable.Map<string, any>;
+  minimalLayout?: "wide" | "comfortable" | "narrow";
+  fontSize?: number;
+  actions?: JupyterActions;
+}) {
+  const margin = minimalLayout === "narrow" ? 2 : 0;
+  const contentFlex = OUTPUT_FLEX_DEFAULT + CODE_FLEX_DEFAULT;
+  const rightSpacerFlex = minimalLayout === "wide" ? 0 : margin;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 9,
+        pointerEvents: "none",
+      }}
+    >
+      <div style={{ display: "flex" }}>
+        {rightSpacerFlex > 0 && <div style={{ flex: `${rightSpacerFlex} 1 0`, transition: COLUMN_TRANSITION }} />}
+        <div style={{
+          flex: `${CODE_FLEX_DEFAULT} 1 0`,
+          transition: COLUMN_TRANSITION,
+          pointerEvents: "auto",
+          overflow: "hidden",
+        }}>
+          <MiniTOC
+            sectionBlocks={sectionBlocks}
+            currentBlockIndex={currentBlockIndex}
+            cells={cells}
+            minimalLayout={minimalLayout}
+            fontSize={fontSize}
+            actions={actions}
+          />
+        </div>
+        <div style={{ flex: `${contentFlex} 1 0`, minWidth: 0 }} />
+        {rightSpacerFlex > 0 && <div style={{ flex: `${rightSpacerFlex} 1 0`, transition: COLUMN_TRANSITION }} />}
+      </div>
     </div>
   );
 }

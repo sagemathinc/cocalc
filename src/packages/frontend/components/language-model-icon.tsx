@@ -105,6 +105,27 @@ export function LanguageModelVendorAvatar(
       case "xai":
         return <XAIAvatar size={size} style={style} />;
 
+      case "zai":
+        return (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: size,
+              height: size,
+              backgroundColor: "#000",
+              color: "#fff",
+              fontWeight: "bold",
+              fontSize: Math.round(size * 0.6),
+              borderRadius: 3,
+              ...style,
+            }}
+          >
+            Z
+          </span>
+        );
+
       case "user":
         // should never happen, because it is unpacked below
         return fallback();

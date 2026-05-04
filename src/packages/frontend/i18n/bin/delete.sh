@@ -32,6 +32,4 @@ done
 echo
 echo
 echo "Done! Now you should run:"
-echo "  pnpm i18n:upload    (to re-upload the key with new content)"
-echo "  pnpm i18n:download  (to fetch updated translations)"
-echo "  pnpm i18n:compile   (to compile translation files)"
+echo "  pnpm i18n:update    (to upload, translate, download and compile)"

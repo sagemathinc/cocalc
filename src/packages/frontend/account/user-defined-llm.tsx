@@ -269,6 +269,8 @@ export function UserDefinedLLMComponent({ style, on_change }: Props) {
         return "'gemini-2.0-flash'";
       case "xai":
         return "'grok-4-1-fast-non-reasoning-16k'";
+      case "zai":
+        return "'glm-5.1'";
       default:
         unreachable(service);
         return "'llama3:latest'";

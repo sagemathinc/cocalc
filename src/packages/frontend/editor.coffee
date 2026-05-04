@@ -33,7 +33,7 @@ message = require('@cocalc/util/message')
 
 {redux} = require('./app-framework')
 
-_ = underscore = require('underscore')
+debounce = require('lodash/debounce')
 
 {webapp_client} = require('./webapp-client')
 {EventEmitter}  = require('events')
@@ -191,7 +191,7 @@ class FileEditor extends EventEmitter
         @project_id = project_id
         @filename = filename
         @ext = misc.filename_extension_notilde(@filename)?.toLowerCase()
-        @_show = underscore.debounce(@_show, 50)
+        @_show = debounce(@_show, 50)
 
     is_active: () =>
         misc.tab_to_path(redux.getProjectStore(@project_id).get('active_project_tab')) == @filename
@@ -702,7 +702,7 @@ class CodeMirrorEditor extends FileEditor
 
     codemirrors: () =>
         c = [@codemirror, @codemirror1]
-        return underscore.filter(c, ((x) -> x?))
+        return c.filter((x) -> x?)
 
     focused_codemirror: () =>
         if @codemirror_with_last_focus?
@@ -1008,7 +1008,7 @@ class CodeMirrorEditor extends FileEditor
         d_content  = null
         d_open     = null
         d_download = null
-        d_progress = _.noop
+        d_progress = (->)
         output_fn  = null # set this before showing the dialog
 
         show_dialog = (cb) =>
@@ -1076,7 +1076,7 @@ class CodeMirrorEditor extends FileEditor
                     progress = (percent, mesg) =>
                         d_content.text(mesg)
                         d_progress(percent)
-                    progress = _.debounce(progress, 5)
+                    progress = debounce(progress, 5)
                     progress(.01, "Loading ...")
                     done = (err) =>
                         #console.log 'Printer.print_html is done: err = ', err
@@ -1597,7 +1597,7 @@ class CodeMirrorEditor extends FileEditor
                 show_edit_buttons(@fallback_buttons, name)
 
         for cm in @codemirrors()
-            cm.on('cursorActivity', _.debounce(update_context_sensitive_bar, 250))
+            cm.on('cursorActivity', debounce(update_context_sensitive_bar, 250))
 
         update_context_sensitive_bar()
         @element.find(".webapp-editor-codemirror-textedit-buttons").katex({preProcess:true})

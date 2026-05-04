@@ -28,6 +28,7 @@ import {
   MISTRAL_MODELS,
   MODELS_OPENAI,
   XAI_MODELS,
+  ZAI_MODELS,
   fromCustomOpenAIModel,
   fromOllamaModel,
   getLLMCost,
@@ -223,6 +224,15 @@ export default function LLMSelector({
     );
   }
 
+  function appendZai(ret: NonNullable<SelectProps["options"]>): void {
+    if (!show.zai) return;
+    makeLLMGroup(
+      ret,
+      "zai",
+      ZAI_MODELS.map((m) => makeLLMOption(m, LLM_DESCR[m])),
+    );
+  }
+
   function appendOllama(options: NonNullable<SelectProps["options"]>): void {
     if (!show.ollama || !ollama) return;
 
@@ -341,6 +351,7 @@ export default function LLMSelector({
     appendMistral(ret);
     appendAnthropic(ret);
     appendXai(ret);
+    appendZai(ret);
     const custom: NonNullable<SelectProps["options"]> = [];
     appendOllama(custom);
     appendCustomOpenAI(custom);

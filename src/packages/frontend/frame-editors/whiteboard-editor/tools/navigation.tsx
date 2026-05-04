@@ -97,11 +97,11 @@ const TOOLS = {
     icon: ({ zoomSlider }) => <>{zoomSlider}%</>,
     tip: (
       <>
-        Zoom to 100% <Key keys="0" />
+        Fit to screen <Key keys="0" />
       </>
     ),
     click: (actions, id) => {
-      actions.set_font_size(id, DEFAULT_FONT_SIZE);
+      actions.fitToScreen(id);
     },
   },
 } as {

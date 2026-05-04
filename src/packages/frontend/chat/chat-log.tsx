@@ -50,6 +50,7 @@ import {
   getRootMessage,
   getSelectedHashtagsSearch,
   getThreadRootDate,
+  isThreadResolved,
   newest_content,
 } from "./utils";
 
@@ -612,7 +613,10 @@ export function MessageList({
   // Compute the initial scroll index once per thread (stable across
   // re-renders as sortedDates grows during async loading). Reset when
   // selectedThread changes so each thread gets its own initial position.
-  const initialIndexRef = useRef<{ thread: string | undefined; index: number | null }>({
+  const initialIndexRef = useRef<{
+    thread: string | undefined;
+    index: number | null;
+  }>({
     thread: undefined,
     index: null,
   });
@@ -629,7 +633,8 @@ export function MessageList({
       initialIndexRef.current.index = Math.max(sortedDates.length - 1, 0);
     }
   }
-  const initialIndex = initialIndexRef.current.index ?? Math.max(sortedDates.length - 1, 0);
+  const initialIndex =
+    initialIndexRef.current.index ?? Math.max(sortedDates.length - 1, 0);
 
   // Include selectedThread in the cache key so switching threads doesn't
   // restore a stale scroll position from a different thread.
@@ -666,20 +671,29 @@ export function MessageList({
     // After suppression ends, update lastread for whatever is currently
     // visible. This handles threads where all messages fit in the viewport
     // and no further scroll events will fire.
-    const replayVisibleRange = () => {
+    const replayVisibleRange = (retries = 0) => {
       if (
-        selectedThread &&
-        actions?.updateLastRead &&
-        lastEndIndexRef.current >= 0 &&
-        sortedDates.length > 0
+        !selectedThread ||
+        !actions?.updateLastRead ||
+        sortedDates.length === 0
       ) {
-        const visibleDateStr =
-          sortedDates[Math.min(lastEndIndexRef.current, sortedDates.length - 1)];
-        if (visibleDateStr) {
-          const visibleDateMs = parseFloat(visibleDateStr);
-          if (Number.isFinite(visibleDateMs)) {
-            actions.updateLastRead(selectedThread, visibleDateMs);
-          }
+        return;
+      }
+      if (lastEndIndexRef.current < 0) {
+        // Virtuoso hasn't fired rangeChanged yet — retry briefly
+        if (retries < 3) {
+          timersRef.current.push(
+            setTimeout(() => replayVisibleRange(retries + 1), 200),
+          );
+        }
+        return;
+      }
+      const visibleDateStr =
+        sortedDates[Math.min(lastEndIndexRef.current, sortedDates.length - 1)];
+      if (visibleDateStr) {
+        const visibleDateMs = parseFloat(visibleDateStr);
+        if (Number.isFinite(visibleDateMs)) {
+          actions.updateLastRead(selectedThread, visibleDateMs);
         }
       }
     };
@@ -704,16 +718,13 @@ export function MessageList({
         }, 50),
       );
     } else {
-      // All read or legacy thread — re-enable after initial render settles.
-      // Only replay for threads that already have a lastread timestamp.
-      // For legacy threads (no lastread-*), don't auto-mark as read —
-      // let the user's first scroll create the initial lastread entry.
+      // All read or legacy thread — re-enable after initial render settles,
+      // then replay the visible range so threads where all messages fit in
+      // the viewport get their lastread timestamp set (clearing the badge).
       timersRef.current.push(
         setTimeout(() => {
           suppressLastReadRef.current = false;
-          if (lastReadDate != null) {
-            replayVisibleRange();
-          }
+          replayVisibleRange();
         }, 200),
       );
     }
@@ -771,7 +782,6 @@ export function MessageList({
     [selectedThread, actions, sortedDates, throttledUpdateLastRead],
   );
 
-
   return (
     <Virtuoso
       key={cacheId}
@@ -819,8 +829,7 @@ export function MessageList({
           stableFirstUnreadIndex >= 0 &&
           index === stableFirstUnreadIndex &&
           (lastReadDate == null ||
-            lastReadDate <
-              parseFloat(sortedDates[sortedDates.length - 1]));
+            lastReadDate < parseFloat(sortedDates[sortedDates.length - 1]));
 
         return (
           <div
@@ -870,7 +879,16 @@ export function MessageList({
                 }
                 allowReply={
                   !singleThreadView &&
-                  messages.getIn([sortedDates[index + 1], "reply_to"]) == null
+                  messages.getIn([sortedDates[index + 1], "reply_to"]) ==
+                    null &&
+                  // Resolved threads are read-only archives: hide the
+                  // per-thread Reply button even in all-threads view, so
+                  // the only way to "continue" the discussion is the
+                  // ResolvedThreadPanel's "Start new chat thread" flow.
+                  !isThreadResolved({
+                    date: parseFloat(date),
+                    messages,
+                  })
                 }
                 costEstimate={costEstimate}
                 threadViewMode={singleThreadView}

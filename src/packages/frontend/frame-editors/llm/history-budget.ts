@@ -7,6 +7,12 @@
 Shared helpers for keeping agent conversation history inside a bounded
 token budget before sending it to the LLM.
 
+Strategy: keep a stable prefix (first exchange) + recent tail, drop the
+middle.  This is optimised for Anthropic prompt caching — a stable prefix
+means the KV cache is reused across turns (90 % cheaper input tokens,
+much lower TTFT).  The most recent messages are always kept so the model
+sees the latest context.
+
 Each agent variant is still responsible for:
 - deciding which prior messages matter
 - compacting each message into a short model-facing form
@@ -29,8 +35,8 @@ export type AgentHistoryMessage = {
   content: string;
 };
 
-export const DEFAULT_AGENT_CONTEXT_TOKENS = 8000;
-export const DEFAULT_AGENT_RESPONSE_TOKENS = 1000;
+export const DEFAULT_AGENT_CONTEXT_TOKENS = 50_000;
+export const DEFAULT_AGENT_RESPONSE_TOKENS = 4000;
 export const DEFAULT_AGENT_INPUT_TOKENS =
   DEFAULT_AGENT_CONTEXT_TOKENS - DEFAULT_AGENT_RESPONSE_TOKENS;
 const MESSAGE_OVERHEAD_TOKENS = 8;
@@ -76,6 +82,28 @@ export function estimateConversationTokens({
   return total;
 }
 
+/**
+ * Build a bounded conversation history that fits within a token budget.
+ *
+ * Uses a "keep prefix + keep tail, drop middle" strategy:
+ *
+ *  1. **Prefix** (always kept): the first user message + first assistant
+ *     response.  This is typically the initial context (e.g. a
+ *     "help-me-fix" payload with code) and few-shot examples.  Keeping it
+ *     stable across turns lets Anthropic's prompt cache reuse the KV
+ *     state for the entire prefix — cached input tokens are 90 % cheaper.
+ *
+ *  2. **Tail** (always kept): filled backward from the most recent
+ *     message, preserving correct chronological order.  The model always
+ *     sees the latest context.
+ *
+ *  3. **Middle** (dropped first): messages between prefix and tail are
+ *     sacrificed when the budget is tight.
+ *
+ * The most recent message is always included even if the budget is
+ * already exceeded by the prefix alone (the provider will handle
+ * any overflow via its own context window).
+ */
 export function buildBoundedHistory({
   system,
   input,
@@ -105,25 +133,41 @@ export function buildBoundedHistory({
     };
   }
 
-  const kept: AgentHistoryMessage[] = [];
+  // Phase 1: Always keep the first exchange (first user msg + first
+  // assistant response).  This is the stable prefix for prompt caching.
+  const prefixCount = Math.min(2, history.length);
+  const prefix = history.slice(0, prefixCount);
   let totalTokens = baseTokens;
-
-  for (let i = history.length - 1; i >= 0; i--) {
-    const message = history[i];
-    const nextTotal = totalTokens + estimateMessageTokens(message);
-    if (kept.length === 0) {
-      kept.unshift(message);
-      totalTokens = nextTotal;
-      continue;
-    }
-    if (nextTotal > maxInputTokens) break;
-    kept.unshift(message);
-    totalTokens = nextTotal;
+  for (const msg of prefix) {
+    totalTokens += estimateMessageTokens(msg);
   }
 
+  // If that's all the history, return it.
+  if (history.length <= prefixCount) {
+    return {
+      history: prefix,
+      estimatedTokens: totalTokens,
+      omittedMessages: 0,
+    };
+  }
+
+  // Phase 2: Fill from the end (most recent messages) backward.
+  const tail: AgentHistoryMessage[] = [];
+  for (let i = history.length - 1; i >= prefixCount; i--) {
+    const msg = history[i];
+    const msgTokens = estimateMessageTokens(msg);
+
+    // Always include at least the most recent message.
+    if (totalTokens + msgTokens > maxInputTokens && tail.length > 0) break;
+
+    tail.unshift(msg);
+    totalTokens += msgTokens;
+  }
+
+  const kept = [...prefix, ...tail];
   return {
     history: kept,
     estimatedTokens: totalTokens,
-    omittedMessages: Math.max(0, history.length - kept.length),
+    omittedMessages: history.length - kept.length,
   };
 }

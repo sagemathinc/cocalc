@@ -51,7 +51,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
     focused_codemirror: () =>
         @editor.focused_codemirror()
 
-underscore = require('underscore')
+debounce = require('lodash/debounce')
 
 class SynchronizedString extends AbstractSynchronizedDoc
     constructor: (opts) ->
@@ -235,7 +235,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 # there could be a stuck notification saying
                 # there are uncommitted changes.
                 setTimeout(f, 5000)
-        update_unsaved_uncommitted_changes = underscore.debounce(f, 1500)
+        update_unsaved_uncommitted_changes = debounce(f, 1500)
         @editor.has_unsaved_changes(false) # start by assuming no unsaved changes...
         #dbg = webapp_client.dbg("SynchronizedDocument2(path='#{@filename}')")
         #dbg("waiting for first change")
@@ -288,7 +288,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     return
                 redux.getProjectActions(@editor.project_id).close_tab(@filename)
 
-            @save_state_debounce = underscore.debounce(@sync, SAVE_DEBOUNCE_MS)
+            @save_state_debounce = debounce(@sync, SAVE_DEBOUNCE_MS)
 
             @codemirror.on 'change', (instance, changeObj) =>
                 if @_closed

@@ -381,7 +381,7 @@ export function AssignmentHeader({
           "grade",
           nbgrader.not_attempted + nbgrader.failed > 0,
         )}
-        content={renderNbgraderRunAll()}
+        content={renderNbgraderRunAll}
         ariaLabel={runAllAriaLabel(intl, "grade")}
       />
     );

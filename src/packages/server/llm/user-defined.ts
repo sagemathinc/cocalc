@@ -12,8 +12,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { isValidUUID, unreachable } from "@cocalc/util/misc";
 import type { History, Stream } from "@cocalc/util/types/llm";
-import { evaluateOllama } from "./ollama";
-import { evaluateWithLangChain } from "./evaluate-lc";
+import { evaluateWithAI } from "./evaluate";
 
 const log = getLogger("llm:userdefined");
 
@@ -65,28 +64,32 @@ export async function evaluateUserDefinedLLM(
   // LangChain path, passing through user-supplied API keys/endpoints.
   const { service, endpoint, apiKey } = conf;
   switch (service) {
-    case "ollama": {
-      return await evaluateOllama({
-        ...opts,
-        model: toOllamaModel(conf.model),
-        endpoint,
-        maxTokens: conf.max_tokens,
-      });
-    }
+    case "ollama":
+      return await evaluateWithAI(
+        {
+          ...opts,
+          model: toOllamaModel(conf.model),
+          endpoint,
+          service: "ollama",
+          maxTokens: conf.max_tokens,
+        },
+        "user",
+      );
     case "openai":
     case "google":
     case "anthropic":
     case "mistralai":
     case "custom_openai":
     case "xai":
-      return await evaluateWithLangChain(
+    case "zai":
+      return await evaluateWithAI(
         {
           ...opts,
           model: conf.model,
           apiKey,
           endpoint: endpoint || undefined, // don't pass along empty strings!
           service,
-          maxTokens: conf.max_tokens, // Use max_tokens from config
+          maxTokens: conf.max_tokens,
         },
         "user",
       );

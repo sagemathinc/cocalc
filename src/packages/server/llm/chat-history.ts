@@ -1,29 +1,33 @@
-import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
+/*
+ * Copyright (C) 2023-2026, Sagemath Inc.
+ * Convert CoCalc chat history to Vercel AI SDK message format.
+ */
 
-import { History } from "@cocalc/util/types/llm";
+import type { History } from "@cocalc/util/types/llm";
 import { numTokens } from "./chatgpt-numtokens";
 
-// reconstruct the chat history from CoCalc's data
-// TODO: must be robust for repeated messages from the same user and ending in an assistant message
-export async function transformHistoryToMessages(
-  history?: History,
-): Promise<{ messageHistory: InMemoryChatMessageHistory; tokens: number }> {
-  let tokens = 0;
+export interface HistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 
-  const messageHistory = new InMemoryChatMessageHistory();
+// Reconstruct the chat history from CoCalc's data.
+// Assumes alternating user/assistant messages starting from user.
+export function transformHistoryToMessages(history?: History): {
+  messages: HistoryMessage[];
+  tokens: number;
+} {
+  let tokens = 0;
+  const messages: HistoryMessage[] = [];
+
   if (history) {
-    let nextRole: "model" | "user" = "user";
+    let nextRole: "user" | "assistant" = "user";
     for (const { content } of history) {
       tokens += numTokens(content);
-      if (nextRole === "user") {
-        await messageHistory.addMessage(new HumanMessage(content));
-      } else {
-        await messageHistory.addMessage(new AIMessage(content));
-      }
-      nextRole = nextRole === "user" ? "model" : "user";
+      messages.push({ role: nextRole, content });
+      nextRole = nextRole === "user" ? "assistant" : "user";
     }
   }
 
-  return { messageHistory, tokens };
+  return { messages, tokens };
 }

@@ -73,6 +73,7 @@ export const emptyProjectContext = {
     anthropic: false,
     custom_openai: false,
     xai: false,
+    zai: false,
     user: false,
   },
   flipTabs: [0, () => {}],
@@ -149,6 +150,7 @@ export function useProjectContextProvider({
   const haveMistral = useTypedRedux("customize", "mistral_enabled");
   const haveAnthropic = useTypedRedux("customize", "anthropic_enabled");
   const haveXai = useTypedRedux("customize", "xai_enabled");
+  const haveZai = useTypedRedux("customize", "zai_enabled");
   const userDefinedLLM = useTypedRedux("customize", "user_defined_llm");
   const accountCustomize = useTypedRedux("account", "customize");
   const otherSettings = useTypedRedux("account", "other_settings");
@@ -166,6 +168,7 @@ export function useProjectContextProvider({
     haveOllama,
     haveOpenAI,
     haveXai,
+    haveZai,
     userDefinedLLM,
     accountCustomize,
     otherSettings,

@@ -7,7 +7,7 @@
 Session management
 */
 
-import { throttle } from "underscore";
+import throttle from "lodash/throttle";
 import { webapp_client } from "./webapp-client";
 import { should_load_target_url } from "./misc";
 import { AppRedux } from "./app-framework";

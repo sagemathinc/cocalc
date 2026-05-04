@@ -18,13 +18,10 @@ import { ACTIVE_FILTER_BTN_STYLE } from "@cocalc/frontend/project/explorer/actio
 import { pasteHere as doPaste } from "./actions";
 import { useFileClipboard } from "./hook";
 
-const BR = <br />;
-
 /** Format the shared clipboard tooltip using i18n.
  *  Pass the `intl` object from the calling component. */
 export function formatClipboardTip(intl: ReturnType<typeof useIntl>) {
   return intl.formatMessage(labels.clipboard_tip, {
-    br: BR,
     b: (ch) => <b>{ch}</b>,
   });
 }

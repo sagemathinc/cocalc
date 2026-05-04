@@ -25,7 +25,7 @@ export interface InputPromptProps {
   actions?: JupyterActions;
   id?: string;
   style?: CSSProperties;
-  dragHandle?: React.JSX.Element;
+  showDragHandle?: boolean;
   read_only?: boolean;
 }
 

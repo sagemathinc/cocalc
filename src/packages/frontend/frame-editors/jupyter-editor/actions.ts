@@ -8,6 +8,7 @@ Jupyter Frame Editor Actions
 */
 
 import { delay } from "awaiting";
+import { isJupyterNotebookFrameType } from "./util";
 import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-slate";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
@@ -24,6 +25,7 @@ import {
   close_jupyter_actions,
   create_jupyter_actions,
 } from "./jupyter-actions";
+import { getSideChatActions } from "@cocalc/frontend/frame-editors/generic/chat";
 import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
 
 export interface JupyterEditorState extends CodeEditorState {
@@ -48,10 +50,29 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     this.init_new_frame();
     this.init_changes_state();
 
-    this.store.on("close-frame", async ({ id }) => {
-      if (this.frame_actions[id] != null) {
-        await delay(1);
-        this.frame_actions[id].close();
+    this.store.on("close-frame", async ({ id, type: oldType }) => {
+      // Capture the specific instance so that a rapid frame-type toggle
+      // (which emits close-frame twice in quick succession) can't end up
+      // closing a freshly-created replacement instance after the delay.
+      const actions = this.frame_actions[id];
+      if (actions == null) return;
+      await delay(1);
+      // Toggling between jupyter_cell_notebook and jupyter_minimal uses
+      // the same CellNotebook component and the same NotebookFrameActions
+      // works for both types.  Closing and recreating on toggle just wipes
+      // this.jupyter_actions/this.store on the instance that still-mounted
+      // cell components hold via useNotebookFrameActions refs, so the next
+      // cell click crashes with "Cannot read properties of undefined
+      // (reading 'store')".  Keep the existing instance in that case.
+      const newType = this._get_frame_type(id);
+      if (
+        isJupyterNotebookFrameType(oldType) &&
+        isJupyterNotebookFrameType(newType)
+      ) {
+        return;
+      }
+      actions.close();
+      if (this.frame_actions[id] === actions) {
         delete this.frame_actions[id];
       }
     });
@@ -66,7 +87,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   private init_new_frame(): void {
     this.store.on("new-frame", ({ id, type }) => {
-      if (type !== "jupyter_cell_notebook") {
+      if (!isJupyterNotebookFrameType(type)) {
         return;
       }
       // important to do this *before* the frame is rendered,
@@ -78,7 +99,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       const node = this._get_frame_node(id);
       if (node == null) return;
       const type = node.get("type");
-      if (type === "jupyter_cell_notebook") {
+      if (isJupyterNotebookFrameType(type)) {
         this.get_frame_actions(id);
       }
     }
@@ -243,7 +264,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       throw Error(`no frame ${id}`);
     }
     const type = node.get("type");
-    if (type === "jupyter_cell_notebook") {
+    if (isJupyterNotebookFrameType(type)) {
       return (this.frame_actions[id] = new NotebookFrameActions(this, id));
     } else {
       return;
@@ -515,8 +536,11 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     align: "center" | "top" = "center",
   ): Promise<void> {
     // Open or focus a notebook viewer and scroll to the given cell.
+    // Prefer an existing minimal frame over creating a new standard one.
     if (this._state === "closed") return;
-    const id = this.show_focused_frame_of_type("jupyter_cell_notebook");
+    const existingMinimal = this._get_most_recent_active_frame_id_of_type("jupyter_minimal");
+    const frameType = existingMinimal ? "jupyter_minimal" : "jupyter_cell_notebook";
+    const id = this.show_focused_frame_of_type(frameType);
     const actions = this.get_frame_actions(id);
     if (actions == null) return;
     actions.set_cur_id(cell_id);
@@ -524,6 +548,125 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     await delay(5);
     if (this._state === "closed") return;
     actions.focus();
+  }
+
+  private getCellLabel(cellId: string): string {
+    const store = this.jupyter_actions?.store;
+    const cellList = store?.get("cell_list");
+    const idx = cellList?.indexOf(cellId) ?? -1;
+    return idx >= 0 ? `Cell ${idx + 1}` : "Cell";
+  }
+
+  // Wait until the side-chat actions (syncdb) are available. This is enough
+  // for pure "open an existing thread" or "stage a new thread" entry points;
+  // `openCellChat` additionally waits for `store.messages` before inspecting
+  // them (see that method).
+  private async waitForChatActions(): Promise<ReturnType<
+    typeof getSideChatActions
+  > | null> {
+    for (const d of [1, 10, 50, 200, 500, 1000, 2000, 4000]) {
+      await delay(d);
+      if (this._state === "closed") return null;
+      const chatActions = getSideChatActions({
+        project_id: this.project_id,
+        path: this.path,
+      });
+      if (chatActions?.syncdb) return chatActions;
+    }
+    return null;
+  }
+
+  // Show the side chat in regular chat mode (not assistant). If the frame
+  // already exists but is in assistant mode, switch it over.
+  private showChatFrameInChatMode(): void {
+    const frameId = this.show_focused_frame_of_type("chat", "col", false, 0.7);
+    if (frameId) {
+      this.set_frame_tree({ id: frameId, chat_mode: "chat" });
+    }
+  }
+
+  // Monotonic generation so a slow-path openCellChat polling loop can
+  // detect that a newer click (on another cell, or on an existing thread,
+  // or the Cancel button) has superseded it, and bail out without
+  // reverting the sidebar to its stale target.
+  private cellChatOpenGeneration = 0;
+
+  public async openCellChat(cellId: string): Promise<void> {
+    const gen = ++this.cellChatOpenGeneration;
+    this.showChatFrameInChatMode();
+    const cellLabel = this.getCellLabel(cellId);
+    const chatActions = await this.waitForChatActions();
+    if (chatActions == null) return;
+    if (gen !== this.cellChatOpenGeneration) return;
+
+    // Fast path: chat history is already hydrated, so we can synchronously
+    // decide whether to select an existing thread or stage a pending one.
+    if (chatActions.store?.get("messages") != null) {
+      chatActions.findOrCreateAnchorThread(cellId, cellLabel);
+      return;
+    }
+
+    // Slow path: messages haven't loaded yet. Do NOT stage a pending anchor
+    // upfront — doing so would allow a "Start discussion..." compose view to
+    // appear before we know whether a thread for this cell already exists,
+    // and a fast-typing user could then create a duplicate root. Instead,
+    // poll until messages hydrate, then call findOrCreateAnchorThread which
+    // selects the existing thread if one exists. While we wait, the
+    // chatroom renders its native loading state (messages == null branch).
+    for (const d of [50, 100, 200, 500, 1000, 2000, 4000]) {
+      await delay(d);
+      if (this._state === "closed") return;
+      if (gen !== this.cellChatOpenGeneration) return;
+      if (chatActions.store?.get("messages") != null) {
+        chatActions.findOrCreateAnchorThread(cellId, cellLabel);
+        return;
+      }
+    }
+  }
+
+  // Open the side chat and always create a new thread anchored to the given cell.
+  public async openCellChatNewThread(cellId: string): Promise<void> {
+    this.showChatFrameInChatMode();
+    const cellLabel = this.getCellLabel(cellId);
+    const chatActions = await this.waitForChatActions();
+    chatActions?.createAnchorThread(cellId, cellLabel);
+  }
+
+  // Open the side chat and select a specific thread by key.
+  public async openCellChatThread(threadKey: string): Promise<void> {
+    this.showChatFrameInChatMode();
+    const chatActions = await this.waitForChatActions();
+    chatActions?.setSelectedThread(threadKey);
+  }
+
+  // Generic anchor-adapter methods used by shared chat UI (ThreadAnchorButton,
+  // CellChatUnreadBadge, etc.). Jupyter-specific callers should keep using
+  // `openCellChat*` / `jump_to_cell`; these thin wrappers let the generic UI
+  // treat jupyter and other editors uniformly.
+  public jumpToAnchor(id: string): void {
+    this.jump_to_cell(id);
+  }
+
+  public getAnchorLabel(id: string): string {
+    return this.getCellLabel(id);
+  }
+
+  public getAnchorLocations(
+    id: string,
+  ): Array<{ path?: string; line?: number; label?: string }> {
+    const store = this.jupyter_actions?.store;
+    const cellList = store?.get("cell_list");
+    const idx = cellList?.indexOf(id) ?? -1;
+    if (idx < 0) return [];
+    return [{ label: `Cell ${idx + 1}` }];
+  }
+
+  public openAnchorChat(id: string, _path?: string): Promise<void> {
+    return this.openCellChat(id);
+  }
+
+  public openAnchorChatThread(threadKey: string): Promise<void> {
+    return this.openCellChatThread(threadKey);
   }
 
   public async show_table_of_contents(
@@ -569,8 +712,12 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       // deal with side chat in base class
       await super.gotoFragment(fragmentId);
     }
+    // Prefer an existing notebook frame (minimal or default) rather than
+    // always creating a jupyter_cell_notebook which overrides the saved layout.
+    const existingMinimal = this._get_most_recent_active_frame_id_of_type("jupyter_minimal");
+    const frameType = existingMinimal ? "jupyter_minimal" : "jupyter_cell_notebook";
     const frameId = await this.waitUntilFrameReady({
-      type: "jupyter_cell_notebook",
+      type: frameType,
       syncdoc: this.jupyter_actions.syncdb,
     });
     if (!frameId) return;

@@ -6,7 +6,6 @@
 // Multiplex'd worksheet mode
 
 import { MARKERS } from "@cocalc/util/sagews";
-import { clone, object } from "underscore";
 import CodeMirror from "./codemirror";
 import "codemirror/addon/mode/multiplex";
 import "./multiplex";
@@ -190,7 +189,9 @@ CodeMirror.defineMode("sagews", function (config) {
 CodeMirror.defineMode("rmd", function (config) {
   // derived from the sagews modes with some additions
   let mode, open;
-  const modes = clone(object(sagews_decorator_modes));
+  const modes: Record<string, string> = {
+    ...Object.fromEntries(sagews_decorator_modes),
+  };
   modes["fortran95"] = modes["fortran"];
   modes["octave"] = "octave";
   modes["bash"] = modes["sh"];

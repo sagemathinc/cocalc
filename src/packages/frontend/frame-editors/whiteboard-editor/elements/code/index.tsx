@@ -15,7 +15,6 @@
 import { debounce } from "lodash";
 import { useEffect, useRef, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";
-import useResizeObserver from "use-resize-observer";
 
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { codemirrorMode } from "@cocalc/frontend/file-extensions";
@@ -88,129 +87,112 @@ export default function Code({
   const outerRef = useRef<HTMLDivElement>(null);
   const divRef = useRef<any>(null);
   const getValueRef = useRef<any>(null);
-  const resize = useResizeObserver({
-    ref: readOnly || !focused ? undefined : divRef,
-  });
-  const resizeRef = useRef<Function | null>(null);
 
-  function getOuterChromeHeight(): number {
-    const elt = outerRef.current;
-    if (elt == null) return 0;
-    const style = getComputedStyle(elt);
-    const toNumber = (value: string): number => Number.parseFloat(value) || 0;
-    return (
-      toNumber(style.paddingTop) +
-      toNumber(style.paddingBottom) +
-      toNumber(style.borderTopWidth) +
-      toNumber(style.borderBottomWidth)
-    );
+  // Track element.h in a ref so callbacks always see the latest value.
+  const elementHRef = useRef<number>(element.h ?? 0);
+  elementHRef.current = element.h ?? 0;
+
+  function getOuterChrome(): { border: number; padding: number } {
+    const outer = outerRef.current;
+    if (outer == null) return { border: 0, padding: 0 };
+    const style = getComputedStyle(outer);
+    const toNum = (v: string) => Number.parseFloat(v) || 0;
+    return {
+      border: toNum(style.borderTopWidth) + toNum(style.borderBottomWidth),
+      padding: toNum(style.paddingTop) + toNum(style.paddingBottom),
+    };
   }
 
-  function measureFocusedHeight(): number | undefined {
-    // Use divRef (inner div, no fixed height) so scrollHeight reflects
-    // actual content — including collapsed child margins like the
-    // InputPrompt's margin-top. outerRef.scrollHeight can't be used
-    // because its fixed height prevents detecting shrink.
+  // Measure using outerRef.scrollHeight (accurate, blocks margin collapse).
+  // When focused, outerRef has height:100% so scrollHeight can't drop
+  // below element.h — measureHeightInner provides a fallback for shrink.
+  function measureHeight(): number | undefined {
+    const outer = outerRef.current;
+    if (outer == null) return;
+    const { border } = getOuterChrome();
+    return Math.max(MIN_HEIGHT, Math.ceil(outer.scrollHeight + border));
+  }
+
+  // Fallback measurement via divRef for detecting shrink in focused mode.
+  // May slightly underestimate due to margin collapse, but correctly
+  // detects "content got smaller than element.h".
+  function measureHeightInner(): number | undefined {
     const inner = divRef.current;
     if (inner == null) return;
-    return Math.max(
-      MIN_HEIGHT,
-      Math.ceil(inner.scrollHeight + getOuterChromeHeight()),
-    );
+    const { border, padding } = getOuterChrome();
+    return Math.max(MIN_HEIGHT, Math.ceil(inner.scrollHeight + padding + border));
   }
 
-  function measureUnfocusedHeight(): number | undefined {
-    // Use divRef (inner div) since outerRef has minHeight:100% which
-    // prevents detecting shrink when content gets smaller.
-    const inner = divRef.current;
-    if (inner == null) return;
-    return Math.max(
-      MIN_HEIGHT,
-      Math.ceil(inner.scrollHeight + getOuterChromeHeight()),
-    );
-  }
-
+  // Single unified height-sync effect for both focused and unfocused modes.
+  // Observes both outerRef (for scrollHeight measurement) and divRef (to
+  // catch internal content changes that may not resize outerRef when it has
+  // a fixed height in focused mode).
   useEffect(() => {
-    if (readOnly || !focused) {
-      resizeRef.current = null;
-      return;
-    }
+    if (readOnly) return;
+    const outer = outerRef.current;
+    const inner = divRef.current;
+    if (outer == null || inner == null) return;
+    if (typeof ResizeObserver === "undefined") return;
 
-    const shrinkElement = debounce(() => {
+    const shrink = debounce(() => {
       if (actions.in_undo_mode() && element.str == getValueRef.current?.()) {
         return;
       }
-      const h = measureFocusedHeight();
-      if (h == null) return;
-      // Only update if the change is significant to prevent oscillation
-      // from sub-pixel rounding differences.
-      if (Math.abs(h - (element.h ?? 0)) > 2) {
-        actions.setElement({
-          obj: { id: element.id, h },
-          commit: false,
-        });
+      // Use inner measurement for shrink (outerRef can't shrink in focused mode).
+      const h = focused ? measureHeightInner() : measureHeight();
+      if (h != null && Math.abs(h - elementHRef.current) > 2) {
+        actions.setElement({ obj: { id: element.id, h }, commit: !focused });
       }
     }, 250);
 
-    resizeRef.current = () => {
+    const sync = () => {
       if (actions.in_undo_mode() && element.str == getValueRef?.current?.()) {
         return;
       }
-      const newHeight = measureFocusedHeight();
-      if (newHeight == null) return;
-      if (newHeight > element.h) {
-        shrinkElement.cancel();
-        actions.setElement({
-          obj: { id: element.id, h: newHeight },
-          commit: false,
-        });
-      } else if (newHeight < element.h) {
-        shrinkElement();
-      }
-    };
-
-    resizeRef.current?.();
-
-    return () => {
-      shrinkElement.cancel();
-    };
-  }, [element.id, canvasScale, editFocus, readOnly, focused]);
-
-  useEffect(() => {
-    resizeRef.current?.();
-  }, [resize]);
-
-  // Re-measure height when losing focus, since the unfocused render has
-  // different dimensions (no ControlBar, InputStatic instead of Input, etc.)
-  useEffect(() => {
-    if (focused || readOnly) return;
-    const inner = divRef.current;
-    if (inner == null) return;
-    if (typeof ResizeObserver === "undefined") return;
-    let lastH = element.h ?? 0;
-    const measure = () => {
-      const h = measureUnfocusedHeight();
+      const h = measureHeight();
       if (h == null) return;
-      if (Math.abs(h - lastH) > 2) {
-        lastH = h;
-        actions.setElement({ obj: { id: element.id, h }, commit: true });
+      if (h > elementHRef.current) {
+        // Grow immediately so bounding box matches content.
+        // Commit when unfocused so collaborators see the change.
+        shrink.cancel();
+        actions.setElement({ obj: { id: element.id, h }, commit: !focused });
+      } else if (!focused && h < elementHRef.current - 2) {
+        // Shrink with a delay to avoid oscillation.
+        // Only shrink when unfocused — in focused mode, outerRef has
+        // height:100% so scrollHeight can't drop, and using the inner
+        // measurement causes oscillation. Shrink happens on blur.
+        shrink();
       }
     };
-    // Observe the inner div — outerRef has minHeight:100% so it
-    // won't shrink, but divRef reflects actual content changes.
-    const observer = new ResizeObserver(measure);
+
+    const observer = new ResizeObserver(sync);
+    observer.observe(outer);
     observer.observe(inner);
-    measure();
-    const isRunning =
-      element.data?.runState != null && element.data?.runState !== "done";
-    const timeout = isRunning
-      ? undefined
-      : setTimeout(() => observer.disconnect(), 5000);
+
+    // Immediate measurement.
+    sync();
+    // Deferred: catch children that lay out after the first frame
+    // (e.g. CodeMirror editor, output rendering).
+    const raf = requestAnimationFrame(sync);
+
+    // For unfocused cells, disconnect after 5s unless a computation is
+    // running (output may still be streaming in).
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    if (!focused) {
+      const isRunning =
+        element.data?.runState != null && element.data?.runState !== "done";
+      if (!isRunning) {
+        timeout = setTimeout(() => observer.disconnect(), 5000);
+      }
+    }
+
     return () => {
       observer.disconnect();
+      shrink.cancel();
+      cancelAnimationFrame(raf);
       if (timeout != null) clearTimeout(timeout);
     };
-  }, [focused, element.id, canvasScale, element.data?.runState]);
+  }, [focused, element.id, canvasScale, editFocus, readOnly, element.data?.runState]);
 
   return (
     <div
@@ -218,7 +200,7 @@ export default function Code({
       style={{
         ...getStyle(element),
         ...(focused
-          ? { height: "100%" }
+          ? { height: "100%", overflowY: "hidden" }
           : { minHeight: "100%", height: "auto", overflowY: "visible" }),
       }}
     >

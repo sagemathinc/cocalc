@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -69,7 +69,7 @@ export interface CellInputProps {
   llmTools?: LLMTools;
   computeServerId?: number;
   setShowAICellGen?: (show: Position) => void;
-  dragHandle?: React.JSX.Element;
+  showDragHandle?: boolean;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
@@ -100,7 +100,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             end={props.cell.get("end")}
             actions={props.actions}
             id={props.id}
-            dragHandle={props.dragHandle}
+            showDragHandle={props.showDragHandle}
             read_only={props.input_is_readonly}
           />
         </HiddenXS>
@@ -324,9 +324,10 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           onFocus={() => {
             const actions = frameActions.current;
             if (actions != null) {
-              actions.unselect_all_cells();
-              actions.set_cur_id(props.id);
-              actions.set_mode("edit");
+              actions.activate_cell(props.id, {
+                mode: "edit",
+                clearSelection: true,
+              });
             }
           }}
           registerEditor={(editor) => {
@@ -472,7 +473,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       (next.llmTools?.model ?? "") !== (cur.llmTools?.model ?? "") ||
       next.index !== cur.index ||
       next.computeServerId != cur.computeServerId ||
-      next.dragHandle !== cur.dragHandle ||
+      next.showDragHandle !== cur.showDragHandle ||
       (next.cell_toolbar === "slideshow" &&
         next.cell.get("slide") !== cur.cell.get("slide"))
     ),

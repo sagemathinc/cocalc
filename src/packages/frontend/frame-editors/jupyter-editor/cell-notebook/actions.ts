@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -99,11 +99,14 @@ export class NotebookFrameActions {
   }
 
   private init_syncdb_change_hook(): void {
-    this.jupyter_actions.store.on(
+    // jupyter_actions (or its store) may be undefined during a rapid
+    // frame-type toggle or while TimeTravel is still loading — guard
+    // with optional chaining, matching the pattern above.
+    this.jupyter_actions?.store?.on(
       "syncdb-before-change",
       this.syncdb_before_change,
     );
-    this.jupyter_actions.store.on(
+    this.jupyter_actions?.store?.on(
       "syncdb-after-change",
       this.syncdb_after_change,
     );
@@ -199,19 +202,20 @@ export class NotebookFrameActions {
   }
 
   public close(): void {
-    this.jupyter_actions.store.removeListener(
+    if (this._is_closed) return;
+    this.jupyter_actions?.store?.removeListener(
       "syncdb-before-change",
       this.syncdb_before_change,
     );
-    this.jupyter_actions.store.removeListener(
+    this.jupyter_actions?.store?.removeListener(
       "cell-list-recompute",
       this.update_cur_id,
     );
-    this.jupyter_actions.store.removeListener(
+    this.jupyter_actions?.store?.removeListener(
       "syncdb-after-change",
       this.syncdb_after_change,
     );
-    this.store.close();
+    this.store?.close();
     close(this);
     this._is_closed = true;
   }
@@ -304,8 +308,7 @@ export class NotebookFrameActions {
     const cell_list = this.jupyter_actions.store.get_cell_list();
     if (cell_list.get(cell_list.size - 1) === last_id) {
       const new_id = this.insert_cell(1);
-      this.set_cur_id(new_id);
-      this.set_mode("edit");
+      this.activate_cell(new_id, { mode: "edit" });
     } else {
       this.set_mode("escape");
       this.move_cursor(1);
@@ -319,8 +322,7 @@ export class NotebookFrameActions {
     const cell_list = this.jupyter_actions.store.get_cell_list();
     if (cell_list.get(cell_list.size - 1) === cur_id) {
       const new_id = this.insert_cell(1);
-      this.set_cur_id(new_id);
-      this.set_mode("edit");
+      this.activate_cell(new_id, { mode: "edit" });
     } else {
       this.set_mode("escape");
       this.move_cursor(1);
@@ -479,6 +481,66 @@ export class NotebookFrameActions {
     }
   }
 
+  public activate_cell(
+    id: string,
+    opts: {
+      mode: "escape" | "edit";
+      clearSelection?: boolean;
+    },
+  ): void {
+    this.validate({ id });
+    const { mode, clearSelection = false } = opts;
+    const store = this.jupyter_actions.store;
+    if (store.get("read_only") && mode === "edit") {
+      return;
+    }
+
+    const prev_id = this.store.get("cur_id");
+    const nextState: {
+      cur_id: string;
+      mode: "escape" | "edit";
+      sel_ids?: Set<string>;
+      md_edit_ids?: Set<string>;
+    } = {
+      cur_id: id,
+      mode,
+    };
+
+    if (clearSelection) {
+      nextState.sel_ids = Set();
+    }
+
+    if (
+      mode === "edit" &&
+      store.getIn(["cells", id, "cell_type"]) === "markdown" &&
+      store.is_cell_editable(id)
+    ) {
+      this.jupyter_actions.set_jupyter_metadata(
+        id,
+        "input_hidden",
+        undefined,
+        false,
+      );
+      const md_edit_ids = this.store.get("md_edit_ids", Set());
+      if (!md_edit_ids.contains(id)) {
+        nextState.md_edit_ids = md_edit_ids.add(id);
+      }
+    }
+
+    this.enable_key_handler();
+    this.setState(nextState);
+    if (mode === "edit") {
+      this.input_editors[id]?.focus?.();
+    }
+
+    if (
+      id != prev_id &&
+      this.frame_tree_actions._get_active_id() == this.frame_id
+    ) {
+      Fragment.set({ id });
+    }
+  }
+
   get_cell_by_id(id: string): Cell | undefined {
     const cells = this.jupyter_actions.store.get("cells");
     if (cells == null) return;
@@ -493,9 +555,7 @@ export class NotebookFrameActions {
       // TODO: NEVER ever silently fail!
       return;
     }
-    this.set_md_cell_editing(id);
-    this.set_cur_id(id);
-    this.set_mode("edit");
+    this.activate_cell(id, { mode: "edit" });
   }
 
   public cell_md_is_editing(id): boolean {
@@ -513,12 +573,10 @@ export class NotebookFrameActions {
 
     if (this.cell_md_is_editing(id)) {
       this.set_md_cell_not_editing(id);
-      this.set_mode("escape");
+      this.activate_cell(id, { mode: "escape" });
     } else {
-      this.switch_md_cell_to_edit(id);
-      this.set_mode("edit");
+      this.activate_cell(id, { mode: "edit" });
     }
-    this.set_cur_id(id);
   }
 
   public switch_code_cell_to_edit(id: string): void {
@@ -529,8 +587,7 @@ export class NotebookFrameActions {
       // TODO: NEVER ever silently fail!
       return;
     }
-    this.set_cur_id(id);
-    this.set_mode("edit");
+    this.activate_cell(id, { mode: "edit" });
   }
 
   // Called when the cell list changes due to external events.
@@ -735,9 +792,7 @@ export class NotebookFrameActions {
   }
 
   /** Get cursor position for a specific cell (or the focused cell). */
-  getCursorPosition(
-    id?: string,
-  ): { line: number; ch: number } | undefined {
+  getCursorPosition(id?: string): { line: number; ch: number } | undefined {
     const cellId = id ?? this.store.get("cur_id");
     if (!cellId) return undefined;
     return this.input_editors[cellId]?.get_cursor?.();
@@ -1002,8 +1057,7 @@ export class NotebookFrameActions {
     );
     // Set mode back to edit in the next loop.
     await delay(0);
-    this.set_cur_id(new_id);
-    this.set_mode("edit");
+    this.activate_cell(new_id, { mode: "edit" });
     this.scroll("cell visible");
   }
 

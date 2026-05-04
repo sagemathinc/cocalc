@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -8,26 +8,15 @@ Our predefined terminal color themes.
 */
 
 import { ITheme, Terminal } from "@xterm/xterm";
-import { COLOR_THEMES } from "./theme-data";
+import { COLOR_THEMES, getThemeName } from "./theme-data";
 
 export function background_color(theme_name: string): string {
-  const t = COLOR_THEMES[theme_name];
-  if (t == null) {
-    // should never happen
-    return "white";
-  }
+  const t = COLOR_THEMES[getThemeName(theme_name)];
   return t.colors[17];
 }
 
 export function setTheme(terminal: Terminal, theme_name: string): void {
-  let t = COLOR_THEMES[theme_name];
-  if (t == null) {
-    t = COLOR_THEMES["default"];
-    if (t == null) {
-      // can't happen
-      return;
-    }
-  }
+  const t = COLOR_THEMES[getThemeName(theme_name)];
   const colors = t.colors;
   if (colors == null) {
     // satisfies typescript

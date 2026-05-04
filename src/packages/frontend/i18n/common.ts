@@ -398,15 +398,13 @@ export const labels = defineMessages({
   paste_here: { id: "labels.paste_here", defaultMessage: "Paste here" },
   clipboard_paste_to_copy: {
     id: "labels.clipboard_paste_to_copy",
-    defaultMessage:
-      "Copy {count, plural, one {# file} other {# files}} here",
+    defaultMessage: "Copy {count, plural, one {# file} other {# files}} here",
     description:
       "Clipboard pill button: paste N files that were queued via copy",
   },
   clipboard_paste_to_cut: {
     id: "labels.clipboard_paste_to_cut",
-    defaultMessage:
-      "Move {count, plural, one {# file} other {# files}} here",
+    defaultMessage: "Move {count, plural, one {# file} other {# files}} here",
     description:
       "Clipboard pill button: paste N files that were queued via cut (move)",
   },
@@ -418,7 +416,7 @@ export const labels = defineMessages({
   clipboard_tip: {
     id: "labels.clipboard_tip",
     defaultMessage:
-      "Click to paste into the current directory.{br}{br}<b>Copy</b> and <b>Cut</b> both clear the clipboard after pasting.{br}Hold <b>Shift</b> while clicking to keep the clipboard for pasting into multiple directories.{br}{br}Works across projects. Click <b>✕</b> to clear.",
+      "Click to paste into the current directory.<ul><li><b>Copy</b> and <b>Cut</b> both clear the clipboard after pasting.</li><li>Hold <b>Shift</b> while clicking to keep the clipboard for pasting into multiple directories.</li><li>Works across projects. Click <b>✕</b> to clear.</li></ul>",
     description:
       "Tooltip explaining file clipboard paste behavior, shown on hover over the paste pill/banner",
   },

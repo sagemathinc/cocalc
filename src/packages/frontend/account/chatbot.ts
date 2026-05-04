@@ -18,12 +18,14 @@ import {
   fromMistralService,
   fromOllamaModel,
   fromXaiService,
+  fromZaiService,
   isAnthropicService,
   isCustomOpenAI,
   isMistralService,
   isOllamaLLM,
   isUserDefinedModel,
   isXaiService,
+  isZaiService,
 } from "@cocalc/util/db-schema/llm-utils";
 
 // we either check if the prefix is one of the known ones (used in some circumstances)
@@ -55,6 +57,9 @@ export function chatBotName(account_id?: string): string {
   }
   if (isXaiService(account_id)) {
     return LLM_USERNAMES[fromXaiService(account_id)] ?? "xAI";
+  }
+  if (isZaiService(account_id)) {
+    return LLM_USERNAMES[fromZaiService(account_id)] ?? "Z.AI";
   }
   if (isAnthropicService(account_id)) {
     return LLM_USERNAMES[fromAnthropicService(account_id)] ?? "Anthropic";

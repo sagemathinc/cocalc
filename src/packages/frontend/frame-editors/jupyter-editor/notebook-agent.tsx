@@ -591,7 +591,6 @@ export function NotebookAgent({
         const system = buildSystemPrompt(ctx, { readOnly, autoRun: autoRunRef.current });
 
         let history: AgentHistoryMessage[] = buildHistoryForLlm(prompt, system);
-
         let currentPrompt = prompt;
         let loops = MAX_TOOL_LOOPS;
 
@@ -669,6 +668,13 @@ export function NotebookAgent({
             },
           ]);
 
+          // The current user prompt (original instruction on the first
+          // iteration, buildPostToolPrompt on subsequent ones) was sent as
+          // `input` for this turn but isn't in the history array yet.
+          // Push it now so the next tool-loop turn sees the full exchange.
+          // (buildHistoryForLlm uses a stale React closure, so the
+          // original prompt is never in the initial history.)
+          history.push({ role: "user", content: currentPrompt });
           history.push({
             role: "assistant",
             content: compactAssistantMessageForHistory(assistantText),
@@ -733,6 +739,25 @@ export function NotebookAgent({
       }, 100);
       return;
     }
+    if (seed.insert) {
+      // Insert mode: append to the existing input (e.g. a cell reference like
+      // "#5") without starting a new session or submitting. Remount the input
+      // so the cursor lands at the end of the appended text.
+      setInput((prev) => {
+        const sep = prev && !prev.endsWith(" ") ? " " : "";
+        const next = `${prev}${sep}${seed.prompt} `;
+        updateEstimate(next);
+        return next;
+      });
+      setInputKey((k) => k + 1);
+      setTimeout(() => {
+        const sel = window.getSelection();
+        if (sel && sel.focusNode) {
+          sel.collapseToEnd();
+        }
+      }, 100);
+      return;
+    }
     if (seed.forceNewTurn !== false) {
       session.handleNewSession();
     }
@@ -758,6 +783,8 @@ export function NotebookAgent({
     if (msg.sender === "assistant") {
       // Strip tool invocation blocks (machine-readable JSON)
       content = content.replace(/^```tool\n[\s\S]*?\n```\s*$/gm, "").trim();
+      // Also strip unclosed tool blocks — some models omit the closing ```
+      content = content.replace(/^```tool\n[\s\S]*/m, "").trim();
       // Some LLMs echo the tool call JSON or code with literal \n escapes
       // in their prose. Convert escaped newlines to real ones so
       // StaticMarkdown can render them properly — but only outside

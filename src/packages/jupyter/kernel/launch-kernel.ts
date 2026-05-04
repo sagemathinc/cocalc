@@ -17,7 +17,7 @@
 
 import * as path from "path";
 import * as fs from "fs";
-import * as uuid from "uuid";
+import { v4 as uuidv4 } from "uuid";
 import { mkdir } from "fs/promises";
 import { spawn } from "node:child_process";
 import { findAll } from "kernelspecs";
@@ -79,7 +79,7 @@ interface ConnectionInfo {
 function connectionInfo(ports): ConnectionInfo {
   return {
     version: 5,
-    key: uuid.v4(),
+    key: uuidv4(),
     signature_scheme: "hmac-sha256",
     transport: "tcp",
     ip: "127.0.0.1",

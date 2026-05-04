@@ -3,13 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Segmented, Spin } from "antd";
-import { Suspense, useEffect, useState } from "react";
+import { Alert, Badge, Button, Segmented, Spin } from "antd";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
-import { redux } from "@cocalc/frontend/app-framework";
+import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
 import { initChat } from "@cocalc/frontend/chat/register";
 import SideChat from "@cocalc/frontend/chat/side-chat";
+import { useThreadList } from "@cocalc/frontend/chat/threads";
 import { Icon } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { chatroom } from "@cocalc/frontend/frame-editors/chat-editor/editor";
@@ -49,6 +50,16 @@ function Chat({ font_size, desc }: EditorComponentProps) {
 
   // Read the active tab mode from the frame tree state.
   const mode: ChatMode = desc.get("chat_mode") ?? "chat";
+
+  // Total unread count across all threads in this side chat, so we can
+  // surface it as a red badge on the "Chat" tab of the mode selector.
+  const chatMessages = useRedux(["messages"], project_id, path);
+  const accountId = redux.getStore("account")?.get_account_id();
+  const sideChatThreads = useThreadList(chatMessages, accountId);
+  const sideChatUnread = useMemo(
+    () => sideChatThreads.reduce((sum, t) => sum + t.unreadCount, 0),
+    [sideChatThreads],
+  );
 
   const setMode = (newMode: ChatMode) => {
     actions.set_frame_tree({ id: frameId, chat_mode: newMode });
@@ -123,7 +134,14 @@ function Chat({ font_size, desc }: EditorComponentProps) {
     mode === "assistant" && EmbeddedAgent != null && !aiEnabled;
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+      }}
+    >
       {/* Tab selector — only show when an agent is available */}
       {EmbeddedAgent != null && aiEnabled && (
         <div
@@ -146,6 +164,14 @@ function Chat({ font_size, desc }: EditorComponentProps) {
                 label: (
                   <span>
                     <Icon name="comment" /> Chat
+                    {sideChatUnread > 0 && (
+                      <Badge
+                        count={sideChatUnread}
+                        overflowCount={99}
+                        size="small"
+                        style={{ marginLeft: 6 }}
+                      />
+                    )}
                   </span>
                 ),
               },
@@ -158,7 +184,7 @@ function Chat({ font_size, desc }: EditorComponentProps) {
       {/* Content area — position:relative + absolute child guarantees
            a definite height for the embedded agent, avoiding flex-height
            resolution issues that prevent overflowY from working. */}
-      <div style={{ flex: 1, position: "relative" }}>
+      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
         {showAssistantDisabled ? (
           <div style={{ padding: 12 }}>
             <Alert

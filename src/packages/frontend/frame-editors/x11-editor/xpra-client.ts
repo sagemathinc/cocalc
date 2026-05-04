@@ -6,7 +6,7 @@
 // Use Xpra to provide X11 server.
 
 import { join } from "path";
-import { throttle } from "underscore";
+import throttle from "lodash/throttle";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { open_new_tab } from "@cocalc/frontend/misc";

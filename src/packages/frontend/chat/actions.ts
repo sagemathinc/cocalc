@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -52,8 +52,14 @@ import type {
   ChatMessageTyped,
   Feedback,
   MessageHistory,
+  ResolvedMeta,
 } from "./types";
-import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
+import {
+  anchorIdOf,
+  getReplyToRoot,
+  getThreadRootDate,
+  toMsString,
+} from "./utils";
 
 const MAX_CHAT_STREAM = 10;
 
@@ -170,6 +176,8 @@ export class ChatActions extends Actions<ChatState> {
     submitMentionsRef,
     extraInput,
     name,
+    id: anchor_id,
+    path: anchor_path,
   }: {
     input?: string;
     sender_id?: string;
@@ -180,6 +188,11 @@ export class ChatActions extends Actions<ChatState> {
     extraInput?: string;
     // if name is given, rename thread to have that name
     name?: string;
+    // when set on a root message, anchors this thread to a source-document
+    // location (jupyter cell UUID, LaTeX marker hash, etc.).
+    id?: string;
+    // optional sub-file path for multi-file editors (e.g. LaTeX `\input`).
+    path?: string;
   }): string => {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to sendChat before chat actions initialized");
@@ -199,7 +212,25 @@ export class ChatActions extends Actions<ChatState> {
       // do not send when there is nothing to send.
       return "";
     }
-    const trimmedName = name?.trim();
+    // When starting a new thread, pick up any pending anchor staged by the
+    // editor (e.g. jupyter Chat button, LaTeX marker insertion) so the first
+    // real message becomes the root.
+    let effectiveAnchorId = anchor_id;
+    let effectiveAnchorPath = anchor_path;
+    let effectiveName = name;
+    const pending = !reply_to ? this.getPendingAnchorThread() : null;
+    if (pending) {
+      // Trust the staged anchor: an empty location lookup is not conclusive
+      // evidence that the marker is gone. Marker scans are debounced, only
+      // track currently-open files, and may not have run yet when the first
+      // message is sent right after inserting the marker. The editor's own
+      // reconcile path (`_reconcilePendingAnchor`) clears or renames a
+      // stale pending anchor when it has positive evidence.
+      effectiveAnchorId ??= pending.id;
+      effectiveAnchorPath ??= pending.path;
+      effectiveName ??= pending.label;
+    }
+    const trimmedName = effectiveName?.trim();
     const message: ChatMessage = {
       sender_id,
       event: "chat",
@@ -217,6 +248,20 @@ export class ChatActions extends Actions<ChatState> {
     if (trimmedName && !reply_to) {
       (message as any).name = trimmedName;
     }
+    if (effectiveAnchorId && !reply_to) {
+      message.id = effectiveAnchorId;
+      if (effectiveAnchorPath) {
+        message.path = effectiveAnchorPath;
+      }
+    }
+    // Stamp the sender's lastread directly on the new root so their own
+    // message doesn't count as unread from the moment it hits the store.
+    // (The async `updateLastRead` call below won't race then: it's still
+    // invoked for consistency / count-based backward-compat fields, but the
+    // badge-driving timestamp is already in place.)
+    if (!reply_to && sender_id) {
+      (message as any)[`lastread-${sender_id}`] = time_stamp.valueOf();
+    }
     this.syncdb.set(message);
     const messagesState = this.store.get("messages");
     let selectedThreadKey: string;
@@ -229,6 +274,10 @@ export class ChatActions extends Actions<ChatState> {
       // For replies search find full threads not individual messages.
       this.clearAllFilters();
       selectedThreadKey = `${time_stamp.valueOf()}`;
+      if (pending) {
+        // The pending anchor has now become a real root message; clear it.
+        this.setPendingAnchorThread(null);
+      }
     } else {
       // when replying we make sure that the thread is expanded, since otherwise
       // our reply won't be visible
@@ -278,6 +327,10 @@ export class ChatActions extends Actions<ChatState> {
       ttl: 10000,
     });
     track("send_chat", { project_id, path });
+
+    // Mark the sender's own message as read so they don't see an unread
+    // badge for a thread they just wrote in.
+    this.updateLastRead(selectedThreadKey, time_stamp.valueOf(), false);
 
     this.save_to_disk();
     (async () => {
@@ -559,17 +612,15 @@ export class ChatActions extends Actions<ChatState> {
     if (this.syncdb == null) {
       return false;
     }
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) {
       return false;
     }
     const trimmed = name.trim();
-    if (trimmed) {
-      entry.doc.name = trimmed;
-    } else {
-      delete entry.doc.name;
-    }
-    this.syncdb.set(entry.doc);
+    this.syncdb.set({
+      ...entry.key,
+      name: trimmed || null,
+    });
     this.syncdb.commit();
     return true;
   };
@@ -578,16 +629,14 @@ export class ChatActions extends Actions<ChatState> {
     if (this.syncdb == null) {
       return false;
     }
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) {
       return false;
     }
-    if (pinned) {
-      entry.doc.pin = true;
-    } else {
-      entry.doc.pin = false;
-    }
-    this.syncdb.set(entry.doc);
+    this.syncdb.set({
+      ...entry.key,
+      pin: pinned,
+    });
     this.syncdb.commit();
     return true;
   };
@@ -604,12 +653,14 @@ export class ChatActions extends Actions<ChatState> {
     if (!account_id || !Number.isFinite(count)) {
       return false;
     }
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) {
       return false;
     }
-    entry.doc[`read-${account_id}`] = count;
-    this.syncdb.set(entry.doc);
+    this.syncdb.set({
+      ...entry.key,
+      [`read-${account_id}`]: count,
+    });
     if (commit) {
       this.syncdb.commit();
     }
@@ -630,11 +681,11 @@ export class ChatActions extends Actions<ChatState> {
     if (!account_id || !Number.isFinite(dateMs)) {
       return false;
     }
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) {
       return false;
     }
-    const rawValue = entry.doc[`lastread-${account_id}`];
+    const rawValue = entry.message.get(`lastread-${account_id}`);
     const currentValue =
       typeof rawValue === "number"
         ? rawValue
@@ -645,7 +696,10 @@ export class ChatActions extends Actions<ChatState> {
       // don't go backwards
       return false;
     }
-    entry.doc[`lastread-${account_id}`] = dateMs;
+    const update: Record<string, any> = {
+      ...entry.key,
+      [`lastread-${account_id}`]: dateMs,
+    };
     // also update the count-based read field for backward compatibility
     const messages = this.store?.get("messages");
     if (messages) {
@@ -663,9 +717,9 @@ export class ChatActions extends Actions<ChatState> {
           }
         }
       }
-      entry.doc[`read-${account_id}`] = count;
+      update[`read-${account_id}`] = count;
     }
-    this.syncdb.set(entry.doc);
+    this.syncdb.set(update);
     if (commit) {
       this.syncdb.commit();
     }
@@ -676,7 +730,7 @@ export class ChatActions extends Actions<ChatState> {
   getLastRead = (threadKey: string): number | undefined => {
     const account_id = this.redux.getStore("account").get_account_id();
     if (!account_id) return undefined;
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) return undefined;
     const val = entry.message.get(`lastread-${account_id}`);
     if (typeof val === "number" && val > 0) return val;
@@ -687,9 +741,12 @@ export class ChatActions extends Actions<ChatState> {
     return undefined;
   };
 
-  private getThreadRootDoc = (
+  private getThreadRootEntry = (
     threadKey: string,
-  ): { doc: any; message: ChatMessageTyped } | null => {
+  ): {
+    key: { date: string; sender_id: string; event: "chat" };
+    message: ChatMessageTyped;
+  } | null => {
     if (this.store == null) {
       return null;
     }
@@ -709,6 +766,10 @@ export class ChatActions extends Actions<ChatState> {
     if (message == null) {
       return null;
     }
+    const sender_id = message.get("sender_id");
+    if (typeof sender_id !== "string" || sender_id === "") {
+      return null;
+    }
     const dateField = message.get("date");
     const dateIso =
       dateField instanceof Date
@@ -719,8 +780,14 @@ export class ChatActions extends Actions<ChatState> {
     if (!dateIso) {
       return null;
     }
-    const doc = { ...message.toJS(), date: dateIso };
-    return { doc, message };
+    return {
+      key: {
+        date: dateIso,
+        sender_id,
+        event: "chat",
+      },
+      message,
+    };
   };
 
   save_scroll_state = (position, height, offset): void => {
@@ -856,7 +923,7 @@ export class ChatActions extends Actions<ChatState> {
     }
     const rootMs =
       getThreadRootDate({ date: date.valueOf(), messages }) || date.valueOf();
-    const entry = this.getThreadRootDoc(`${rootMs}`);
+    const entry = this.getThreadRootEntry(`${rootMs}`);
     const rootMessage = entry?.message;
     if (rootMessage == null) {
       return false;
@@ -1094,7 +1161,11 @@ export class ChatActions extends Actions<ChatState> {
           message: cur.toJS() as any as ChatMessage,
           messages,
         });
-        this.syncdb.delete({ event: "chat", date, sender_id: message.sender_id });
+        this.syncdb.delete({
+          event: "chat",
+          date,
+          sender_id: message.sender_id,
+        });
         this.syncdb.set({
           date,
           history: cur?.get("history") ?? [],
@@ -1385,6 +1456,151 @@ export class ChatActions extends Actions<ChatState> {
       id: this.frameId,
       selectedThreadKey: threadKey,
     });
+    if (threadKey != null) {
+      // Selecting an existing thread cancels any pending anchor — the next
+      // message will reply to this thread, not start a new anchored thread.
+      this.setPendingAnchorThread(null);
+    }
+  };
+
+  // Pending anchor thread: set by an editor (Jupyter "Chat" button, LaTeX
+  // marker insert, etc.) so the side chat knows the next root-message send
+  // should be anchored to this id/path. No chat message is written until the
+  // user actually sends one.
+  //
+  // set_frame_data runs the value through fromJS, so what we read back is an
+  // Immutable Map; convert to a plain object here.
+  getPendingAnchorThread = (): {
+    id: string;
+    label?: string;
+    path?: string;
+  } | null => {
+    const raw = this.frameTreeActions?._get_frame_data(
+      this.frameId,
+      "pendingAnchorThread",
+    );
+    if (raw == null) return null;
+    const value = raw?.toJS?.() ?? raw;
+    if (!value || typeof value.id !== "string") return null;
+    return {
+      id: value.id,
+      label: typeof value.label === "string" ? value.label : undefined,
+      path: typeof value.path === "string" ? value.path : undefined,
+    };
+  };
+
+  setPendingAnchorThread = (
+    pending: { id: string; label?: string; path?: string } | null,
+  ) => {
+    this.frameTreeActions?.set_frame_data({
+      id: this.frameId,
+      pendingAnchorThread: pending,
+    });
+  };
+
+  // Find the most recent thread anchored to the given id. If one exists,
+  // select it. Otherwise set a pending anchor so the next message sent will
+  // become that anchor's thread root.
+  findOrCreateAnchorThread = (
+    id: string,
+    label?: string,
+    path?: string,
+  ): string | null => {
+    if (!this.store) return null;
+    const messages = this.store.get("messages");
+    if (!messages) {
+      // Messages haven't finished syncing yet — we can't tell whether a
+      // thread for this anchor already exists, so staging a pending anchor
+      // here could create a duplicate root on the first send. Bail out;
+      // the caller (e.g. `waitForChatActions`) now waits for messages
+      // before invoking us, so this path should rarely hit in practice.
+      return null;
+    }
+
+    let bestKey: string | null = null;
+    let bestTime = 0;
+    for (const [key, msg] of messages) {
+      if (anchorIdOf(msg) === id && !msg.get("reply_to")) {
+        const t = msg.get("date")?.valueOf() ?? 0;
+        if (t > bestTime) {
+          bestTime = t;
+          bestKey = typeof key === "string" ? key : `${key}`;
+        }
+      }
+    }
+
+    if (bestKey) {
+      this.setSelectedThread(bestKey);
+      return bestKey;
+    }
+
+    // No existing thread — stage a pending anchor and clear selection so the
+    // chatroom renders a blank compose for this anchor.
+    this.setPendingAnchorThread({ id, label, path });
+    this.setSelectedThread(null);
+    return null;
+  };
+
+  // Always start a fresh thread anchored to the given id (no search for
+  // existing thread). Same deferred-creation semantics as above.
+  createAnchorThread = (
+    id: string,
+    label?: string,
+    path?: string,
+  ): string | null => {
+    this.setPendingAnchorThread({ id, label, path });
+    this.setSelectedThread(null);
+    return null;
+  };
+
+  // Mark an anchored root message as resolved (LaTeX collaborative-TODO
+  // flow). Stamps `resolved` metadata preserving the former anchor info, and
+  // clears the active `id`/`path` so the thread no longer matches its source
+  // anchor — `findOrCreateAnchorThread` and `useAnchoredThreads` will skip
+  // it. Idempotent.
+  //
+  // The caller is responsible for actually removing the source-document
+  // marker(s); see the LaTeX editor's `resolveChatMarker`.
+  resolveAnchorThread = (rootDate: Date): void => {
+    if (this.syncdb == null) return;
+    const cur = this.syncdb.get_one({ event: "chat", date: rootDate });
+    if (cur == null) return;
+    if (cur.get("resolved") != null) return;
+    const anchorId = cur.get("id") ?? cur.get("cell_id");
+    if (typeof anchorId !== "string" || anchorId.length === 0) {
+      // Not anchored — nothing to resolve.
+      return;
+    }
+    const account_id = this.redux.getStore("account").get_account_id();
+    const path = cur.get("path");
+    const editorActions: any = this.frameTreeActions;
+    const labelRaw =
+      typeof editorActions?.getAnchorLabel === "function"
+        ? editorActions.getAnchorLabel(anchorId)
+        : undefined;
+    const at = webapp_client.server_time().toISOString();
+    const resolved: ResolvedMeta = {
+      account_id,
+      at,
+      anchorId,
+    };
+    if (typeof path === "string" && path.length > 0) {
+      resolved.path = path;
+    }
+    if (typeof labelRaw === "string" && labelRaw.length > 0) {
+      resolved.label = labelRaw;
+    }
+    // Setting `id`/`path` to null clears the persisted values so the thread
+    // is no longer matched as an active anchor. `anchorIdOf` also has a
+    // belt-and-suspenders check on `resolved`.
+    this.syncdb.set({
+      resolved,
+      id: null,
+      path: null,
+      date: rootDate.toISOString(),
+    });
+    this.syncdb.commit();
+    this.save_to_disk();
   };
 }
 

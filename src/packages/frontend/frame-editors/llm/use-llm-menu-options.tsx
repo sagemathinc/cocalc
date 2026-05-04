@@ -13,6 +13,7 @@ import {
   MISTRAL_MODELS,
   MODELS_OPENAI,
   XAI_MODELS,
+  ZAI_MODELS,
   isLLMServiceName,
   toCustomOpenAIModel,
   toOllamaModel,
@@ -79,6 +80,7 @@ export function useAvailableLLMs(project_id: string) {
   if (have.mistralai) add("mistralai", MISTRAL_MODELS);
   if (have.anthropic) add("anthropic", ANTHROPIC_MODELS);
   if (have.xai) add("xai", XAI_MODELS);
+  if (have.zai) add("zai", ZAI_MODELS);
 
   const custom: Model[] = [];
   if (have.ollama && ollama) {
