@@ -50,11 +50,20 @@ export class ConatSocketClient extends ConatSocketBase {
   // ignore stale `connected` replies after disconnect+reconnect.
   private nextConnectAttemptId = 0;
   private connectAttempts = new Set<number>();
-  // Legacy compat probe (request/reply against pre-PR-8869 servers) is
-  // armed once per run() so its inbox subscription cost is one-shot,
-  // not paid on every connect retry inside the waitForConnected loop.
-  private legacyConnectProbeArmed = false;
+  // Legacy compat probe state (request/reply against pre-PR-8869
+  // servers).  Probe is deferred to give the modern publish/publish
+  // path a chance first, then retried with backoff if it times out --
+  // a transient probe failure must NOT leave a new client unable to
+  // ever reach an old server.
+  private legacyConnectProbeScheduled = false;
   private legacyConnectProbeTimer?: ReturnType<typeof setTimeout>;
+  // 1.5s gives modern handshakes plenty of room (typically <100ms,
+  // worst-case cross-cluster a couple of seconds) before we incur the
+  // cost of an inbox subscription.  Empirically, going to 0 or even
+  // 200ms here causes persist/cluster.test.ts and sync/cluster.test.ts
+  // to time out on the failover path because per-socket probe traffic
+  // congests cluster interest propagation.
+  private static readonly LEGACY_CONNECT_PROBE_DELAY = 1500;
 
   constructor(opts: ConatSocketOptions) {
     super(opts);
@@ -192,22 +201,17 @@ export class ConatSocketClient extends ConatSocketBase {
     }
   };
 
-  // Compat-path delay: how long to wait for the modern publish/publish
-  // reply before falling back to a legacy request/reply probe.  Modern
-  // handshakes typically complete in well under 100ms; 3s gives even a
-  // slow cross-cluster modern handshake plenty of room before we incur
-  // the cost of creating an inbox subscription for the compat probe.
-  private static readonly LEGACY_CONNECT_PROBE_DELAY = 3000;
-
-  // Send a `connect` control message to the server.  The modern
-  // (post-PR-8869) server replies via publish to the client subject we
-  // already subscribed to (handled by handleConnected via
-  // processMessages).  Legacy (pre-PR-8869) servers only respond on a
-  // request inbox -- if the modern reply hasn't arrived within
-  // LEGACY_CONNECT_PROBE_DELAY, we issue ONE fire-and-forget request
-  // as a compat probe.  Probing once per socket (rather than once per
-  // connect retry) keeps the inbox-subscription cost negligible
-  // against modern servers, which is the common case.
+  // Send a `connect` control message to the server.
+  //   - Modern (post-PR-8869) servers see the publishSync (no inbox)
+  //     and reply via publish to the client subject we already
+  //     subscribed to.  This is the common case.
+  //   - Legacy (pre-PR-8869) servers only respond on a request inbox.
+  //     A deferred compat probe fires LEGACY_CONNECT_PROBE_DELAY ms
+  //     after the publishSync, which gives the modern path a chance
+  //     to complete first.  If the probe times out (transient
+  //     failure or simply slow response), the .catch re-schedules
+  //     it -- a new client must never be left unable to reach an
+  //     old server because of one transient timeout.
   private sendConnectCommand = () => {
     const attempt = this.nextConnectAttemptId++;
     this.connectAttempts.add(attempt);
@@ -219,41 +223,56 @@ export class ConatSocketClient extends ConatSocketBase {
     };
     logger.silly("sendConnectCommand", { attempt, subject });
     this.client.publishSync(subject, null, { headers });
-    this.armLegacyConnectProbe(subject);
+    this.scheduleLegacyConnectProbe(subject);
   };
 
-  private armLegacyConnectProbe = (subject: string) => {
-    if (this.legacyConnectProbeArmed) {
+  private scheduleLegacyConnectProbe = (subject: string) => {
+    if (this.legacyConnectProbeScheduled || this.state != "connecting") {
       return;
     }
-    this.legacyConnectProbeArmed = true;
-    this.legacyConnectProbeTimer = setTimeout(() => {
-      this.legacyConnectProbeTimer = undefined;
-      if (this.state != "connecting") {
-        return;
-      }
-      const attempt = this.nextConnectAttemptId++;
-      this.connectAttempts.add(attempt);
-      const headers = {
-        [SOCKET_HEADER_CMD]: "connect",
-        [SOCKET_HEADER_CONNECT_ATTEMPT]: attempt,
-        id: this.id,
-      };
-      void this.client
-        .request(subject, null, { headers, timeout: 5_000 })
-        .then((resp) => {
-          if (resp.data == "connected") {
-            this.handleConnected({
-              headers: { [SOCKET_HEADER_CONNECT_ATTEMPT]: attempt },
-            });
-          }
-        })
-        .catch(() => {
-          // Modern server (no inbox response) or transient error.
-          // The modern publish/publish path may still succeed via
-          // sendConnectCommand retries.
-        });
-    }, ConatSocketClient.LEGACY_CONNECT_PROBE_DELAY);
+    this.legacyConnectProbeScheduled = true;
+    this.legacyConnectProbeTimer = setTimeout(
+      () => this.runLegacyConnectProbe(subject),
+      ConatSocketClient.LEGACY_CONNECT_PROBE_DELAY,
+    );
+  };
+
+  private runLegacyConnectProbe = (subject: string) => {
+    this.legacyConnectProbeTimer = undefined;
+    if (this.state != "connecting") {
+      this.legacyConnectProbeScheduled = false;
+      return;
+    }
+    const attempt = this.nextConnectAttemptId++;
+    this.connectAttempts.add(attempt);
+    const headers = {
+      [SOCKET_HEADER_CMD]: "connect",
+      [SOCKET_HEADER_CONNECT_ATTEMPT]: attempt,
+      id: this.id,
+    };
+    void this.client
+      .request(subject, null, { headers, timeout: 5_000 })
+      .then((resp) => {
+        if (resp.data == "connected") {
+          this.legacyConnectProbeScheduled = false;
+          this.handleConnected({
+            headers: { [SOCKET_HEADER_CONNECT_ATTEMPT]: attempt },
+          });
+          return;
+        }
+        // Unexpected non-"connected" data -- treat as failure and
+        // retry-schedule below.
+        this.legacyConnectProbeScheduled = false;
+        this.scheduleLegacyConnectProbe(subject);
+      })
+      .catch(() => {
+        // Probe timed out (transient against an old server, or modern
+        // server that doesn't reply on inbox).  Reset and reschedule
+        // so a transient failure cannot wedge the socket against a
+        // legacy server.
+        this.legacyConnectProbeScheduled = false;
+        this.scheduleLegacyConnectProbe(subject);
+      });
   };
 
   private cancelLegacyConnectProbe = () => {
@@ -261,6 +280,7 @@ export class ConatSocketClient extends ConatSocketBase {
       clearTimeout(this.legacyConnectProbeTimer);
       this.legacyConnectProbeTimer = undefined;
     }
+    this.legacyConnectProbeScheduled = false;
   };
 
   private handleConnected = (mesg) => {
@@ -368,9 +388,7 @@ export class ConatSocketClient extends ConatSocketBase {
     // `connected` reply for an aborted attempt cannot mark this session
     // ready prematurely.
     this.connectAttempts.clear();
-    // Each new run() rearms the legacy compat probe (one shot per session).
     this.cancelLegacyConnectProbe();
-    this.legacyConnectProbeArmed = false;
     try {
       await this.getServerId();
       logger.silly("run: getting subscription");

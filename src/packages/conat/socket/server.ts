@@ -218,12 +218,23 @@ export class ConatSocketServer extends ConatSocketBase {
       delete this.sockets[id];
       mesg.respondSync("closed");
     } else if (cmd == "connect") {
-      // Dedicated connect-control handshake: instead of replying to the
-      // client's request inbox, publish a `connected` control message to the
-      // client subject the client has already subscribed to.  This avoids
-      // coupling the connect step to generic request/reply machinery
-      // (inboxes, reply subscriptions, request timeouts), which is
-      // particularly fragile across cluster nodes.
+      // Dedicated connect-control handshake.  Choose the reply path
+      // based on how the client sent the connect message:
+      //
+      // - Modern client (publishSync, no reply inbox): publish a
+      //   `connected` control message to the client subject the
+      //   client has already subscribed to.  This avoids coupling
+      //   the connect step to generic request/reply machinery
+      //   (inboxes, reply subscriptions, request timeouts), which
+      //   is particularly fragile across cluster nodes.
+      //
+      // - Legacy client OR new client's compat probe (request/reply,
+      //   has a reply inbox): respond on the inbox only.  An old
+      //   client doesn't recognize cmd:"connected" outside of the
+      //   request reply -- a publish to clientSubject would be
+      //   routed into TCP receive and discarded as missing a seq
+      //   number, which is just noise.  Replying inbox-only here
+      //   keeps the wire clean.
       //
       // Use async publish with waitForInterest:true, not publishSync: the
       // new-connection branch above only awaits waitForInterest on the
@@ -232,21 +243,18 @@ export class ConatSocketServer extends ConatSocketBase {
       // here could be dropped if the client's subscription has not yet been
       // re-established post-reconnect.  noThrow keeps it fire-and-forget at
       // the call site but the publish itself blocks for interest.
-      this.client.publish(socket.clientSubject, null, {
-        headers: {
-          [SOCKET_HEADER_CMD]: "connected",
-          [SOCKET_HEADER_CONNECT_ATTEMPT]:
-            mesg.headers?.[SOCKET_HEADER_CONNECT_ATTEMPT],
-        },
-        waitForInterest: true,
-        noThrow: true,
-      });
-      // Backwards-compat shim for old clients that used the request/reply
-      // protocol for `connect` (pre-PR-8869).  If this message arrived as
-      // a request (has a reply inbox), also reply there.  New clients use
-      // publishSync, so this branch is a no-op for them.
       if (mesg.isRequest()) {
         mesg.respond("connected", { noThrow: true });
+      } else {
+        this.client.publish(socket.clientSubject, null, {
+          headers: {
+            [SOCKET_HEADER_CMD]: "connected",
+            [SOCKET_HEADER_CONNECT_ATTEMPT]:
+              mesg.headers?.[SOCKET_HEADER_CONNECT_ATTEMPT],
+          },
+          waitForInterest: true,
+          noThrow: true,
+        });
       }
     } else {
       mesg.respondSync({ error: `unknown command - '${cmd}'` });
