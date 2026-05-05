@@ -6,10 +6,12 @@ import {
 } from "./service";
 import type { Options, ServiceCall } from "./service";
 import { until } from "@cocalc/util/async-utils";
-import { conat } from "@cocalc/conat/client";
+import { conat, getLogger } from "@cocalc/conat/client";
 import { randomId } from "@cocalc/conat/names";
 import { DataEncoding, decode, encode } from "../core/codec";
 export type { ConatService };
+
+const logger = getLogger("conat:service:typed");
 
 type ServiceTransport = "fast-rpc" | "request";
 
@@ -56,9 +58,22 @@ async function callTypedConatService({
       { timeout: options.timeout },
     );
   } catch (err) {
+    const code = (err as any)?.code;
     const message = `${err}`;
+    // Fall back to legacy request transport ONLY when we can prove the
+    // request did not reach a service handler -- otherwise a retry on
+    // legacy could double-execute a side-effecting method:
+    //   413 ............... explicit oversize from server, never forwarded
+    //   "no services matching" .. pure legacy responder, no fastRpcService
+    //   "disconnected" .... target service socket disconnected pre-ack
+    //   transportTimeout: true .. socket.io ack from the router itself
+    //                              never came back (old router with no
+    //                              fast-rpc handler, or pre-routing hang)
+    // We do NOT auto-fall-back on a generic 408/timeout response from the
+    // server: in that case the handler may have already run.
     if (
-      (err as any)?.code == 413 ||
+      code == 413 ||
+      (err as any)?.transportTimeout === true ||
       message.includes("disconnected") ||
       message.includes("no services matching")
     ) {
@@ -150,30 +165,45 @@ export function createServiceHandler<Api>({
   const subject = serviceSubject(options);
   let closed = false;
   let handle: { close: () => void; stop: () => void } | undefined;
+  // Fast-rpc registration is best-effort: the legacy service below stays
+  // up even if it fails, so callers can still reach the service via the
+  // legacy `request` transport (and `callTypedConatService` falls back
+  // automatically on "no services matching" / 408 / 413).  Catch any
+  // failure here so it doesn't surface as an unhandled rejection.
   void (async () => {
-    const cn = options.client ?? (await conat());
-    handle = await cn.fastRpcService(
-      subject,
-      async ({ raw }: { raw: Uint8Array }) => {
-        const mesg = decode({ encoding: TYPED_SERVICE_ENCODING, data: raw });
-        if (mesg?.name == FAST_RPC_PING) {
+    try {
+      const cn = options.client ?? (await conat());
+      if (typeof cn.fastRpcService != "function") {
+        // Older router/client without fast-rpc support -- legacy only.
+        return;
+      }
+      handle = await cn.fastRpcService(
+        subject,
+        async ({ raw }: { raw: Uint8Array }) => {
+          const mesg = decode({ encoding: TYPED_SERVICE_ENCODING, data: raw });
+          if (mesg?.name == FAST_RPC_PING) {
+            return {
+              raw: requireFastRpcSizedRaw("pong"),
+            };
+          }
+          const name = mesg?.name;
+          const args = mesg?.args ?? [];
+          if (typeof name != "string" || typeof impl[name] != "function") {
+            throw Error(`unknown service method '${String(name)}'`);
+          }
           return {
-            raw: requireFastRpcSizedRaw("pong"),
+            raw: requireFastRpcSizedRaw(await impl[name](...args)),
           };
-        }
-        const name = mesg?.name;
-        const args = mesg?.args ?? [];
-        if (typeof name != "string" || typeof impl[name] != "function") {
-          throw Error(`unknown service method '${String(name)}'`);
-        }
-        return {
-          raw: requireFastRpcSizedRaw(await impl[name](...args)),
-        };
-      },
-      { queue: options.all ? randomId() : "0" },
-    );
-    if (closed) {
-      handle.close();
+        },
+        { queue: options.all ? randomId() : "0" },
+      );
+      if (closed) {
+        handle.close();
+      }
+    } catch (err) {
+      logger.debug(
+        `fast-rpc service registration failed for '${subject}'; legacy transport will still serve requests: ${err}`,
+      );
     }
   })();
   const legacyService = createConatService({

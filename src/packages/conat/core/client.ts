@@ -844,27 +844,56 @@ export class Client extends EventEmitter {
     return stable;
   };
 
+  // Re-register every locally-tracked rpc/fast-rpc service with the
+  // router after (re)connect.  Mirrors the syncSubscriptions retry loop:
+  // until() retries with backoff so a transient ack timeout (which would
+  // otherwise become an unhandled rejection AND silently leave services
+  // unregistered) is handled by retrying instead of giving up.
   private syncRpcServices = reuseInFlight(async () => {
-    if (this.isClosed() || isEmpty(this.rpcServiceQueues)) {
-      return;
-    }
-    await this.waitUntilConnected();
-    if (this.isClosed() || isEmpty(this.rpcServiceQueues)) {
-      return;
-    }
-    const services = Object.entries(this.rpcServiceQueues).map(
-      ([subject, queue]) => ({ subject, queue }),
+    let fails = 0;
+    await until(
+      async () => {
+        if (this.isClosed() || isEmpty(this.rpcServiceQueues)) {
+          return true;
+        }
+        try {
+          if (this.info == null) {
+            // not signed in yet -- wait for the next info, then retry
+            await once(this, "info");
+          }
+          if (this.isClosed() || isEmpty(this.rpcServiceQueues)) {
+            return true;
+          }
+          await this.waitUntilConnected();
+          if (this.isClosed() || isEmpty(this.rpcServiceQueues)) {
+            return true;
+          }
+          const services = Object.entries(this.rpcServiceQueues).map(
+            ([subject, queue]) => ({ subject, queue }),
+          );
+          const resp = await this.conn
+            .timeout(DEFAULT_SUBSCRIPTION_TIMEOUT)
+            .emitWithAck("rpc-service", services);
+          for (let i = 0; i < services.length; i++) {
+            if (resp?.[i]?.error) {
+              logger.debug(
+                `WARNING: rpc service '${services[i].subject}' failed to (re-)register: ${resp[i].error}`,
+              );
+            }
+          }
+          return true;
+        } catch (err) {
+          fails++;
+          if (fails >= 3) {
+            console.log(
+              `WARNING: failed to sync rpc services ${fails} times -- ${err}`,
+            );
+          }
+        }
+        return false;
+      },
+      { start: 1000, max: 15000 },
     );
-    const resp = await this.conn
-      .timeout(DEFAULT_SUBSCRIPTION_TIMEOUT)
-      .emitWithAck("rpc-service", services);
-    for (let i = 0; i < services.length; i++) {
-      if (resp?.[i]?.error) {
-        logger.debug(
-          `WARNING: rpc service '${services[i].subject}' failed to (re-)register: ${resp[i].error}`,
-        );
-      }
-    }
   });
 
   private handleRpcRequest = async (
@@ -1279,9 +1308,20 @@ export class Client extends EventEmitter {
         timeout,
       });
     } catch (err) {
-      throw toConatError(err);
+      // socket.io ack never resolved -- the request did NOT reach a
+      // service handler (no listener at all, or the router itself never
+      // acked).  Tag so callers can safely auto-fallback without risk
+      // of double-executing a side-effecting handler.
+      const e = toConatError(err);
+      if (e instanceof ConatError) {
+        (e as any).transportTimeout = true;
+      }
+      throw e;
     }
     if (response?.error) {
+      // Server returned an error -- could be 408 from inner emitWithAck
+      // to the service socket, in which case the handler MAY have run.
+      // Do NOT tag transportTimeout here.
       throw new ConatError(response.error, { code: response.code });
     }
     return response;
