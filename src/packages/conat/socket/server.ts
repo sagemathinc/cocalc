@@ -241,6 +241,13 @@ export class ConatSocketServer extends ConatSocketBase {
         waitForInterest: true,
         noThrow: true,
       });
+      // Backwards-compat shim for old clients that used the request/reply
+      // protocol for `connect` (pre-PR-8869).  If this message arrived as
+      // a request (has a reply inbox), also reply there.  New clients use
+      // publishSync, so this branch is a no-op for them.
+      if (mesg.isRequest()) {
+        mesg.respond("connected", { noThrow: true });
+      }
     } else {
       mesg.respondSync({ error: `unknown command - '${cmd}'` });
     }
