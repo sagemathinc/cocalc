@@ -21,7 +21,6 @@ import {
   LLM_USERNAMES,
   LanguageModel,
   LanguageServiceCore,
-  OpenAIModel,
   getLLMCost,
   isAnthropicModel,
   isCoreLanguageModel,
@@ -31,6 +30,7 @@ import {
   isMistralModel,
   isOllamaLLM,
   isOpenAIModel,
+  OPENAI_VERSION,
   isUserDefinedModel,
   isValidModel,
   isXaiModel,
@@ -245,26 +245,19 @@ async function evaluateImpl({
   return output;
 }
 
-export function normalizeOpenAIModel(model): OpenAIModel {
-  // the *-8k variants are artificial – the input is already limited/truncated to 8k
-  // convert *-preview and all *-8k to their base model names
-  const modelPrefixes = [
-    "gpt-5.4-mini",
-    "gpt-5.4",
-    "gpt-5.2",
-    "gpt-5-mini",
-    "gpt-5",
-  ];
-
-  for (const prefix of modelPrefixes) {
-    if (model.startsWith(prefix)) {
-      model = prefix;
-      break;
-    }
-  }
-
+// Resolve an OpenAIModel (which may be a context-limited "-8k" alias)
+// to the actual model name accepted by OpenAI's API.
+//
+// Looks up an explicit entry in OPENAI_VERSION rather than doing prefix
+// matching. The previous prefix-based version silently misrouted
+// "gpt-5.5" to "gpt-5" because it shared a prefix with the older model.
+export function normalizeOpenAIModel(model): string {
   if (!isOpenAIModel(model)) {
-    throw new Error(`Internal problem normalizing OpenAI model name: ${model}`);
+    throw new Error(`Not an OpenAI model: ${model}`);
   }
-  return model;
+  const apiName = OPENAI_VERSION[model];
+  if (apiName == null) {
+    throw new Error(`OpenAI model ${model} is no longer supported`);
+  }
+  return apiName;
 }

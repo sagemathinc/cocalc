@@ -11,6 +11,13 @@ export interface HistoryMessage {
   content: string;
 }
 
+// Anthropic and OpenAI reject messages whose text content is empty.
+// One bad turn (e.g. an empty assistant response stored in session
+// history) would otherwise break every subsequent call. Substitute a
+// short placeholder rather than dropping the entry, since the
+// alternation logic below assumes one history slot per stored turn.
+const EMPTY_CONTENT_PLACEHOLDER = "[empty]";
+
 // Reconstruct the chat history from CoCalc's data.
 // Assumes alternating user/assistant messages starting from user.
 export function transformHistoryToMessages(history?: History): {
@@ -23,8 +30,12 @@ export function transformHistoryToMessages(history?: History): {
   if (history) {
     let nextRole: "user" | "assistant" = "user";
     for (const { content } of history) {
-      tokens += numTokens(content);
-      messages.push({ role: nextRole, content });
+      const safe =
+        typeof content === "string" && content.trim().length > 0
+          ? content
+          : EMPTY_CONTENT_PLACEHOLDER;
+      tokens += numTokens(safe);
+      messages.push({ role: nextRole, content: safe });
       nextRole = nextRole === "user" ? "assistant" : "user";
     }
   }
