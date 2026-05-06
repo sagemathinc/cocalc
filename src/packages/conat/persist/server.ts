@@ -201,6 +201,15 @@ export function server({
         if (stream == null) {
           await once(socket, "stream-initialized", request.timeout ?? 30000);
         }
+        // Re-check error after the wake-up: storage init may have failed
+        // while we were awaiting "stream-initialized" (the init-error
+        // path emits this event to wake us so we surface the real error
+        // rather than stalling to the request timeout).  Without this,
+        // we'd fall through to the "bug" throw below or to the
+        // request-timeout, both of which mask the original 403/etc.
+        if (error) {
+          throw new ConatError(error, { code: errorCode });
+        }
         if (stream == null) {
           throw Error("bug");
         }
