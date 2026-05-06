@@ -73,6 +73,59 @@ describe("create a server and client, then send a message and get a response", (
   });
 });
 
+describe("deliver queued socket data before close controls", () => {
+  it("client receives the server's final data before closing", async () => {
+    const cn1 = connect();
+    const cn2 = connect();
+    const subject = "queued-before-close.server-final";
+    const server = cn1.socket.listen(subject);
+    server.on("connection", (socket) => {
+      socket.on("data", () => {
+        socket.write("final");
+        socket.close();
+      });
+    });
+
+    const client = cn2.socket.connect(subject);
+    await once(client, "ready");
+    const data = once(client, "data");
+    const closed = once(client, "closed");
+    client.write("finish");
+    expect((await data)[0]).toBe("final");
+    await closed;
+
+    client.close();
+    server.close();
+    cn1.close();
+    cn2.close();
+  });
+
+  it("server receives the client's final data before closing", async () => {
+    const cn1 = connect();
+    const cn2 = connect();
+    const subject = "queued-before-close.client-final";
+    const serverData: any[] = [];
+    const server = cn1.socket.listen(subject);
+    server.on("connection", (socket) => {
+      socket.on("data", (data) => {
+        serverData.push(data);
+      });
+    });
+
+    const client = cn2.socket.connect(subject);
+    await once(client, "ready");
+    client.write("final");
+    await client.end();
+    await wait({ until: () => serverData.length == 1 });
+    expect(serverData).toEqual(["final"]);
+
+    client.close();
+    server.close();
+    cn1.close();
+    cn2.close();
+  });
+});
+
 describe("create a client first, then the server, and see that write still works (testing the order); also include headers in both directions.", () => {
   let client, server, cn1, cn2, requestPromise;
   const subject = "cocalc-order";

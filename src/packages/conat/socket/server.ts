@@ -214,6 +214,7 @@ export class ConatSocketServer extends ConatSocketBase {
       }
     } else if (cmd == "close") {
       const id = socket.id;
+      socket.flushDataQueue();
       socket.close();
       delete this.sockets[id];
       mesg.respondSync("closed");

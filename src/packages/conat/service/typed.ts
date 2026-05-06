@@ -59,21 +59,18 @@ async function callTypedConatService({
       { timeout: options.timeout },
     );
   } catch (err) {
-    const code = (err as any)?.code;
     const message = `${err}`;
     // Fall back to legacy request transport ONLY when we can prove the
     // request did not reach a service handler -- otherwise a retry on
     // legacy could double-execute a side-effecting method:
-    //   413 ............... explicit oversize from server, never forwarded
     //   "no services matching" .. pure legacy responder, no fastRpcService
     //   "disconnected" .... target service socket disconnected pre-ack
     //   transportTimeout: true .. socket.io ack from the router itself
     //                              never came back (old router with no
     //                              fast-rpc handler, or pre-routing hang)
-    // We do NOT auto-fall-back on a generic 408/timeout response from the
-    // server: in that case the handler may have already run.
+    // We do NOT auto-fall-back on generic server responses such as 408
+    // or 413: in those cases the handler may have already run.
     if (
-      code == 413 ||
       (err as any)?.transportTimeout === true ||
       message.includes("disconnected") ||
       message.includes("no services matching")
@@ -82,11 +79,10 @@ async function callTypedConatService({
     }
     throw err;
   }
-  if (
-    response?.error &&
-    (response.code == 413 || `${response.error}`.includes("too large"))
-  ) {
-    return await callConatService(options);
+  if (response?.error) {
+    const err = new Error(`${response.error}`);
+    (err as any).code = response.code;
+    throw err;
   }
   if (response?.raw == null) {
     throw Error("fast-rpc typed service response is missing raw payload");
@@ -168,9 +164,8 @@ export function createServiceHandler<Api>({
   let handle: { close: () => void; stop: () => void } | undefined;
   // Fast-rpc registration is best-effort: the legacy service below stays
   // up even if it fails, so callers can still reach the service via the
-  // legacy `request` transport (and `callTypedConatService` falls back
-  // automatically on "no services matching" / 408 / 413).  Catch any
-  // failure here so it doesn't surface as an unhandled rejection.
+  // legacy `request` transport.  Catch any failure here so it doesn't
+  // surface as an unhandled rejection.
   void (async () => {
     try {
       const cn = options.client ?? (await conat());

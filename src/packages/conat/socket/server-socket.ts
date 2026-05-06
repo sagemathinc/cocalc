@@ -198,6 +198,7 @@ export class ServerSocket extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
+    this.flushDataQueue();
     this.conatSocket.removeListener("ready", this.onServerSocketReady);
     this.conatSocket.client.publishSync(this.clientSubject, null, {
       headers: { [SOCKET_HEADER_CMD]: "close" },

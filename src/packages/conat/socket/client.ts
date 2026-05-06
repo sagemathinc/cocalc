@@ -38,7 +38,7 @@ export class ConatSocketClient extends ConatSocketBase {
   private tcp?: TCP;
   private alive?: KeepAlive;
   private serverId?: string;
-  private loadBalancer?: (subject:string) => Promise<string>;
+  private loadBalancer?: (subject: string) => Promise<string>;
   // Inbound `data` events are buffered and emitted one per event-loop
   // turn so back-to-back data events don't get coalesced from the
   // perspective of synchronous EventEmitter consumers.
@@ -393,6 +393,7 @@ export class ConatSocketClient extends ConatSocketBase {
       } else if (cmd == "socket") {
         this.tcp?.send.handleRequest(mesg);
       } else if (cmd == "close") {
+        this.flushDataQueue();
         this.close();
         return;
       } else if (cmd == "ping") {
@@ -450,9 +451,7 @@ export class ConatSocketClient extends ConatSocketBase {
       // subscribeSync so we are already buffering inbound messages by the
       // time we publish the `connect` control message.  The server's
       // `connected` reply must not be missed.
-      this.sub = this.client.subscribeSync(
-        `${this.subject}.client.${this.id}`,
-      );
+      this.sub = this.client.subscribeSync(`${this.subject}.client.${this.id}`);
       // @ts-ignore
       if (this.state == "closed") {
         this.sub.close();
@@ -530,6 +529,7 @@ export class ConatSocketClient extends ConatSocketBase {
     if (this.state == "closed") {
       return;
     }
+    this.flushDataQueue();
     this.connectAttempts.clear();
     this.cancelLegacyConnectProbe();
     this.sub?.close();

@@ -877,8 +877,8 @@ export class CoreStream<T = any> extends EventEmitter {
       // loop, even when the local view doesn't show the entry.
       force?: boolean;
       // waitForLocal=false skips the post-publish waitForLocalPublish
-      // step.  Used by DKV.delete() for fire-and-forget tombstone
-      // writes where the caller manages local state cleanup itself.
+      // step.  Only use this when the caller can tolerate local reads
+      // racing behind the persisted tombstone.
       waitForLocal?: boolean;
     },
   ) => {

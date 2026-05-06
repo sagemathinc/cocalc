@@ -97,7 +97,8 @@ describe("fast-rpc caller fallback semantics", () => {
   //   - transport-level ack timeout (router never acked) -> fall back
   //   - response-level 408 (server reached, inner emit timed out,
   //                          handler may have run) -> propagate
-  //   - "no services matching" / "disconnected" / 413 -> fall back
+  //   - response-level 413 (handler returned an oversized result) -> propagate
+  //   - "no services matching" / "disconnected" -> fall back
   let serverClient, callerClient, service;
   interface Api {
     square: (n: number) => Promise<number>;
@@ -136,7 +137,9 @@ describe("fast-rpc caller fallback semantics", () => {
   });
 
   it("transport-level ack timeout (transportTimeout flag) falls back to legacy", async () => {
-    realFastRpcRequest = (callerClient as any).fastRpcRequest.bind(callerClient);
+    realFastRpcRequest = (callerClient as any).fastRpcRequest.bind(
+      callerClient,
+    );
     let fastRpcAttempts = 0;
     (callerClient as any).fastRpcRequest = async () => {
       fastRpcAttempts++;
@@ -167,10 +170,9 @@ describe("fast-rpc caller fallback semantics", () => {
       fastRpcAttempts++;
       // No transportTimeout flag -- this is what the server-side inner
       // emit timeout looks like (server reached, handler may have run).
-      throw new ConatError(
-        "Error: timeout waiting for fast-rpc-request ack",
-        { code: 408 },
-      );
+      throw new ConatError("Error: timeout waiting for fast-rpc-request ack", {
+        code: 408,
+      });
     };
 
     const client = createServiceClient<Api>({
@@ -331,11 +333,14 @@ describe("close() removes fast-rpc routing", () => {
   });
 });
 
-describe("oversized typed request falls back to legacy chunked path", () => {
+describe("oversized typed request/response handling", () => {
   // The fast-rpc transport caps payloads at 4 MiB.  Anything larger
-  // must transparently fall back to the legacy chunked path so callers
-  // don't see spurious 413 errors.
+  // on the request side can transparently fall back to the legacy
+  // chunked path before any handler runs.  An oversized response is
+  // different: the handler has already run, so retrying through legacy
+  // could double-execute a side-effecting method.
   let serverClient, callerClient, service;
+  let bigCalls = 0;
   interface Api {
     echoLen: (s: string) => Promise<number>;
     big: (n: number) => Promise<string>;
@@ -350,7 +355,10 @@ describe("oversized typed request falls back to legacy chunked path", () => {
       subject: "oversized-fallback",
       impl: {
         echoLen: async (s) => s.length,
-        big: async (n) => "x".repeat(n),
+        big: async (n) => {
+          bigCalls += 1;
+          return "x".repeat(n);
+        },
       },
     });
   });
@@ -376,7 +384,7 @@ describe("oversized typed request falls back to legacy chunked path", () => {
     expect(await client.echoLen("x".repeat(n))).toBe(n);
   });
 
-  it("8 MiB response goes via legacy fallback", async () => {
+  it("8 MiB response propagates without legacy retry", async () => {
     const client = createServiceClient<Api>({
       client: callerClient,
       service: "oversized-fallback",
@@ -384,8 +392,10 @@ describe("oversized typed request falls back to legacy chunked path", () => {
       timeout: 30_000,
     });
     const n = 8 * 1024 * 1024;
-    const result = await client.big(n);
-    expect(result.length).toBe(n);
+    await expect(async () => {
+      await client.big(n);
+    }).rejects.toThrow(/too large for fast-rpc/);
+    expect(bigCalls).toBe(1);
   });
 
   it("cleans up", () => {

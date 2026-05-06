@@ -430,11 +430,11 @@ export class DKV<T = any> extends EventEmitter {
       // stream inventory right after delete -- if that read can overtake
       // the save loop's write, they see the stale value.  force:true so
       // we still emit the tombstone even if the local view already shows
-      // the entry as gone; waitForLocal:false because we manage local
-      // state cleanup ourselves below (the save-coalesced path expects
-      // that, and the wait would needlessly block delete()).
+      // the entry as gone.  Keep the local TOMBSTONE marker until our
+      // local stream has caught up; otherwise a read can briefly fall
+      // through to the stale saved value.
       this.kv
-        .deleteKv(key, { force: true, waitForLocal: false })
+        .deleteKv(key, { force: true })
         .then(() => {
           if (this.local?.[key] === TOMBSTONE) {
             this.changed.delete(key);

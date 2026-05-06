@@ -171,6 +171,9 @@ describe("test deleting and clearing a dkv", () => {
     expect(kv2.foo).toBe(kv1.foo);
     expect(kv2.has("foo")).toBe(true);
     delete kv1.foo;
+    expect(kv1.foo).toBe(undefined);
+    await delay(0);
+    expect(kv1.foo).toBe(undefined);
     await once(kv2, "change");
     expect(kv2.foo).toBe(undefined);
     expect(kv2.has("foo")).toBe(false);
