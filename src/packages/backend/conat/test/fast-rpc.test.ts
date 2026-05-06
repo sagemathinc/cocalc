@@ -395,4 +395,78 @@ describe("oversized typed request falls back to legacy chunked path", () => {
   });
 });
 
+describe("createServiceHandler return value preserves EventEmitter contract", () => {
+  // Regression for an issue caught during local browser testing: the
+  // pre-PR-8869 createServiceHandler returned a ConatService (extends
+  // EventEmitter), and downstream code relied on `server.on(...)`.
+  // The PR rewrote createServiceHandler to wrap the legacy service so
+  // it could also register a fast-rpc handle -- the wrapper was a
+  // plain object, which crashed callers like
+  // packages/project/conat/terminal/manager.ts:172
+  //
+  //     const server = createTerminalServer(...);
+  //     server.on("close", () => { ... });
+  //         ^^ TypeError: server.on is not a function
+  //
+  // The terminal init retry loop in conat-terminal.ts then logged
+  // "WARNING: starting terminal -- TypeError: server.on is not a
+  // function (will retry)" forever, the browser-side terminal-browser
+  // service never got registered, and the project's broadcast of new
+  // terminal sizes back to the browser hit "no services matching" --
+  // so the visual terminal stayed at the default 80-col width even
+  // though the pty itself had been resized correctly.
+  //
+  // This test verifies that:
+  //   (1) `.on()` is a function on the returned wrapper
+  //   (2) listeners registered for the lifecycle events fire
+  //
+  // It does not test specific listener names that downstream code
+  // happens to use (e.g. manager.ts uses "close", but the actual event
+  // is "closed" -- a separate latent bug).  The contract this test
+  // pins is "the returned object accepts and dispatches events",
+  // which is what the regression actually broke.
+  let serverClient, service;
+  interface Api {
+    ping: () => Promise<"pong">;
+  }
+
+  it("creates a typed-service handler", () => {
+    serverClient = connect();
+    service = createServiceHandler<Api>({
+      client: serverClient,
+      service: "ee-contract",
+      subject: "ee-contract",
+      impl: { ping: async () => "pong" as const },
+    });
+  });
+
+  it("`.on` is a function (regression: previously was undefined, crashed callers)", () => {
+    expect(typeof (service as any).on).toBe("function");
+    expect(typeof (service as any).emit).toBe("function");
+    expect(typeof (service as any).removeListener).toBe("function");
+  });
+
+  it("a listener registered for 'closed' fires when close() is called", async () => {
+    let closedFired = 0;
+    (service as any).on("closed", () => {
+      closedFired += 1;
+    });
+    service.close();
+    // emit happens synchronously inside legacyService.close(), but the
+    // forwarder dispatches via wrapper.emit which is also sync.  A
+    // single microtask of slack covers any future Promise wrapping.
+    await delay(0);
+    expect(closedFired).toBe(1);
+  });
+
+  it("cleans up", async () => {
+    // Let the fast-rpc registration IIFE settle before closing the
+    // client.  Without this, an in-flight subscription teardown can
+    // race the client close and surface as a once()-rejection during
+    // setState("closed").
+    await delay(50);
+    serverClient.close();
+  });
+});
+
 afterAll(after);

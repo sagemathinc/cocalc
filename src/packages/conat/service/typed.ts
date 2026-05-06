@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import {
   callConatService,
   createConatService,
@@ -211,7 +212,18 @@ export function createServiceHandler<Api>({
     handler: async (mesg) => await impl[mesg.name](...mesg.args),
   });
 
-  return {
+  // The pre-PR-8869 createServiceHandler returned `legacyService` (a
+  // ConatService extends EventEmitter) directly, so callers wired up
+  // listeners with `server.on(...)`.  The fast-rpc wrapper here is a
+  // plain object, which would crash those callers with
+  // "TypeError: server.on is not a function" -- regression observed in
+  // packages/project/conat/terminal/manager.ts:172
+  // (`server.on("close", ...)`).  Restore EventEmitter semantics by
+  // returning an EventEmitter wrapper that forwards lifecycle events
+  // emitted by the underlying legacyService ("starting", "running",
+  // "closed").
+  const wrapper = new EventEmitter();
+  Object.assign(wrapper, {
     subject,
     name: options.service,
     close: () => {
@@ -224,7 +236,11 @@ export function createServiceHandler<Api>({
       handle?.stop();
       legacyService.close();
     },
-  } as unknown as ConatService;
+  });
+  for (const event of ["starting", "running", "closed"] as const) {
+    legacyService.on(event, (...args: any[]) => wrapper.emit(event, ...args));
+  }
+  return wrapper as unknown as ConatService;
 }
 
 async function pingTypedConatService({
