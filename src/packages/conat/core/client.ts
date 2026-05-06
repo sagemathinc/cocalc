@@ -808,8 +808,8 @@ export class Client extends EventEmitter {
       }
     }
     const extra: { subject: string }[] = [];
-    for (const subject in subs) {
-      if (this.queueGroups[subject] != null) {
+    for (const subject of subs) {
+      if (this.queueGroups[subject] == null) {
         // server thinks we're subscribed but we do not think so, so cancel that
         extra.push({ subject });
       }
