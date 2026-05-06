@@ -21,7 +21,13 @@ interface TypedServiceCall extends Omit<ServiceCall, "mesg"> {
   transport?: ServiceTransport;
 }
 
-type TypedServiceOptions = Omit<TypedServiceCall, "mesg">;
+type TypedServiceOptions = Omit<TypedServiceCall, "mesg"> & {
+  // Method names that should use the legacy request transport even when
+  // fast-rpc is the service default. Use this for methods with responses
+  // that can exceed the fast-rpc payload cap; retrying after a response-size
+  // error would risk double-running side-effecting handlers.
+  requestTransportMethods?: string[];
+};
 
 const FAST_RPC_PING = "__conat_ping";
 const TYPED_SERVICE_ENCODING = DataEncoding.MsgPack;
@@ -111,7 +117,11 @@ export interface ServiceApi {
   conat: Extra;
 }
 
-export function createServiceClient<Api>(options: TypedServiceOptions) {
+export function createServiceClient<Api>({
+  requestTransportMethods,
+  ...options
+}: TypedServiceOptions) {
+  const requestTransportMethodSet = new Set(requestTransportMethods ?? []);
   return new Proxy(
     {},
     {
@@ -131,6 +141,9 @@ export function createServiceClient<Api>(options: TypedServiceOptions) {
           try {
             return await callTypedConatService({
               ...options,
+              transport: requestTransportMethodSet.has(prop)
+                ? "request"
+                : options.transport,
               mesg: { name: prop, args },
             });
           } catch (err) {

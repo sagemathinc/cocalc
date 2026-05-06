@@ -805,7 +805,11 @@ export class CoreStream<T = any> extends EventEmitter {
           if (options.headers?.[COCALC_TOMBSTONE_HEADER]) {
             return this.lastSeq >= x.seq && this.kv[options.key] == null;
           }
-          return this.kv[options.key]?.raw.seq === x.seq;
+          const keySeq = this.kv[options.key]?.raw.seq;
+          return (
+            keySeq === x.seq ||
+            (this.lastSeq >= x.seq && (keySeq == null || keySeq > x.seq))
+          );
         }
         return this.lastSeq >= x.seq;
       },

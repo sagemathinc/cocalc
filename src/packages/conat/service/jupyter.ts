@@ -58,6 +58,7 @@ export function jupyterApiClient({
   return createServiceClient<JupyterApi>({
     project_id,
     path,
+    requestTransportMethods: ["ipywidgetsGetBuffer"],
     service,
     timeout,
   });

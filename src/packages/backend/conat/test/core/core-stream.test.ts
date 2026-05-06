@@ -207,6 +207,30 @@ describe("test basic key:value functionality for persistent core stream", () => 
     expect(stream2.length).toBe(length);
   });
 
+  it("local publish wait resolves when a same-key write is superseded", async () => {
+    const key = "superseded-before-local-wait";
+    const savedEntry = stream.kv[key];
+    const savedLastSeq = (stream as any).lastSeq;
+    try {
+      (stream as any).lastSeq = 20;
+      stream.kv[key] = {
+        mesg: "newer",
+        raw: { seq: 20 },
+      };
+      await (stream as any).waitForLocalPublish(
+        { seq: 10 },
+        { key, timeout: 50 },
+      );
+    } finally {
+      (stream as any).lastSeq = savedLastSeq;
+      if (savedEntry == null) {
+        delete stream.kv[key];
+      } else {
+        stream.kv[key] = savedEntry;
+      }
+    }
+  });
+
   it("verify that the overwritten message is removed in both streams", async () => {
     await wait({ until: () => stream.length === 1 && stream2.length === 1 });
     expect(stream.get(0)).toBe("value3");

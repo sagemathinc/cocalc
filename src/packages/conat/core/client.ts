@@ -398,6 +398,7 @@ export class Client extends EventEmitter {
   private subs: { [subject: string]: SubscriptionEmitter } = {};
   private rpcServiceQueues: { [subject: string]: string } = {};
   private rpcServiceImpls: { [subject: string]: any } = {};
+  private fastRpcServiceQueues: { [subject: string]: string } = {};
   private fastRpcServiceHandlers: {
     [subject: string]: (payload: any) => any;
   } = {};
@@ -479,10 +480,13 @@ export class Client extends EventEmitter {
       const firstTime = this.info == null;
       this.info = info;
       this.emit("info", info);
-      setTimeout(() => {
-        void this.syncSubscriptions();
-        void this.syncRpcServices();
-      }, firstTime ? 3000 : 0);
+      setTimeout(
+        () => {
+          void this.syncSubscriptions();
+          void this.syncRpcServices();
+        },
+        firstTime ? 3000 : 0,
+      );
     });
     this.conn.on("permission", ({ message, type, subject }) => {
       logger.debug(message);
@@ -729,10 +733,15 @@ export class Client extends EventEmitter {
       this.conn.emit("unsubscribe", { subject });
       delete this.queueGroups[subject];
     }
-    for (const subject in this.rpcServiceQueues) {
+    for (const subject of Object.keys(this.rpcServiceRoutes())) {
       this.conn.emit("rpc-service-close", { subject });
+    }
+    for (const subject in this.rpcServiceQueues) {
       delete this.rpcServiceQueues[subject];
       delete this.rpcServiceImpls[subject];
+    }
+    for (const subject in this.fastRpcServiceQueues) {
+      delete this.fastRpcServiceQueues[subject];
       delete this.fastRpcServiceHandlers[subject];
     }
     for (const sub of Object.values(this.subs)) {
@@ -747,6 +756,8 @@ export class Client extends EventEmitter {
     delete this.rpcServiceQueues;
     // @ts-ignore
     delete this.rpcServiceImpls;
+    // @ts-ignore
+    delete this.fastRpcServiceQueues;
     // @ts-ignore
     delete this.fastRpcServiceHandlers;
     // @ts-ignore
@@ -858,7 +869,7 @@ export class Client extends EventEmitter {
     let fails = 0;
     await until(
       async () => {
-        if (this.isClosed() || isEmpty(this.rpcServiceQueues)) {
+        if (this.isClosed() || isEmpty(this.rpcServiceRoutes())) {
           return true;
         }
         try {
@@ -866,16 +877,18 @@ export class Client extends EventEmitter {
             // not signed in yet -- wait for the next info, then retry
             await once(this, "info");
           }
-          if (this.isClosed() || isEmpty(this.rpcServiceQueues)) {
+          if (this.isClosed() || isEmpty(this.rpcServiceRoutes())) {
             return true;
           }
           await this.waitUntilConnected();
-          if (this.isClosed() || isEmpty(this.rpcServiceQueues)) {
+          const routes = this.rpcServiceRoutes();
+          if (this.isClosed() || isEmpty(routes)) {
             return true;
           }
-          const services = Object.entries(this.rpcServiceQueues).map(
-            ([subject, queue]) => ({ subject, queue }),
-          );
+          const services = Object.entries(routes).map(([subject, queue]) => ({
+            subject,
+            queue,
+          }));
           const resp = await this.conn
             .timeout(DEFAULT_SUBSCRIPTION_TIMEOUT)
             .emitWithAck("rpc-service", services);
@@ -979,6 +992,37 @@ export class Client extends EventEmitter {
         code: (err as any)?.code,
       });
     }
+  };
+
+  private rpcServiceRoutes = (): { [subject: string]: string } => {
+    const routes: { [subject: string]: string } = {};
+    for (const subject in this.rpcServiceQueues ?? {}) {
+      routes[subject] = this.rpcServiceQueues[subject];
+    }
+    for (const subject in this.fastRpcServiceQueues ?? {}) {
+      routes[subject] = this.fastRpcServiceQueues[subject];
+    }
+    return routes;
+  };
+
+  private assertCompatibleRpcServiceQueue = (
+    subject: string,
+    queue: string,
+  ) => {
+    const existing =
+      this.rpcServiceQueues?.[subject] ?? this.fastRpcServiceQueues?.[subject];
+    if (existing != null && existing != queue) {
+      throw Error(
+        `rpc service '${subject}' is already registered with queue '${existing}'`,
+      );
+    }
+  };
+
+  private hasRpcServiceRoute = (subject: string): boolean => {
+    return (
+      this.rpcServiceQueues?.[subject] != null ||
+      this.fastRpcServiceQueues?.[subject] != null
+    );
   };
 
   numSubscriptions = () => Object.keys(this.queueGroups).length;
@@ -1232,6 +1276,10 @@ export class Client extends EventEmitter {
     }
     await this.waitUntilSignedIn();
     const queue = opts.queue ?? "0";
+    if (this.rpcServiceImpls[subject] != null) {
+      throw Error(`rpc service '${subject}' is already registered`);
+    }
+    this.assertCompatibleRpcServiceQueue(subject, queue);
     this.rpcServiceQueues[subject] = queue;
     this.rpcServiceImpls[subject] = impl;
     try {
@@ -1252,7 +1300,7 @@ export class Client extends EventEmitter {
       }
       delete this.rpcServiceQueues[subject];
       delete this.rpcServiceImpls[subject];
-      if (!this.isClosed()) {
+      if (!this.hasRpcServiceRoute(subject) && !this.isClosed()) {
         this.conn.emit("rpc-service-close", { subject });
       }
     };
@@ -1269,7 +1317,11 @@ export class Client extends EventEmitter {
     }
     await this.waitUntilSignedIn();
     const queue = opts.queue ?? "0";
-    this.rpcServiceQueues[subject] = queue;
+    if (this.fastRpcServiceHandlers[subject] != null) {
+      throw Error(`fast rpc service '${subject}' is already registered`);
+    }
+    this.assertCompatibleRpcServiceQueue(subject, queue);
+    this.fastRpcServiceQueues[subject] = queue;
     this.fastRpcServiceHandlers[subject] = handler;
     try {
       const response = await this.conn
@@ -1279,17 +1331,17 @@ export class Client extends EventEmitter {
         throw new ConatError(response.error, { code: response.code });
       }
     } catch (err) {
-      delete this.rpcServiceQueues[subject];
+      delete this.fastRpcServiceQueues[subject];
       delete this.fastRpcServiceHandlers[subject];
       throw err;
     }
     const close = () => {
-      if (this.rpcServiceQueues?.[subject] == null) {
+      if (this.fastRpcServiceQueues?.[subject] == null) {
         return;
       }
-      delete this.rpcServiceQueues[subject];
+      delete this.fastRpcServiceQueues[subject];
       delete this.fastRpcServiceHandlers[subject];
-      if (!this.isClosed()) {
+      if (!this.hasRpcServiceRoute(subject) && !this.isClosed()) {
         this.conn.emit("rpc-service-close", { subject });
       }
     };

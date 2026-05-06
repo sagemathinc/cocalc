@@ -398,8 +398,90 @@ describe("oversized typed request/response handling", () => {
     expect(bigCalls).toBe(1);
   });
 
+  it("known large-response methods can opt into legacy request transport", async () => {
+    const client = createServiceClient<Api>({
+      client: callerClient,
+      requestTransportMethods: ["big"],
+      service: "oversized-fallback",
+      subject: "oversized-fallback",
+      timeout: 30_000,
+    });
+    const n = 8 * 1024 * 1024;
+    const before = bigCalls;
+    expect((await client.big(n)).length).toBe(n);
+    expect(bigCalls).toBe(before + 1);
+  });
+
   it("cleans up", () => {
     service.close();
+    serverClient.close();
+    callerClient.close();
+  });
+});
+
+describe("direct rpc and fast-rpc route ownership", () => {
+  let serverClient, callerClient, rpcHandle, fastHandle;
+
+  it("registers both direct transports on the same subject", async () => {
+    serverClient = connect();
+    callerClient = connect();
+    rpcHandle = await serverClient.rpcService("dual-direct-rpc", {
+      add: async (n: number) => n + 1,
+    });
+    fastHandle = await serverClient.fastRpcService(
+      "dual-direct-rpc",
+      async ({ n }: { n: number }) => ({ n: n + 1 }),
+    );
+
+    const rpc = callerClient.rpcCall("dual-direct-rpc", {
+      timeout: 5_000,
+    }) as { add: (n: number) => Promise<number> };
+    expect(await rpc.add(2)).toBe(3);
+    expect(
+      await callerClient.fastRpcRequest(
+        "dual-direct-rpc",
+        { n: 4 },
+        { timeout: 5_000 },
+      ),
+    ).toEqual(expect.objectContaining({ n: 5 }));
+  });
+
+  it("closing one direct transport keeps the other route registered", async () => {
+    fastHandle.close();
+    const rpc = callerClient.rpcCall("dual-direct-rpc", {
+      timeout: 5_000,
+    }) as { add: (n: number) => Promise<number> };
+    await wait({
+      until: async () => {
+        try {
+          return (await rpc.add(5)) === 6;
+        } catch {
+          return false;
+        }
+      },
+      timeout: 5_000,
+    });
+  });
+
+  it("closing the final direct transport removes the route", async () => {
+    rpcHandle.close();
+    const rpc = callerClient.rpcCall("dual-direct-rpc", { timeout: 500 }) as {
+      add: (n: number) => Promise<number>;
+    };
+    await wait({
+      until: async () => {
+        try {
+          await rpc.add(1);
+          return false;
+        } catch {
+          return true;
+        }
+      },
+      timeout: 5_000,
+    });
+  });
+
+  it("cleans up", () => {
     serverClient.close();
     callerClient.close();
   });
