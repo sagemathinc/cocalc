@@ -1064,6 +1064,13 @@ function CodingAgentCore({
           <MarkdownInput
             key={inputKey}
             value={input}
+            // Default to plain-text input. The slate WYSIWYG mode escapes
+            // 17 markdown metachars on serialize ("foo(x)" -> "foo\(x\)",
+            // "<" -> "&lt;", "-U" -> "\-U"), which silently corrupts
+            // prompts sent to the LLM. Defaulting to markdown avoids that
+            // for most users; the editbar toggle is still available for
+            // anyone who wants WYSIWYG.
+            defaultMode="markdown"
             onChange={handleInputChange}
             onShiftEnter={(value) => {
               handleSubmit(value);

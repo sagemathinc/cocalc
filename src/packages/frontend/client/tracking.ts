@@ -21,9 +21,23 @@ export class TrackingClient {
         .getStore("customize")
         ?.get("user_tracking");
     }
-    if (this.userTrackingEnabled == "yes") {
-      await this.client.conat_client.hub.system.userTracking({ event, value });
+    // Master kill-switch: admin must enable user tracking site-wide.
+    if (this.userTrackingEnabled != "yes") return;
+
+    // When the cookie banner is enabled, additionally require the visitor
+    // to have opted into the "usage" category. The admin setting is the
+    // operator's say-so; the cookie banner is the user's. Both must agree
+    // for the event to be recorded. Banner disabled by admin → existing
+    // behaviour (admin setting alone gates).
+    const customize = redux.getStore("customize");
+    if (customize?.get("cookie_banner_enabled")) {
+      const { hasCategoryConsent } = await import(
+        "@cocalc/frontend/cookie-consent"
+      );
+      if (!hasCategoryConsent("usage")) return;
     }
+
+    await this.client.conat_client.hub.system.userTracking({ event, value });
   };
 
   log_error = (error: any): void => {

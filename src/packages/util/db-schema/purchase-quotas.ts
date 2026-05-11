@@ -141,6 +141,12 @@ const GPT_5_2_128k: Spec = {
   display: "OpenAI GPT-5.2 128k",
 } as const;
 
+const GPT_5_5_8K: Spec = {
+  display: "OpenAI GPT-5.5",
+  color: OPENAI_COLOR,
+  category: "ai",
+} as const;
+
 const GPT_5_4_8K: Spec = {
   display: "OpenAI GPT-5.4",
   color: OPENAI_COLOR,
@@ -289,6 +295,7 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-gpt-5": GPT_5_128k,
   "openai-gpt-5.2-8k": GPT_5_2_8K,
   "openai-gpt-5.2": GPT_5_2_128k,
+  "openai-gpt-5.5": GPT_5_5_8K,
   "openai-gpt-5.4-8k": GPT_5_4_8K,
   "openai-gpt-5.4": GPT_5_4_128k,
   "openai-gpt-5-mini-8k": GPT_5_MINI_8K,

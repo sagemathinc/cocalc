@@ -33,11 +33,11 @@ import type { Data } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zo
 import { React, useEffect, useRedux } from "@cocalc/frontend/app-framework";
 import {
   Icon,
-  TableOfContents,
   TableOfContentsEntryList,
   Text,
   Tip,
 } from "@cocalc/frontend/components";
+import { LatexTOCBody } from "./table-of-contents-frame";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { project_api } from "@cocalc/frontend/frame-editors/generic/client";
 import { editor, labels } from "@cocalc/frontend/i18n";
@@ -141,6 +141,11 @@ export function Output(props: OutputProps) {
     name,
     "contents",
   ]);
+  // Path the TOC was parsed from (master or active sub-file). Forward
+  // it to LatexTOCBody so opening a chat from a TOC row preserves the
+  // marker's source path on the resulting pending anchor.
+  const contentsPath: string =
+    useRedux([name, "contents_path"]) ?? actions.path;
 
   // List of LaTeX files in the project
   const switch_to_files: List<string> = useRedux([name, "switch_to_files"]);
@@ -413,25 +418,39 @@ export function Output(props: OutputProps) {
             </Button>
           </div>
           <div style={{ flex: 1, overflow: "hidden" }}>
-            <TableOfContents
-              contents={contents}
-              fontSize={uiFontSize}
-              scrollTo={actions.scrollToHeading.bind(actions)}
-              ifEmpty={
-                <Alert
-                  type="info"
-                  message="Table of Contents is empty"
-                  description={
-                    <>
-                      Add <Text code>{"\\section{...}"}</Text> and{" "}
-                      <Text code>{"\\subsection{...}"}</Text> commands to your
-                      LaTeX document to create a table of contents.
-                    </>
-                  }
-                  style={{ margin: "15px" }}
-                />
-              }
-            />
+            {contents == null ? (
+              <Alert
+                type="info"
+                message="Loading…"
+                style={{ margin: "15px" }}
+              />
+            ) : (
+              <LatexTOCBody
+                contents={contents}
+                fontSize={uiFontSize}
+                project_id={actions.project_id}
+                masterPath={actions.path}
+                sourcePath={contentsPath}
+                scrollTo={actions.scrollToHeading.bind(actions)}
+                openAnchorChat={(hash, srcPath) => {
+                  void actions.openAnchorChat(hash, srcPath);
+                }}
+                ifEmpty={
+                  <Alert
+                    type="info"
+                    message="Table of Contents is empty"
+                    description={
+                      <>
+                        Add <Text code>{"\\section{...}"}</Text> and{" "}
+                        <Text code>{"\\subsection{...}"}</Text> commands to your
+                        LaTeX document to create a table of contents.
+                      </>
+                    }
+                    style={{ margin: "15px" }}
+                  />
+                }
+              />
+            )}
           </div>
         </div>
       ),

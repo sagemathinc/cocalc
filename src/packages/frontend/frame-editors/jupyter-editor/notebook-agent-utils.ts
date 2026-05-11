@@ -465,6 +465,8 @@ export function parseToolBlocks(text: string): ToolCall[] {
   return blocks;
 }
 
+export const EMPTY_ASSISTANT_PLACEHOLDER = "[no response]";
+
 export function compactAssistantMessageForHistory(text: string): string {
   const toolCalls = parseToolBlocks(text);
   const prose = text
@@ -478,7 +480,14 @@ export function compactAssistantMessageForHistory(text: string): string {
       : "";
 
   if (!prose) {
-    return toolSummary || truncate(text, MAX_ASSISTANT_HISTORY_CHARS);
+    if (toolSummary) return toolSummary;
+    // Anthropic and OpenAI reject messages with empty text content
+    // blocks. When an assistant turn has neither prose nor tool calls
+    // (e.g. provider hiccup, cancelled mid-stream, or model returned
+    // whitespace), substitute a non-empty placeholder so the next
+    // turn's history doesn't break the API call.
+    const fallback = truncate(text, MAX_ASSISTANT_HISTORY_CHARS).trim();
+    return fallback || EMPTY_ASSISTANT_PLACEHOLDER;
   }
 
   const compactProse = truncate(prose, MAX_ASSISTANT_HISTORY_CHARS);

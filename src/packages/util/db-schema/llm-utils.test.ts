@@ -66,8 +66,8 @@ describe("llm", () => {
     );
   });
 
-  test("model2service handles gpt-5.2 models", () => {
-    expect(model2service("gpt-5.2-8k")).toBe("openai-gpt-5.2-8k");
+  test("model2service handles gpt-5.5 models", () => {
+    expect(model2service("gpt-5.5")).toBe("openai-gpt-5.5");
   });
 
   test("Gemini 3 Flash description omits preview", () => {
@@ -93,6 +93,10 @@ describe("llm", () => {
     expect(1_000_000 * LLM_COST["claude-3-opus"].prompt_tokens).toBeCloseTo(15);
     expect(1_000_000 * LLM_COST["claude-3-opus"].completion_tokens).toBeCloseTo(
       75,
+    );
+    expect(1_000_000 * LLM_COST["gpt-5.5"].prompt_tokens).toBeCloseTo(5);
+    expect(1_000_000 * LLM_COST["gpt-5.5"].completion_tokens).toBeCloseTo(
+      30,
     );
   });
 
@@ -140,6 +144,7 @@ describe("llm", () => {
     // not disabled
     expect(getModel("mistral-large-latest")).toEqual("mistral-large-latest");
     expect(getModel("gpt-5.4-mini-8k")).toEqual("gpt-5.4-mini-8k");
+    expect(getModel("gpt-5.5")).toEqual("gpt-5.5");
     expect(getModel(DEFAULT_MODEL)).toEqual(DEFAULT_MODEL);
     expect(getModel("magistral-medium-latest")).toEqual(DEFAULT_MODEL);
     expect(getModel("mistral-large-latest")).toEqual("mistral-large-latest");

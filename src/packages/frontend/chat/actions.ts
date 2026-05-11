@@ -52,6 +52,7 @@ import type {
   ChatMessageTyped,
   Feedback,
   MessageHistory,
+  ResolvedMeta,
 } from "./types";
 import {
   anchorIdOf,
@@ -1550,6 +1551,56 @@ export class ChatActions extends Actions<ChatState> {
     this.setPendingAnchorThread({ id, label, path });
     this.setSelectedThread(null);
     return null;
+  };
+
+  // Mark an anchored root message as resolved (LaTeX collaborative-TODO
+  // flow). Stamps `resolved` metadata preserving the former anchor info, and
+  // clears the active `id`/`path` so the thread no longer matches its source
+  // anchor — `findOrCreateAnchorThread` and `useAnchoredThreads` will skip
+  // it. Idempotent.
+  //
+  // The caller is responsible for actually removing the source-document
+  // marker(s); see the LaTeX editor's `resolveChatMarker`.
+  resolveAnchorThread = (rootDate: Date): void => {
+    if (this.syncdb == null) return;
+    const cur = this.syncdb.get_one({ event: "chat", date: rootDate });
+    if (cur == null) return;
+    if (cur.get("resolved") != null) return;
+    const anchorId = cur.get("id") ?? cur.get("cell_id");
+    if (typeof anchorId !== "string" || anchorId.length === 0) {
+      // Not anchored — nothing to resolve.
+      return;
+    }
+    const account_id = this.redux.getStore("account").get_account_id();
+    const path = cur.get("path");
+    const editorActions: any = this.frameTreeActions;
+    const labelRaw =
+      typeof editorActions?.getAnchorLabel === "function"
+        ? editorActions.getAnchorLabel(anchorId)
+        : undefined;
+    const at = webapp_client.server_time().toISOString();
+    const resolved: ResolvedMeta = {
+      account_id,
+      at,
+      anchorId,
+    };
+    if (typeof path === "string" && path.length > 0) {
+      resolved.path = path;
+    }
+    if (typeof labelRaw === "string" && labelRaw.length > 0) {
+      resolved.label = labelRaw;
+    }
+    // Setting `id`/`path` to null clears the persisted values so the thread
+    // is no longer matched as an active anchor. `anchorIdOf` also has a
+    // belt-and-suspenders check on `resolved`.
+    this.syncdb.set({
+      resolved,
+      id: null,
+      path: null,
+      date: rootDate.toISOString(),
+    });
+    this.syncdb.commit();
+    this.save_to_disk();
   };
 }
 
