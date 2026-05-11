@@ -8,6 +8,8 @@
     "./app-framework/syncdb": "./dist/app-framework/syncdb/index.js",
     "./components": "./dist/components/index.js",
     "./components/run-button": "./dist/components/run-button/index.js",
+    "./cookie-consent": "./dist/cookie-consent/index.js",
+    "./cookie-consent/init": "./dist/cookie-consent/init.js",
     "./markdown": "./dist/markdown/index.js",
     "./misc": "./dist/misc/index.js",
     "./i18n": "./dist/i18n/index.js",
@@ -144,6 +146,7 @@
     "use-debounce": "^7.0.1",
     "use-resize-observer": "^9.1.0",
     "utility-types": "^3.10.0",
+    "vanilla-cookieconsent": "^3.1.0",
     "video-extensions": "^1.2.0",
     "zlibjs": "^0.3.1"
   },

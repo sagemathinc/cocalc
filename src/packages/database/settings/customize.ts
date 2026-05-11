@@ -138,6 +138,8 @@ export default async function getCustomize(
           settings.version_compute_server_min_project,
         ),
       },
+      cookieBannerEnabled: settings.cookie_banner_enabled,
+      cookieBannerText: settings.cookie_banner_text,
     };
   }
   return fields ? copy_with(cachedCustomize, fields) : cachedCustomize;

@@ -15,6 +15,10 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
+  requireEssentialConsent,
+  useEssentialConsent,
+} from "@cocalc/frontend/cookie-consent";
+import {
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
   MIN_PASSWORD_STRENGTH,
@@ -154,6 +158,8 @@ function SignUp0({
   // based on email: if user has to sign up via SSO, this will tell which strategy to use.
   const requiredSSO = useRequiredSSO(strategies, email);
 
+  const consentReady = useEssentialConsent();
+
   if (requiresToken2 === undefined || strategies == null) {
     return <Loading />;
   }
@@ -173,11 +179,13 @@ function SignUp0({
     passwordStrength.score > MIN_PASSWORD_STRENGTH &&
     firstName?.trim() &&
     lastName?.trim() &&
-    !needsTags
+    !needsTags &&
+    consentReady
   );
 
   async function signUp() {
     if (signingUp) return;
+    if (!requireEssentialConsent()) return;
     setIssues({});
     try {
       setSigningUp(true);
@@ -499,9 +507,11 @@ function SignUp0({
                           ? "Enter your first name above"
                           : !lastName?.trim()
                             ? "Enter your last name above"
-                            : signingUp
-                              ? ""
-                              : "Sign Up!"}
+                            : !consentReady
+                              ? "Acknowledge cookie banner to continue"
+                              : signingUp
+                                ? ""
+                                : "Sign Up!"}
           {signingUp && (
             <span style={{ marginLeft: "15px" }}>
               <Loading>Signing Up...</Loading>
@@ -538,7 +548,15 @@ function EmailOrSSO(props: EmailOrSSOProps) {
     };
 
     return (
-      <div style={{ textAlign: "center", margin: "20px 0" }}>
+      <div
+        onClickCapture={(e) => {
+          if (!requireEssentialConsent()) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
+        style={{ textAlign: "center", margin: "20px 0" }}
+      >
         <SSO size={email ? 24 : undefined} style={style} />
       </div>
     );

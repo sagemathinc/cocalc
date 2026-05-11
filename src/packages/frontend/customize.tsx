@@ -193,6 +193,9 @@ export interface CustomizeState {
   i18n?: List<Locale>;
 
   user_tracking?: string;
+
+  cookie_banner_enabled?: boolean;
+  cookie_banner_text?: string;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {
@@ -702,6 +705,35 @@ async function init_analytics() {
   if (w?.document == null) {
     // Double check that this code can be run on the backend (not in a browser).
     // see https://github.com/sagemathinc/cocalc-landing/issues/2
+    return;
+  }
+
+  // When the cookie banner is enabled, defer analytics until the user opts
+  // in to the analytics category. We listen via the onConsentChange helper
+  // rather than addEventListener directly because v3 fires `cc:onConsent`
+  // (not `cc:onChange`) when the runtime initialises from an existing valid
+  // cookie — a returning user who already accepted analytics on a previous
+  // visit would otherwise never get GA loaded until they toggled prefs.
+  const bannerEnabled = !!store.get("cookie_banner_enabled");
+  if (bannerEnabled) {
+    const { onConsentChange, hasTrackingConsent } = await import(
+      "@cocalc/frontend/cookie-consent"
+    );
+    // onConsentChange invokes its callback synchronously once during
+    // subscription. If the runtime already has valid consent (returning
+    // user), the callback fires before our `const unsubscribe = …`
+    // assignment completes — referencing `unsubscribe` from inside would
+    // hit the TDZ. Just keep the listener attached for the page lifetime;
+    // the `started` flag prevents a second init, and the listener is a
+    // no-op once analytics is loaded.
+    let started = false;
+    onConsentChange(() => {
+      if (started) return;
+      if (!hasTrackingConsent()) return;
+      started = true;
+      setup_google_analytics(w);
+      setup_cocalc_analytics(w);
+    });
     return;
   }
 
