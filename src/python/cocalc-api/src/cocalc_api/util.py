@@ -39,6 +39,8 @@ def api_method(name: str, opts: bool = False, timeout_seconds: bool = False) -> 
                 args_dict = {'opts': args_dict}
             return self._parent.call(name, [args_dict], timeout=timeout)
 
+        wrapper._api_name = name
+        wrapper._api_opts = opts
         return wrapper
 
     return decorator

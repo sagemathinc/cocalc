@@ -19,20 +19,117 @@ The api is defined in packages/conat/hub/api/
 
 import hubBridge from "@cocalc/server/api/hub-bridge";
 import getParams from "lib/api/get-params";
-import { getAccountFromApiKey } from "@cocalc/server/auth/api";
+import { getAccountFromApiKey, hasScope } from "@cocalc/server/auth/api";
+import { isUserQueryWrite } from "@cocalc/database/user-query-classify";
+
+// Allowlist: methods that are safe with only api:read.
+// Everything NOT in this set requires api:write for OAuth2 tokens.
+const READ_ONLY_METHODS = new Set([
+  "system.ping",
+  "system.getNames",
+  "system.userSearch",
+  "system.test",
+  "system.getCustomize",
+  "projects.get",
+  "projects.state",
+  "projects.status",
+  "projects.getCollaborators",
+  "jupyter.kernels",
+  "sync.history",
+  "messages.get",
+]);
 
 export default async function handle(req, res) {
   try {
-    const { account_id } = (await getAccountFromApiKey(req)) ?? {};
+    const { account_id, scope } = (await getAccountFromApiKey(req)) ?? {};
     if (!account_id) {
-      throw Error(
-        "must be signed in and MUST provide an api key (cookies are not allowed)",
-      );
+      res.status(401).json({
+        error:
+          "must be signed in and MUST provide an api key (cookies are not allowed)",
+      });
+      return;
     }
     const { name, args, timeout } = getParams(req);
+
+    // Enforce OAuth2 scopes (API keys have scope=undefined → unrestricted)
+    if (scope != null) {
+      // Must have at least api:read
+      if (!hasScope(scope, "api:read") && !hasScope(scope, "api:write")) {
+        res.status(403).json({
+          error: "OAuth2 token does not have api:read or api:write scope",
+        });
+        return;
+      }
+
+      // db.userQuery: classify as read or write based on query shape.
+      // The args may contain multiple queries — check ALL of them.
+      // Also check options[].set/delete which override the null-leaf heuristic
+      // in the DB layer (postgres-user-queries.coffee line 148-149).
+      if (name === "db.userQuery") {
+        // Validate the top-level args shape BEFORE iterating so a
+        // non-array value cannot fall through to the generic catch
+        // (which was 500 rather than the intended 400). The scope gate
+        // here is load-bearing — fail closed and explicitly.
+        if (!Array.isArray(args)) {
+          res.status(400).json({
+            error: "invalid db.userQuery payload: `args` must be an array",
+          });
+          return;
+        }
+        for (const arg of args) {
+          if (arg == null || typeof arg !== "object") {
+            res.status(400).json({
+              error:
+                "invalid db.userQuery payload: each arg must be an object",
+            });
+            return;
+          }
+          const query = arg.query;
+          if (query == null || typeof query !== "object") {
+            res.status(400).json({
+              error: "invalid db.userQuery payload: `query` must be an object",
+            });
+            return;
+          }
+          const options = arg.options ?? [];
+          if (options !== undefined && !Array.isArray(options)) {
+            res.status(400).json({
+              error:
+                "invalid db.userQuery payload: `options` must be an array",
+            });
+            return;
+          }
+          const hasSetOption = (options as any[]).some(
+            (o: any) => o?.set || o?.delete,
+          );
+          if (
+            (isUserQueryWrite(query) || hasSetOption) &&
+            !hasScope(scope, "api:write")
+          ) {
+            res.status(403).json({
+              error:
+                "OAuth2 token requires api:write scope for write operations via db.userQuery",
+            });
+            return;
+          }
+        }
+      } else if (
+        !READ_ONLY_METHODS.has(name) &&
+        !hasScope(scope, "api:write")
+      ) {
+        // Any method not in the read-only allowlist requires api:write
+        res.status(403).json({
+          error: `OAuth2 token requires api:write scope for ${name}`,
+        });
+        return;
+      }
+    }
+
     const resp = await hubBridge({ account_id, name, args, timeout });
     res.json(resp);
   } catch (err) {
-    res.json({ error: err.message });
+    // Unexpected error (DB, RPC, etc.) — client-visible messages above are
+    // early-return with proper status codes; anything reaching here is 500.
+    res.status(500).json({ error: err.message });
   }
 }

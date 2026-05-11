@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "jest"],
+    "lib": ["ESNext"],
+    "rootDir": "./",
+    "outDir": "dist"
+  },
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    { "path": "../backend" },
+    { "path": "../database" },
+    { "path": "../util" }
+  ]
+}

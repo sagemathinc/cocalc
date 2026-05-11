@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@cocalc/assets": "workspace:*",
+    "@cocalc/auth": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/cdn": "workspace:*",
     "@cocalc/conat": "workspace:*",

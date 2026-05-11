@@ -267,7 +267,10 @@ export type SiteSettingsExtrasKeys =
   //   | "amazon_web_services_access_key"
   //   | "amazon_web_services_secret_access_key"
   //   | "fluidstack_api_token"
-  | "subscription_maintenance";
+  | "subscription_maintenance"
+  | "oauth2_provider_section"
+  | "oauth2_provider_issuer"
+  | "oauth2_default_native_client_id";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -955,4 +958,26 @@ export const EXTRAS: SettingsExtras = {
   //     show: compute_servers_enabled,
   //     tags: ["Compute Servers"],
   //   },
+  oauth2_provider_section: {
+    name: "OAuth2 Provider Configuration",
+    desc: "Configure CoCalc as an OAuth2 authorization server, allowing external applications to authenticate users via CoCalc. This is useful for integrating CoCalc with MCP tool providers or other services that support OAuth2.",
+    default: "",
+    show: (conf: SiteSettings) => to_bool(conf.oauth2_provider_enabled),
+    type: "header",
+    tags: ["OAuth2 Provider"],
+  },
+  oauth2_provider_issuer: {
+    name: "OAuth2 Provider - Issuer URL",
+    desc: "The issuer URL for the OAuth2 provider. This should be the public-facing base URL of your CoCalc instance (e.g., `https://cocalc.example.com`). Used in the RFC 8414 server metadata document. If left empty, it is auto-detected from the server's DNS setting.",
+    default: "",
+    show: (conf: SiteSettings) => to_bool(conf.oauth2_provider_enabled),
+    tags: ["OAuth2 Provider"],
+  },
+  oauth2_default_native_client_id: {
+    name: "OAuth2 Provider - Default Native Client ID",
+    desc: "Client ID of the default native OAuth2 client for CLI tools. Auto-populated when the provider is first enabled. Advertised in the server metadata document so CLI tools can auto-discover it. You can change this to point to a different native client.",
+    default: "",
+    show: (conf: SiteSettings) => to_bool(conf.oauth2_provider_enabled),
+    tags: ["OAuth2 Provider"],
+  },
 } as const;

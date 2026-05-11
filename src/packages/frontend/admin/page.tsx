@@ -15,6 +15,7 @@ import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { TestLLMAdmin } from "./llm/admin-llm-test";
+import { OAuth2Clients } from "./oauth2/oauth2-clients";
 
 const headerStyle = { fontSize: "12pt" } as const;
 
@@ -64,6 +65,16 @@ export function AdminPage() {
         </div>
       ),
       children: <RegistrationToken />,
+    },
+    {
+      key: "oauth2-provider",
+      label: (
+        <div style={headerStyle}>
+          <Icon name="key" style={{ marginRight: "8px" }} /> OAuth2 Provider
+          Clients
+        </div>
+      ),
+      children: <OAuth2Clients />,
     },
     {
       key: "system-notifications",

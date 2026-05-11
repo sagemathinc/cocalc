@@ -7,12 +7,13 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import ApiKeys from "./settings/api-keys";
+import OAuth2Authorizations from "./settings/oauth2-authorizations";
 import GlobalSSHKeys from "./ssh-keys/global-ssh-keys";
 
 import type { IconName } from "@cocalc/frontend/components/icon";
 
 // Icon constant for account preferences section
-export const KEYS_ICON_NAME: IconName = "key";
+export const KEYS_ICON_NAME: IconName = "lock";
 
 export function AccountPreferencesSecurity() {
   const is_anonymous = useTypedRedux("account", "is_anonymous");
@@ -23,6 +24,7 @@ export function AccountPreferencesSecurity() {
     <>
       {(ssh_gateway || kucalc === KUCALC_COCALC_COM) && <GlobalSSHKeys />}
       {!is_anonymous && <ApiKeys />}
+      {!is_anonymous && <OAuth2Authorizations />}
     </>
   );
 }

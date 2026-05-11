@@ -73,6 +73,7 @@ cd ../frontend && npx tsc --noEmit
   - For src/packages/next and src/packages/static, run `cd src/packages/[package] && pnpm build-dev`
 - `cd src/packages/[package] && pnpm test` - Run all tests for a specific package
 - `cd src/packages/[package] && pnpm test -- [path/to/file.test.ts]` - Run a single test file (preferred — faster than running the full suite)
+- **IMPORTANT**: NEVER run `npx jest` directly. Always use `pnpm test` which is configured in each package's `package.json` with the correct settings (TZ, forceExit, etc.).
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
 - **IMPORTANT**: When modifying colors in `src/packages/util/theme.ts`, run `cd src/packages/frontend && pnpm update-color-scheme` to regenerate the SASS color variables in `src/packages/frontend/_colors.sass`
 

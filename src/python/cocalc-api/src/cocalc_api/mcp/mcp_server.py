@@ -316,7 +316,7 @@ def set_current_project(project_id: str) -> dict[str, Any]:
 
     try:
         hub = Hub(api_key=_api_key, host=_host)
-        projects = hub.projects.get(project_id=project_id)
+        projects = hub.projects.list(project_id=project_id)
         if not projects:
             raise RuntimeError(f"Project {project_id} not found or not accessible")
         project_info = projects[0]
@@ -369,7 +369,7 @@ def get_current_project() -> dict[str, Any]:
 
     try:
         hub = Hub(api_key=_api_key, host=_host)
-        projects = hub.projects.get(project_id=_current_project_id)
+        projects = hub.projects.list(project_id=_current_project_id)
         if not projects:
             return {"error": f"Project {_current_project_id} no longer accessible"}
         project_info = projects[0]

@@ -138,6 +138,13 @@ jobs:
           chmod 600 src/data/secrets/conat-password
 
           cd src/packages/hub
+          export COCALC_SETTING_OAUTH2_PROVIDER_ENABLED=yes
+          # Raise OAuth2 token-endpoint rate limits so the E2E suite,
+          # which fires many /oauth/token requests back-to-back, is not
+          # throttled. Production defaults (2/s per client, 10/s global)
+          # are intentionally tight.
+          export COCALC_OAUTH2_RATE_PER_CLIENT=50
+          export COCALC_OAUTH2_RATE_GLOBAL=200
           pnpm run hub-project-dev-nobuild > hub.log 2>&1 &
           HUB_PID=$!
           echo $HUB_PID > hub.pid
@@ -222,6 +229,9 @@ jobs:
             sleep 5
             # Force kill if still running
             kill -9 $HUB_PID 2>/dev/null || true
+            # Also kill any process still holding port 5000
+            fuser -k 5000/tcp 2>/dev/null || true
+            sleep 2
 
             # Read the admin account ID created in the previous step
             cd src/packages/hub
@@ -232,6 +242,11 @@ jobs:
             export COCALC_SETTING_JUPYTER_API_ENABLED=yes
             export COCALC_SETTING_JUPYTER_ACCOUNT_ID=$ADMIN_ACCOUNT_ID
             export COCALC_SETTING_JUPYTER_PROJECT_POOL_SIZE=1
+            export COCALC_SETTING_OAUTH2_PROVIDER_ENABLED=yes
+            # Raise OAuth2 token-endpoint rate limits for the E2E suite
+            # (production defaults are 2/s per client, 10/s global).
+            export COCALC_OAUTH2_RATE_PER_CLIENT=50
+            export COCALC_OAUTH2_RATE_GLOBAL=200
 
             # Start hub with new configuration
             pnpm run hub-project-dev-nobuild > hub.log 2>&1 &
@@ -283,6 +298,18 @@ jobs:
           export COCALC_HOST=http://localhost:5000
           export CI=true
           cd src/python/cocalc-api && make ci
+        env:
+          PGDATABASE: smc
+          PGUSER: smc
+          PGHOST: localhost
+
+      - name: Run cocalc-api OAuth2 E2E tests
+        run: |
+          export COCALC_API_KEY=$(cat src/api_key.txt)
+          export COCALC_ACCOUNT_ID=$(cat src/account_id.txt)
+          export COCALC_HOST=http://localhost:5000
+          export CI=true
+          cd src/python/cocalc-api && make ci-test-oauth2
         env:
           PGDATABASE: smc
           PGUSER: smc

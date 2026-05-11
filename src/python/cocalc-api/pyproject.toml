@@ -5,8 +5,11 @@ description = "Python client for the CoCalc API"
 authors = [{ name="William Stein", email="wstein@sagemath.com" }, {name="Harald Schilly", email="hsy@sagemath.com"}]
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["httpx", "mcp>=1.23", "urllib3>=2.6.3", "requests>=2.33.0", "cryptography>=46.0.6"]
+dependencies = ["click>=8.0", "httpx", "mcp>=1.23", "urllib3>=2.6.3", "requests>=2.33.0", "cryptography>=46.0.6"]
 license = "MIT"
+
+[project.optional-dependencies]
+keyring = ["keyring>=25.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cocalc_api"]
@@ -20,6 +23,7 @@ Source = "https://github.com/sagemathinc/cocalc/src/python/cocalc-api"
 Issues = "https://github.com/sagemathinc/cocalc/issues"
 
 [project.scripts]
+cocalc-api = "cocalc_api.cli:main"
 cocalc-mcp-server = "cocalc_api.mcp.server:main"
 cocalc-mcp-debug = "cocalc_api.mcp.mcp_debug:main"
 

@@ -1,17 +1,65 @@
+from __future__ import annotations
+
 import httpx
-from typing import Any, Literal, Optional
+from typing import Any, Generator, Literal, Optional
 from .util import api_method, handle_error
 from .api_types import PingResponse, TestResponse, UserSearchResult, MessageType
 from .org import Organizations
 
 
+class _OAuthAuth(httpx.Auth):
+    """Custom httpx auth that calls get_token() on each request.
+
+    This ensures the Bearer token is always fresh, even in long-lived
+    processes where the access token may expire and need refreshing.
+    """
+
+    def __init__(self, host: str):
+        self.host = host
+
+    def auth_flow(self, request: httpx.Request) -> Generator[httpx.Request, httpx.Response, None]:
+        from . import auth as _auth
+
+        token = _auth.get_token(host=self.host)
+        if token:
+            request.headers["Authorization"] = f"Bearer {token}"
+        yield request
+
+
 class Hub:
 
-    def __init__(self, api_key: str, host: str = "https://cocalc.com"):
-        self.api_key = api_key
+    def __init__(self, api_key: Optional[str] = None, host: str = "https://cocalc.com", oauth_token: Optional[str] = None):
         self.host = host
         # Use longer timeout for API calls (120 seconds instead of default 5) to handle slow operations like Jupyter
-        self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"}, timeout=120.0)
+        if oauth_token:
+            # OAuth2 Bearer token authentication (explicit token — bake it in)
+            self.api_key = ""
+            self.client = httpx.Client(
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {oauth_token}"
+                },
+                timeout=120.0,
+            )
+        elif api_key:
+            # API key authentication (Basic auth)
+            self.api_key = api_key
+            self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"}, timeout=120.0)
+        else:
+            # Try OAuth2 stored token — use per-request auth so the token
+            # is refreshed automatically in long-lived processes.
+            from . import auth as _auth
+
+            token = _auth.get_token(host=host)
+            if token:
+                self.api_key = ""
+                self.client = httpx.Client(
+                    auth=_OAuthAuth(host),
+                    headers={"Content-Type": "application/json"},
+                    timeout=120.0,
+                )
+            else:
+                raise ValueError("Either api_key or oauth_token must be provided, or run 'cocalc-api auth login' first.")
 
     def call(self, name: str, arguments: list[Any], timeout: Optional[int] = None) -> Any:
         """
@@ -155,7 +203,7 @@ class Projects:
     def __init__(self, parent: "Hub"):
         self._parent = parent
 
-    def get(
+    def list(
         self,
         fields: Optional[list[str]] = None,
         all: Optional[bool] = False,

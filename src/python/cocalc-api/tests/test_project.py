@@ -24,7 +24,7 @@ class TestProjectCreation:
 
     def test_project_exists_in_list(self, hub, temporary_project):
         """Test that the created project appears in the projects list."""
-        projects = hub.projects.get(all=True)
+        projects = hub.projects.list(all=True)
         project_ids = [p['project_id'] for p in projects]
         assert temporary_project['project_id'] in project_ids
 
