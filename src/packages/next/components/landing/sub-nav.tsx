@@ -106,7 +106,6 @@ export const POLICIES = {
   privacy: { label: "Privacy", hide: (c) => !c.onCoCalcCom },
   dpa: { label: "DPA", hide: (c) => !c.onCoCalcCom },
   trust: { label: "Trust", hide: (c) => !c.onCoCalcCom },
-  thirdparties: { label: "Third Parties", hide: (c) => !c.onCoCalcCom },
   copyright: { label: "Copyright", hide: (c) => !c.onCoCalcCom },
   ferpa: { label: "FERPA", hide: (c) => !c.onCoCalcCom },
   accessibility: { label: "Accessibility", hide: (c) => !c.onCoCalcCom },

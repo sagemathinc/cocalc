@@ -170,6 +170,7 @@ src/packages/frontend/i18n/trans/*.compiled.json
 **/*.bash_history
 
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # test reports by jest-junit
 junit.xml

@@ -29,6 +29,19 @@ export interface MessageHistory {
   date: string; // date.toISOString()
 }
 
+// Stamped on a root message when its anchored thread has been "resolved"
+// (LaTeX collaborative-TODO flow). On resolve, the active `id` and `path`
+// are cleared (so the thread no longer matches its source-document anchor)
+// and the former values are preserved here so the chat keeps the reference
+// it once had and stale-marker detection has the hash to match against.
+export interface ResolvedMeta {
+  account_id: string;
+  at: string; // ISO timestamp
+  anchorId: string; // former root id / LaTeX marker hash
+  path?: string; // former marker path, if known
+  label?: string; // section-context label captured at resolve time
+}
+
 export interface ChatMessage {
   event: "chat";
   sender_id: string;
@@ -40,8 +53,13 @@ export interface ChatMessage {
   folding?: string[];
   feedback?: { [account_id: string]: Feedback };
   // When set on a root message (no reply_to), anchors this chat thread
-  // to a specific Jupyter notebook cell.
-  cell_id?: string;
+  // to a specific location in the source document. The interpretation is
+  // editor-specific: for a Jupyter notebook this is a cell UUID; for a
+  // LaTeX file this is an opaque marker hash. `path` (below) optionally
+  // identifies which sub-file the anchor lives in for multi-file editors.
+  id?: string;
+  path?: string;
+  resolved?: ResolvedMeta;
 }
 
 // this type isn't explicitly used anywhere yet, but the actual structure is and I just
@@ -72,7 +90,13 @@ export type ChatMessageTyped = TypedMap<{
   }>;
   folding?: List<string>;
   feedback?: Map<string, Feedback>; // encoded as map of {[account_id]:Feedback}
+  id?: string;
+  // Legacy field name used by pre-existing notebook chats before the
+  // cell_id → id rename. Still honored on read (see `anchorIdOf` in
+  // utils.ts) so those threads remain discoverable.
   cell_id?: string;
+  path?: string;
+  resolved?: TypedMap<ResolvedMeta>;
 }>;
 
 export type ChatMessages = TypedMap<{

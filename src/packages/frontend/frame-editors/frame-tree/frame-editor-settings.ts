@@ -19,14 +19,16 @@ interface FrameEditorSettingsChange<T> {
   value?: T;
 }
 
+type FrameEditorSettingsListener = (
+  event: FrameEditorSettingsChange<unknown>,
+) => void;
+
 interface FrameEditorSettingsDKV {
   get(key: string): unknown;
   set(key: string, value: unknown): void;
   delete(key: string): void;
-  on(
-    event: "change",
-    listener: (event: FrameEditorSettingsChange<unknown>) => void,
-  ): void;
+  on(event: "change", listener: FrameEditorSettingsListener): void;
+  off(event: "change", listener: FrameEditorSettingsListener): void;
   close?(): void;
 }
 
@@ -243,6 +245,7 @@ export function useFrameEditorToolbarButtons(
 ): UseFrameEditorToolbarButtons {
   const storageKey = getFrameEditorSettingsKey("icons", editorName);
   const dkvRef = useRef<FrameEditorSettingsDKV | null>(null);
+  const changeListenerRef = useRef<FrameEditorSettingsListener | null>(null);
   const toolbarButtonsRef = useRef<string[] | null>(null);
   const dirtyRef = useRef(false);
   const [toolbarButtons, setToolbarButtonsState] = useState<string[] | null>(
@@ -302,14 +305,16 @@ export function useFrameEditorToolbarButtons(
         }
 
         dkvRef.current = conatDkv;
-        conatDkv.on("change", ({ key, value }) => {
+        const listener: FrameEditorSettingsListener = ({ key, value }) => {
           if (key !== storageKey) {
             return;
           }
           const next = sanitizeToolbarButtons(value);
           toolbarButtonsRef.current = next;
           setToolbarButtonsState(next);
-        });
+        };
+        changeListenerRef.current = listener;
+        conatDkv.on("change", listener);
 
         if (dirtyRef.current) {
           persist(toolbarButtonsRef.current);
@@ -335,7 +340,17 @@ export function useFrameEditorToolbarButtons(
       }
     },
     () => {
-      dkvRef.current?.close?.();
+      // Detach the listener BEFORE closing — `close()` may be ref-counted
+      // on the shared DKV, so if other editors still hold it open, the
+      // listener would otherwise survive and accumulate across mounts
+      // (node EventEmitter warns at 11).
+      const dkv = dkvRef.current;
+      const listener = changeListenerRef.current;
+      if (dkv && listener) {
+        dkv.off?.("change", listener);
+      }
+      changeListenerRef.current = null;
+      dkv?.close?.();
       dkvRef.current = null;
       toolbarButtonsRef.current = null;
       dirtyRef.current = false;

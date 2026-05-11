@@ -61,17 +61,6 @@ const dataSourceCoCalcCom = [
     ),
   },
   {
-    link: "/policies/thirdparties",
-    title: "Third Parties",
-    logo: "users",
-    description: (
-      <>
-        The <A href="/policies/thirdparties">Third Parties</A> page lists key
-        service providers used to operate CoCalc.
-      </>
-    ),
-  },
-  {
     link: "/policies/copyright",
     title: "Copyright Policy",
     logo: "dot-circle",

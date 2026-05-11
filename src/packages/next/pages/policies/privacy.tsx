@@ -28,7 +28,7 @@ export default function Privacy({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Privacy Policy</h1>
-              <h2>Last Updated: January 5, 2026</h2>
+              <h2>Last Updated: April 21, 2026</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -520,15 +520,12 @@ export default function Privacy({ customize }) {
                         (also known as a web beacon) is a piece of code embedded
                         on the Services that collects information about users’
                         engagement on that web page. We do not use pixel tags
-                        directly, but some of our service providers, namely
-                        Salesloft and ZenDesk, may use similar technology to let
-                        us know that email messages have been opened, acted on,
-                        or forwarded. You can consult their privacy policies and
-                        other documents following the links on our Third Parties
-                        page at{" "}
-                        <A href="/policies/thirdparties">
-                          https://cocalc.com/policies/thirdparties
-                        </A>{" "}
+                        directly, but some of our service providers, including
+                        HubSpot, Salesloft, and Zendesk, may use similar
+                        technology to let us know that email messages have been
+                        opened, acted on, or forwarded. You can review the
+                        privacy policies of those providers on their respective
+                        websites.
                       </p>{" "}
                     </li>{" "}
                   </ul>{" "}
@@ -577,17 +574,13 @@ export default function Privacy({ customize }) {
                   <p>
                     {" "}
                     When you make purchases through the Services, we process
-                    your payments through our Payment Processor, Stripe. The
-                    Payment Processor collects information from and about you
-                    that is necessary to process your payment and to prevent
-                    abuse. This may include your name, email address, billing
-                    address, tax identifies, IP address, and account numbers. We
-                    do not get access to your full account numbers. You can
-                    consult Stripe's privacy policy and other documents
-                    following the links on our Third Parties page at{" "}
-                    <A href="/policies/thirdparties">
-                      https://cocalc.com/policies/thirdparties
-                    </A>{" "}
+                    your payments through our payment processor, Stripe. Stripe
+                    collects information from and about you that is necessary to
+                    process your payment and help prevent abuse. This may
+                    include your name, email address, billing address, tax
+                    identifiers, IP address, and payment information. We do not
+                    receive your full payment account numbers. You can review
+                    Stripe&apos;s privacy policy on Stripe&apos;s website.
                   </p>{" "}
                 </div>{" "}
               </div>{" "}
@@ -1346,6 +1339,10 @@ export default function Privacy({ customize }) {
                         Update: add the list of used cookies and their purpose
                       </td>
                       <td> 2026-01-06 </td>
+                    </tr>
+                    <tr>
+                      <td>Update: simplify vendor references</td>
+                      <td> 2026-04-21 </td>
                     </tr>
                   </tbody>
                 </table>

@@ -785,11 +785,33 @@ export class SyncDoc extends EventEmitter {
 
   // Return string representation of this doc,
   // or exception if not yet ready.
+  //
+  // Callers that can be reached before `ready` (e.g. redux-store
+  // listeners that fire on any state change, not just syncstring
+  // events) should prefer `try_to_str()` below — the `string |
+  // undefined` return forces the caller to handle the not-yet-hydrated
+  // case at the type level instead of catching an exception at runtime.
   to_str = (): string => {
     if (this.doc == null) {
       throw Error("doc must be set");
     }
     return this.doc.to_str();
+  };
+
+  // Safe variant of `to_str` that returns `undefined` when the
+  // underlying doc hasn't loaded yet (i.e. before the syncstring
+  // reaches the "ready" state). Intended for call sites that may run
+  // during init — typically redux listeners or cross-doc lookups in
+  // multi-file editors — where exceptions would bubble up as UI
+  // crashes. Encodes the invariant in the return type so TypeScript
+  // flags the caller if it forgets to handle undefined.
+  try_to_str = (): string | undefined => {
+    if (this.doc == null) return undefined;
+    try {
+      return this.doc.to_str();
+    } catch {
+      return undefined;
+    }
   };
 
   count = (): number => {

@@ -7,48 +7,12 @@ import type { MenuProps } from "antd";
 import { Badge, Dropdown, Tooltip } from "antd";
 import React from "react";
 
-import {
-  redux,
-  useFrameContext,
-  useRedux,
-} from "@cocalc/frontend/app-framework";
-import type { ThreadListItem } from "@cocalc/frontend/chat/threads";
-import { useThreadList } from "@cocalc/frontend/chat/threads";
+import { useFrameContext } from "@cocalc/frontend/app-framework";
+import { useAnchoredThreads } from "@cocalc/frontend/chat/threads";
 import { Icon } from "@cocalc/frontend/components";
-import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 import track from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
 import { CODE_BAR_BTN_STYLE } from "./consts";
-
-/** Shared hook: threads anchored to a given cell. */
-function useCellThreads(
-  project_id: string,
-  path: string,
-  cellId: string,
-): {
-  cellThreads: ThreadListItem[];
-  totalMessages: number;
-  totalUnread: number;
-} {
-  const account_id = redux.getStore("account")?.get_account_id();
-  const chatPath = chatFile(path);
-  const chatMessages = useRedux(["messages"], project_id, chatPath);
-  const allThreads = useThreadList(chatMessages, account_id);
-  const cellThreads = React.useMemo(
-    () =>
-      allThreads.filter((t) => t.rootMessage?.get("cell_id") === cellId),
-    [allThreads, cellId],
-  );
-  const totalMessages = React.useMemo(
-    () => cellThreads.reduce((s, t) => s + t.messageCount, 0),
-    [cellThreads],
-  );
-  const totalUnread = React.useMemo(
-    () => cellThreads.reduce((s, t) => s + t.unreadCount, 0),
-    [cellThreads],
-  );
-  return { cellThreads, totalMessages, totalUnread };
-}
 
 /** Always-visible unread badge for a cell. Shows only when there are unread messages. */
 export function CellChatUnreadBadge({
@@ -61,7 +25,7 @@ export function CellChatUnreadBadge({
   path: string;
 }) {
   const frameContext = useFrameContext();
-  const { cellThreads, totalUnread } = useCellThreads(
+  const { anchoredThreads, totalUnread } = useAnchoredThreads(
     project_id,
     path,
     cellId,
@@ -69,7 +33,7 @@ export function CellChatUnreadBadge({
   if (totalUnread <= 0) return null;
 
   // Find the newest unread thread to open on click
-  const newestUnread = cellThreads
+  const newestUnread = anchoredThreads
     .filter((t) => t.unreadCount > 0)
     .sort((a, b) => b.newestTime - a.newestTime)[0];
 
@@ -102,7 +66,7 @@ export function CellChatButton({
   path: string;
 }) {
   const frameContext = useFrameContext();
-  const { cellThreads, totalMessages, totalUnread } = useCellThreads(
+  const { anchoredThreads, totalMessages, totalUnread } = useAnchoredThreads(
     project_id,
     path,
     cellId,
@@ -110,10 +74,10 @@ export function CellChatButton({
   // The newest thread with unread messages — this is what the main button opens.
   const newestUnreadThread = React.useMemo(
     () =>
-      cellThreads
+      anchoredThreads
         .filter((t) => t.unreadCount > 0)
         .sort((a, b) => b.newestTime - a.newestTime)[0] ?? null,
-    [cellThreads],
+    [anchoredThreads],
   );
 
   const handleMainClick = () => {
@@ -132,7 +96,7 @@ export function CellChatButton({
   };
 
   const menuItems: MenuProps["items"] = [];
-  for (const t of cellThreads) {
+  for (const t of anchoredThreads) {
     const hasUnread = t.unreadCount > 0;
     menuItems.push({
       key: t.key,
@@ -156,7 +120,7 @@ export function CellChatButton({
       },
     });
   }
-  if (cellThreads.length > 0) {
+  if (anchoredThreads.length > 0) {
     menuItems.push({ type: "divider" });
   }
   menuItems.push({

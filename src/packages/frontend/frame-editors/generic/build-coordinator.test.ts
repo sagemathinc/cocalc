@@ -160,6 +160,7 @@ describe("BuildCoordinator", () => {
         status: "running",
         aggregate: 12345,
         force: undefined,
+        startedAt: expect.any(Number),
       });
 
       coord.close();
@@ -180,6 +181,7 @@ describe("BuildCoordinator", () => {
         status: "finished",
         aggregate: 100,
         force: undefined,
+        startedAt: expect.any(Number),
       });
 
       coord.close();
@@ -512,6 +514,53 @@ describe("BuildCoordinator", () => {
       coord.close();
     });
 
+    test("clears a stale 'running' entry instead of joining (age > 20 min)", async () => {
+      const cb = makeCallbacks();
+
+      // Entry from a crashed/disconnected originator: status "running"
+      // but startedAt is far in the past. The late joiner must NOT
+      // attempt to join (that would re-run the same hang); instead it
+      // flips the entry to "finished" so peers clear too.
+      mockDkvInstance.set(PATH, {
+        buildId: "stranded",
+        status: "running",
+        aggregate: 1,
+        startedAt: Date.now() - 30 * 60 * 1000,
+      });
+
+      const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
+      await initDkv();
+
+      expect(cb.join).not.toHaveBeenCalled();
+      expect(cb.setBuilding).not.toHaveBeenCalledWith(true);
+      expect(mockDkvInstance.get(PATH)).toEqual({
+        buildId: "stranded",
+        status: "finished",
+        aggregate: 1,
+        startedAt: expect.any(Number),
+      });
+
+      coord.close();
+    });
+
+    test("still joins a fresh 'running' entry (age < 20 min)", async () => {
+      const cb = makeCallbacks();
+
+      mockDkvInstance.set(PATH, {
+        buildId: "fresh",
+        status: "running",
+        aggregate: 5,
+        startedAt: Date.now() - 60 * 1000,
+      });
+
+      const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
+      await initDkv();
+
+      expect(cb.join).toHaveBeenCalledWith(5, false);
+
+      coord.close();
+    });
+
     test("does not join if already building locally", async () => {
       const cb = makeCallbacks({
         isBuilding: jest.fn(() => true),
@@ -604,6 +653,7 @@ describe("BuildCoordinator", () => {
         status: "running",
         aggregate: 200,
         force: undefined,
+        startedAt: expect.any(Number),
       });
 
       coord.close();

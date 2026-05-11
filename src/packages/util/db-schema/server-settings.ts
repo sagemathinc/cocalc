@@ -137,4 +137,6 @@ export interface Customize {
     recommended_browser?: number;
     compute_server_min_project?: number;
   };
+  cookieBannerEnabled?: boolean;
+  cookieBannerText?: string;
 }
