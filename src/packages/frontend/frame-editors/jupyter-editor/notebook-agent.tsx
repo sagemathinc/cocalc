@@ -798,7 +798,23 @@ export function NotebookAgent({
     if (msg.event === "tool_result") {
       return formatToolResultForDisplay(content);
     }
-    if (!content) return null;
+    if (!content) {
+      // Tool-only assistant turn: render a faint indicator so the user
+      // sees that the model did something. Without this, models that
+      // emit only tool blocks (no prose) leave a blank message bubble.
+      if (msg.sender === "assistant") {
+        const toolCalls = parseToolBlocks(msg.content);
+        if (toolCalls.length > 0) {
+          return (
+            <div style={TOOL_RESULT_STYLE}>
+              Used tool{toolCalls.length > 1 ? "s" : ""}:{" "}
+              {toolCalls.map((t) => t.name).join(", ")}
+            </div>
+          );
+        }
+      }
+      return null;
+    }
     return (
       <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
         <StaticMarkdown value={content} />
@@ -961,7 +977,13 @@ export function NotebookAgent({
             key={inputKey}
             value={input}
             autoFocus
-            defaultMode="editor"
+            // Default to plain-text input. The slate WYSIWYG mode escapes
+            // 17 markdown metachars on serialize ("foo(x)" -> "foo\(x\)",
+            // "<" -> "&lt;", "-U" -> "\-U"), which silently corrupts
+            // prompts sent to the LLM. Defaulting to markdown avoids that
+            // for most users; the editbar toggle is still available for
+            // anyone who wants WYSIWYG.
+            defaultMode="markdown"
             onChange={handleInputChange}
             onShiftEnter={(value) => {
               handleSubmit(value);

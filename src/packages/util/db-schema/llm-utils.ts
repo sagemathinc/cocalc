@@ -149,6 +149,7 @@ export const MODELS_OPENAI = [
   "gpt-5",
   "gpt-5.2-8k", // context limited
   "gpt-5.2",
+  "gpt-5.5", // context limited (no 128k variant exposed)
   "gpt-5.4-8k", // context limited
   "gpt-5.4",
   "gpt-5-mini-8k", // context limited
@@ -162,6 +163,53 @@ export type OpenAIModel = (typeof MODELS_OPENAI)[number];
 export function isOpenAIModel(model: unknown): model is OpenAIModel {
   return MODELS_OPENAI.includes(model as any);
 }
+
+// Maps each user-selectable / internally-tracked OpenAI model to its
+// actual OpenAI API model name (or null if no longer supported).
+//
+// Mirrors ANTHROPIC_VERSION below — explicit mapping replaces fragile
+// prefix matching, which previously misrouted "gpt-5.5" to "gpt-5"
+// because it shared a prefix with the older model.
+//
+// Adding a new model? Add it here too. The TypeScript exhaustiveness
+// check on `[name in OpenAIModel]` will catch a missing entry at
+// build time.
+export const OPENAI_VERSION: { [name in OpenAIModel]: string | null } = {
+  "gpt-3.5-turbo": "gpt-3.5-turbo",
+  "gpt-3.5-turbo-16k": "gpt-3.5-turbo-16k",
+  "gpt-4": "gpt-4",
+  "gpt-4-32k": "gpt-4-32k",
+  "gpt-4.1": "gpt-4.1",
+  "gpt-4.1-mini": "gpt-4.1-mini",
+  "gpt-4-turbo-preview-8k": "gpt-4-turbo-preview",
+  "gpt-4-turbo-preview": "gpt-4-turbo-preview",
+  "gpt-4-turbo-8k": "gpt-4-turbo",
+  "gpt-4-turbo": "gpt-4-turbo",
+  "gpt-4o-mini-8k": "gpt-4o-mini",
+  "gpt-4o-mini": "gpt-4o-mini",
+  "gpt-4o-8k": "gpt-4o",
+  "gpt-4o": "gpt-4o",
+  o1: "o1",
+  "o1-8k": "o1",
+  "o1-mini": "o1-mini",
+  "o1-mini-8k": "o1-mini",
+  o3: "o3",
+  "o3-8k": "o3",
+  "o4-mini": "o4-mini",
+  "o4-mini-8k": "o4-mini",
+  "gpt-5": "gpt-5",
+  "gpt-5-8k": "gpt-5",
+  "gpt-5.2": "gpt-5.2",
+  "gpt-5.2-8k": "gpt-5.2",
+  "gpt-5.5": "gpt-5.5",
+  "gpt-5.4": "gpt-5.4",
+  "gpt-5.4-8k": "gpt-5.4",
+  "gpt-5-mini": "gpt-5-mini",
+  "gpt-5-mini-8k": "gpt-5-mini",
+  "gpt-5.4-mini": "gpt-5.4-mini",
+  "gpt-5.4-mini-8k": "gpt-5.4-mini",
+  "text-embedding-ada-002": "text-embedding-ada-002",
+} as const;
 
 // ATTN: when you modify this list, also change frontend/.../llm/llm-selector.tsx!
 export const MISTRAL_MODELS = [
@@ -394,7 +442,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   [vendor in LLMServiceName]: Readonly<LanguageModelCore[]>;
 } = {
   openai: MODELS_OPENAI.filter(
-    (m) => m === "gpt-5.4-8k" || m === "gpt-5.4-mini-8k",
+    (m) => m === "gpt-5.5" || m === "gpt-5.4-8k" || m === "gpt-5.4-mini-8k",
   ),
   google: [
     "gemini-3.1-pro-preview-8k",
@@ -974,6 +1022,7 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-5": "GPT-5 128k",
   "gpt-5.2-8k": "GPT-5.2",
   "gpt-5.2": "GPT-5.2 128k",
+  "gpt-5.5": "GPT-5.5",
   "gpt-5.4-8k": "GPT-5.4",
   "gpt-5.4": "GPT-5.4 128k",
   "gpt-5-mini-8k": "GPT-5 Mini",
@@ -997,7 +1046,7 @@ export const LLM_DESCR: LLM2String = {
   "gpt-4":
     "Powerful OpenAI model. Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
   "gpt-4.1":
-    "Powerful OpenAI model. Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
+    "Powerful OpenAI model. Can follow complex instructions and solve difficult problems. (OpenAI, 50k token context)",
   "gpt-4-32k": "",
   "gpt-3.5-turbo": "Fast, great for everyday tasks. (OpenAI, 4k token context)",
   "gpt-3.5-turbo-16k": `Same as ${LLM_USERNAMES["gpt-3.5-turbo"]} but with larger 16k token context`,
@@ -1008,11 +1057,11 @@ export const LLM_DESCR: LLM2String = {
     "Faster, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
   "gpt-4-turbo": "Like GPT-4 Turbo, but with up to 128k token context",
   "gpt-4o-8k":
-    "Most powerful, fastest, and cheapest (OpenAI, 8k token context)",
+    "Most powerful, fastest, and cheapest (OpenAI, 50k token context)",
   "gpt-4o": "Most powerful fastest, and cheapest (OpenAI, 128k token context)",
   "gpt-4o-mini-8k":
-    "Most cost-efficient small model (OpenAI, 8k token context)",
-  "gpt-4.1-mini": "Most cost-efficient small model (OpenAI, 8k token context)",
+    "Most cost-efficient small model (OpenAI, 50k token context)",
+  "gpt-4.1-mini": "Most cost-efficient small model (OpenAI, 50k token context)",
   "gpt-4o-mini": "Most cost-efficient small model (OpenAI, 128k token context)",
   "text-embedding-ada-002": "Text embedding Ada 002 by OpenAI", // TODO: this is for embeddings, should be moved to a different place
   "o1-8k": "Spends more time thinking (8k token context)",
@@ -1037,13 +1086,13 @@ export const LLM_DESCR: LLM2String = {
   "gemini-2.0-flash-lite-8k":
     "Google's Gemini 2.0 Flash Lite Generative AI model (8k token context)",
   "gemini-2.5-flash-8k":
-    "Google's Gemini 2.5 Flash Generative AI model (8k token context)",
+    "Google's Gemini 2.5 Flash Generative AI model (50k token context)",
   "gemini-2.5-pro-8k":
-    "Google's Gemini 2.5 Pro Generative AI model (8k token context)",
+    "Google's Gemini 2.5 Pro Generative AI model (50k token context)",
   "gemini-3-pro-preview-8k":
-    "Google's Gemini 3 Pro Generative AI model (8k token context)",
+    "Google's Gemini 3 Pro Generative AI model (50k token context)",
   "gemini-3.1-pro-preview-8k":
-    "Google's Gemini 3.1 Pro model with enhanced reasoning (8k token context)",
+    "Google's Gemini 3.1 Pro model with enhanced reasoning (50k token context)",
   "mistral-small-latest":
     "Small general purpose tasks, text classification, customer service. (Mistral AI, 4k token context)",
   "mistral-medium-latest":
@@ -1071,17 +1120,17 @@ export const LLM_DESCR: LLM2String = {
   "claude-4-opus-8k":
     "Excels at writing and complex tasks (Anthropic, 8k token context)",
   "claude-4-5-sonnet-8k":
-    "Most intelligent model with advanced reasoning (Anthropic, 8k token context)",
+    "Most intelligent model with advanced reasoning (Anthropic, 50k token context)",
   "claude-4-6-sonnet-8k":
-    "Advanced reasoning and coding model (Anthropic, 8k token context)",
+    "Advanced reasoning and coding model (Anthropic, 50k token context)",
   "claude-4-5-opus-8k":
-    "Flagship model excelling at complex tasks and writing (Anthropic, 8k token context)",
+    "Flagship model excelling at complex tasks and writing (Anthropic, 50k token context)",
   "claude-4-6-opus-8k":
-    "Most intelligent model for agents and coding (Anthropic, 8k token context)",
+    "Most intelligent model for agents and coding (Anthropic, 50k token context)",
   "claude-4-7-opus-8k":
-    "Latest flagship model for agents and coding (Anthropic, 8k token context)",
+    "Latest flagship model for agents and coding (Anthropic, 50k token context)",
   "claude-4-5-haiku-8k":
-    "Fastest and most cost-efficient model (Anthropic, 8k token context)",
+    "Fastest and most cost-efficient model (Anthropic, 50k token context)",
   "claude-3-sonnet-4k":
     "Best combination of performance and speed (Anthropic, 4k token context)",
   "claude-3-opus":
@@ -1089,10 +1138,10 @@ export const LLM_DESCR: LLM2String = {
   "claude-3-opus-8k":
     "Excels at writing and complex tasks (Anthropic, 8k token context)",
   "o3-8k":
-    "Advanced reasoning model with enhanced thinking capabilities (8k token context)",
+    "Advanced reasoning model with enhanced thinking capabilities (50k token context)",
   o3: "Advanced reasoning model with enhanced thinking capabilities (128k token context)",
   "o4-mini-8k":
-    "Cost-efficient reasoning model with strong performance (8k token context)",
+    "Cost-efficient reasoning model with strong performance (50k token context)",
   "o4-mini":
     "Cost-efficient reasoning model with strong performance (128k token context)",
   "gpt-5-8k":
@@ -1100,30 +1149,31 @@ export const LLM_DESCR: LLM2String = {
   "gpt-5":
     "OpenAI's most advanced model with built-in reasoning (128k token context)",
   "gpt-5.2-8k":
-    "OpenAI's most advanced model with built-in reasoning (8k token context)",
+    "OpenAI's most advanced model with built-in reasoning (50k token context)",
   "gpt-5.2":
     "OpenAI's most advanced model with built-in reasoning (128k token context)",
+  "gpt-5.5":
+    "OpenAI's smartest model for coding and professional work (50k token context)",
   "gpt-5.4-8k":
-    "OpenAI's most powerful model for professional work (8k token context)",
+    "OpenAI's most powerful model for professional work (50k token context)",
   "gpt-5.4":
     "OpenAI's most powerful model for professional work (128k token context)",
   "gpt-5-mini-8k":
-    "Fast and cost-efficient version of GPT-5 (8k token context)",
+    "Fast and cost-efficient version of GPT-5 (50k token context)",
   "gpt-5-mini": "Fast and cost-efficient version of GPT-5 (128k token context)",
   "gpt-5.4-mini-8k":
-    "Powerful and cost-efficient mini model for coding and agents (8k token context)",
+    "Powerful and cost-efficient mini model for coding and agents (50k token context)",
   "gpt-5.4-mini":
     "Powerful and cost-efficient mini model for coding and agents (128k token context)",
   "gemini-3-flash-preview-16k":
-    "Google's Gemini 3 Flash model (16k token context)",
+    "Google's Gemini 3 Flash model (50k token context)",
   "grok-4-1-fast-non-reasoning-16k":
-    "xAI's Grok 4.1 fast non-reasoning model (16k token context)",
+    "xAI's Grok 4.1 fast non-reasoning model (50k token context)",
   "grok-4-1-fast-reasoning-16k":
-    "xAI's Grok 4.1 fast reasoning model (16k token context)",
+    "xAI's Grok 4.1 fast reasoning model (50k token context)",
   "grok-code-fast-1-16k":
-    "xAI's Grok Code Fast model, specialized for coding tasks (16k token context)",
-  "glm-5.1":
-    "Z.AI's flagship model, top-tier coding and long-horizon tasks",
+    "xAI's Grok Code Fast model, specialized for coding tasks (50k token context)",
+  "glm-5.1": "Z.AI's flagship model, top-tier coding and long-horizon tasks",
 } as const;
 
 export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
@@ -1576,6 +1626,12 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     prompt_tokens: usd1Mtokens(1.25),
     completion_tokens: usd1Mtokens(10),
     max_tokens: 128000,
+    free: false,
+  },
+  "gpt-5.5": {
+    prompt_tokens: usd1Mtokens(5),
+    completion_tokens: usd1Mtokens(30),
+    max_tokens: 50_000,
     free: false,
   },
   "gpt-5.4-8k": {

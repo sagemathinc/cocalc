@@ -22,9 +22,9 @@ interface Props {
 }
 
 export default function LiveDemo({ label, btnType }: Props) {
-  const { supportVideoCall } = useCustomize();
+  const { supportVideoCall, onCoCalcCom } = useCustomize();
 
-  if (!supportVideoCall) {
+  if (!supportVideoCall || !onCoCalcCom) {
     return null;
   }
 

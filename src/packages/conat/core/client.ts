@@ -449,11 +449,9 @@ export class Client extends EventEmitter {
       // it is necessary to manually managed reconnects due to a bugs
       // in socketio that has stumped their devs
       //   -- https://github.com/socketio/socket.io/issues/5197
-      // So no matter what options are set, we never use socketio's
-      // reconnection logic. if options.reconnection is true or
-      // not given, then we implement (in this file) reconnect ourselves.
-      // The browser frontend explicit sets options.reconnection false
-      // and uses its own logic.
+      // By default, node clients use socket.io reconnects. The browser
+      // frontend explicitly sets options.reconnection false and uses its own
+      // reconnect loop.
       ...options,
       ...(options.systemAccountPassword
         ? {
@@ -464,7 +462,8 @@ export class Client extends EventEmitter {
           }
         : undefined),
       path,
-      reconnection: true,
+      reconnection:
+        options.reconnection ?? DEFAULT_SOCKETIO_CLIENT_OPTIONS.reconnection,
     });
 
     this.conn.on("info", (info, ack) => {
@@ -500,7 +499,9 @@ export class Client extends EventEmitter {
       this.setState("disconnected");
       this.disconnectAllSockets();
     });
-    this.conn.io.connect();
+    if (options.autoConnect !== false) {
+      this.conn.io.connect();
+    }
     this.initInbox();
     this.statsLoop();
   }
@@ -516,6 +517,10 @@ export class Client extends EventEmitter {
     this.disconnectAllSockets();
     // @ts-ignore
     setTimeout(() => this.conn.io.disconnect(), 1);
+  };
+
+  connect = () => {
+    this.conn.io.connect();
   };
 
   // this has NO timeout by default
@@ -1395,14 +1400,14 @@ export class Client extends EventEmitter {
   };
 
   sync = {
-    dkv: async <T,>(opts: DKVOptions): Promise<DKV<T>> =>
+    dkv: async <T>(opts: DKVOptions): Promise<DKV<T>> =>
       await dkv<T>({ ...opts, client: this }),
-    akv: <T,>(opts: DKVOptions): AKV<T> => akv<T>({ ...opts, client: this }),
-    dko: async <T,>(opts: DKVOptions): Promise<DKO<T>> =>
+    akv: <T>(opts: DKVOptions): AKV<T> => akv<T>({ ...opts, client: this }),
+    dko: async <T>(opts: DKVOptions): Promise<DKO<T>> =>
       await dko<T>({ ...opts, client: this }),
-    dstream: async <T,>(opts: DStreamOptions): Promise<DStream<T>> =>
+    dstream: async <T>(opts: DStreamOptions): Promise<DStream<T>> =>
       await dstream<T>({ ...opts, client: this }),
-    astream: <T,>(opts: DStreamOptions): AStream<T> =>
+    astream: <T>(opts: DStreamOptions): AStream<T> =>
       astream<T>({ ...opts, client: this }),
     synctable: async (opts: SyncTableOptions): Promise<ConatSyncTable> =>
       await createSyncTable({ ...opts, client: this }),

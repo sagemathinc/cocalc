@@ -17,6 +17,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { getNow } from "@cocalc/frontend/app/util";
 import { Icon, Paragraph, Text } from "@cocalc/frontend/components";
+import { useEssentialConsent } from "@cocalc/frontend/cookie-consent";
 import { labels } from "@cocalc/frontend/i18n";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -195,6 +196,12 @@ export function useShowVerifyEmail(): boolean {
 
   const created = useTypedRedux("account", "created");
 
+  // Suppress the modal while the cookie banner is still demanding consent —
+  // otherwise the email-verify dialog renders on top of the dimmed page and
+  // appears interactive even though the cc-wrapper intercepts mouse clicks
+  // at z-index max-int. Once consent is granted we let it through normally.
+  const consentReady = useEssentialConsent();
+
   const dismissedTS = LS.get<number>(DISMISSED_KEY_LS);
 
   const show_verify_email =
@@ -214,6 +221,7 @@ export function useShowVerifyEmail(): boolean {
     loaded &&
     notTooNew &&
     !dismissed &&
-    emailSendingEnabled
+    emailSendingEnabled &&
+    consentReady
   );
 }
