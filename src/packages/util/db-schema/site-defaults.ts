@@ -46,11 +46,8 @@ export const TAGS = [
   "I18N",
   "Security",
   "Support",
-<<<<<<< claude/oauth2-provider-2aZOK
-  "OAuth2 Provider",
-=======
   "Cookie Banner",
->>>>>>> master
+  "OAuth2 Provider",
 ] as const;
 
 export type Tag = (typeof TAGS)[number];
