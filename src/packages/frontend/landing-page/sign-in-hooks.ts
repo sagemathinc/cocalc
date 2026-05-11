@@ -12,6 +12,8 @@ import * as LS from "../misc/local-storage-typed";
 import { SignedIn } from "@cocalc/util/message-types";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { hasTrackingConsent } from "@cocalc/frontend/cookie-consent";
+import { redux } from "@cocalc/frontend/app-framework";
 
 async function tracking_events(): Promise<void> {
   if (localStorage == null) return;
@@ -26,6 +28,15 @@ async function tracking_events(): Promise<void> {
 }
 
 async function analytics_send(mesg: SignedIn): Promise<void> {
+  // Skip account-linked analytics POST when the cookie banner is enabled
+  // and the user did NOT opt into the analytics category. Without this
+  // gate, "Necessary only" still POSTs {account_id} to /analytics.js on
+  // every signed_in event, which is exactly the tracking the user
+  // declined.
+  const bannerEnabled = !!redux
+    .getStore("customize")
+    ?.get("cookie_banner_enabled");
+  if (bannerEnabled && !hasTrackingConsent()) return;
   window
     .fetch(join(appBasePath, "analytics.js"), {
       method: "POST",

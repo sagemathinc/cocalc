@@ -20,6 +20,13 @@ import { version } from "@cocalc/util/smc-version";
 import { ANALYTICS_COOKIE_NAME } from "@cocalc/util/consts";
 
 export async function log(eventName: string, payload: any): Promise<void> {
+  // NOTE: this writes to the central_log table, but in practice only fires
+  // for account-lifecycle events (anonymous→email signup, adding an SSO
+  // passport). Those are processed under "performance of contract" — they
+  // are necessary records of what the user did with their account — and so
+  // do NOT require cookie-banner consent. UX telemetry (button clicks etc.)
+  // goes through `track` / TrackingClient.user_tracking, which IS gated on
+  // the "usage" category.
   const central_log = {
     id: uuid(),
     event: `webapp-${eventName}`,

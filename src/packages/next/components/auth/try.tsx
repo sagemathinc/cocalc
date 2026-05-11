@@ -14,6 +14,10 @@ import {
   useGoogleReCaptcha,
 } from "react-google-recaptcha-v3";
 
+import {
+  requireEssentialConsent,
+  useEssentialConsent,
+} from "@cocalc/frontend/cookie-consent";
 import { len } from "@cocalc/util/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
@@ -49,6 +53,11 @@ function Try0({ minimal, onSuccess, publicPathId }: Props) {
     anonymousSignupLicensedShares,
   } = useCustomize();
   const [state, setState] = useState<"wait" | "creating" | "done">("wait");
+  // The anonymous trial flow is mounted both on /auth/try and inside the
+  // share-page OpenAnonymously block. Neither path routes through the
+  // SPA's force-consent fallback after success, so we keep the cookie
+  // banner explicitly gating the action here.
+  const consentReady = useEssentialConsent();
   const [error, setError] = useState<string>("");
   const { executeRecaptcha } = useGoogleReCaptcha();
 
@@ -61,6 +70,7 @@ function Try0({ minimal, onSuccess, publicPathId }: Props) {
   }
 
   async function createAnonymousAccount() {
+    if (!requireEssentialConsent()) return;
     setState("creating");
     try {
       let reCaptchaToken: undefined | string;
@@ -116,7 +126,7 @@ function Try0({ minimal, onSuccess, publicPathId }: Props) {
         </A>
         !
         <Button
-          disabled={state != "wait"}
+          disabled={state != "wait" || !consentReady}
           shape="round"
           size="large"
           type="primary"
@@ -125,6 +135,8 @@ function Try0({ minimal, onSuccess, publicPathId }: Props) {
         >
           {state == "creating" ? (
             <Loading>Configuring Anonymous Access...</Loading>
+          ) : !consentReady ? (
+            "Acknowledge cookie banner to continue"
           ) : (
             <>Use {siteName} Anonymously</>
           )}
