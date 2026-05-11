@@ -13,6 +13,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { isIntlMessage } from "@cocalc/frontend/i18n";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
+import { getOpenEventFilename } from "@cocalc/frontend/project/history/utils";
 import {
   SPEC as SERVER_SPEC,
   serverURL,
@@ -276,25 +277,23 @@ export function useRecentFiles(
       .valueSeq()
       .filter(
         (entry: EventRecordMap) =>
-          entry.getIn(["event", "filename"]) &&
+          getOpenEventFilename(entry, undefined) != null &&
           entry.getIn(["event", "event"]) === "open",
       )
       .sort((a, b) => getTime(b) - getTime(a))
       .filter((entry: EventRecordMap) => {
-        const fn = entry.getIn(["event", "filename"]);
+        const fn = getOpenEventFilename(entry, undefined);
+        if (fn == null) return false;
         if (dedupe.includes(fn)) return false;
         dedupe.push(fn);
         return true;
       })
       .filter((entry: EventRecordMap) =>
-        entry
-          .getIn(["event", "filename"], "")
-          .toLowerCase()
-          .includes(searchLower),
+        getOpenEventFilename(entry, "")!.toLowerCase().includes(searchLower),
       )
       .filter((entry: EventRecordMap) => {
         if (directory_listings == null) return true;
-        const filename = entry.getIn(["event", "filename"]);
+        const filename = getOpenEventFilename(entry, undefined);
         if (!filename) return true;
         const { head: parentDir, tail: baseName } = path_split(filename);
         if (!baseName) return true;
@@ -319,7 +318,7 @@ export function useRecentFiles(
       })
       .slice(0, max)
       .map((entry: EventRecordMap) => ({
-        filename: entry.getIn(["event", "filename"]),
+        filename: getOpenEventFilename(entry, "") as string,
         time: entry.get("time"),
         account_id: entry.get("account_id"),
       }))

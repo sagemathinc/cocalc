@@ -60,6 +60,8 @@ import {
 } from "./threads";
 import type { ThreadListItem, ThreadSection } from "./threads";
 import { ThreadAnchorButton } from "./thread-anchor-button";
+import { ThreadResolveButton } from "./thread-resolve-button";
+import { ResolvedThreadPanel } from "./resolved-thread-panel";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -237,6 +239,10 @@ export function ChatPanel({
   );
   const [allowAutoSelectThread, setAllowAutoSelectThread] =
     useState<boolean>(true);
+  // Resolved-section collapse state. Default collapsed so resolved threads
+  // don't compete for visual real estate with active conversations; user
+  // expands when they want to revisit a closed TODO.
+  const [resolvedExpanded, setResolvedExpanded] = useState<boolean>(false);
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
   const scrollToBottomRef = useRef<any>(null);
   const selectedThreadDate = useMemo(() => {
@@ -308,6 +314,30 @@ export function ChatPanel({
     return anchorIdOf(thread?.rootMessage);
   }, [singleThreadView, selectedThreadKey, threads]);
 
+  // Resolved-thread metadata for the currently-selected thread (LaTeX
+  // collaborative-TODO flow). When non-null we render a read-only panel in
+  // place of the reply input.
+  const selectedThreadResolved = useMemo<{
+    account_id: string;
+    at: string;
+  } | null>(() => {
+    if (!singleThreadView || !selectedThreadKey) return null;
+    const thread = threads.find((t) => t.key === selectedThreadKey);
+    if (!thread?.resolved) return null;
+    const raw = thread.rootMessage?.get("resolved");
+    if (raw == null) return null;
+    const account_id =
+      typeof (raw as any).get === "function"
+        ? (raw as any).get("account_id")
+        : (raw as any).account_id;
+    const at =
+      typeof (raw as any).get === "function"
+        ? (raw as any).get("at")
+        : (raw as any).at;
+    if (typeof account_id !== "string" || typeof at !== "string") return null;
+    return { account_id, at };
+  }, [singleThreadView, selectedThreadKey, threads]);
+
   useEffect(() => {
     if (
       storedThreadFromDesc != null &&
@@ -340,7 +370,12 @@ export function ChatPanel({
     if (pendingAnchorThread) return;
     const exists = threads.some((thread) => thread.key === selectedThreadKey);
     if (!exists && allowAutoSelectThread) {
-      setSelectedThreadKey(threads[0].key);
+      // Skip resolved threads when auto-picking — they're archival, not
+      // where the user wants to land on chat open.
+      const firstLive = threads.find((t) => !t.resolved);
+      if (firstLive) {
+        setSelectedThreadKey(firstLive.key);
+      }
     }
   }, [threads, selectedThreadKey, allowAutoSelectThread, pendingAnchorThread]);
 
@@ -507,7 +542,7 @@ export function ChatPanel({
     },
   });
 
-  const renderThreadRow = (thread: ThreadMeta) => {
+  const renderThreadRow = (thread: ThreadMeta, isResolvedRow = false) => {
     const { key, displayLabel, hasCustomName, unreadCount, isAI, isPinned } =
       thread;
     const plainLabel = stripHtml(displayLabel);
@@ -532,10 +567,25 @@ export function ChatPanel({
             setHoveredThread((prev) => (prev === key ? null : prev))
           }
         >
-          <Tooltip title={iconTooltip}>
-            <Icon name={isAI ? "robot" : "users"} style={{ color: "#888" }} />
+          <Tooltip title={isResolvedRow ? "Resolved chat" : iconTooltip}>
+            <Icon
+              name={isResolvedRow ? "check-circle" : isAI ? "robot" : "users"}
+              style={{ color: isResolvedRow ? COLORS.GRAY_M : COLORS.GRAY }}
+            />
           </Tooltip>
-          <div style={THREAD_ITEM_LABEL_STYLE}>{plainLabel}</div>
+          <div
+            style={{
+              ...THREAD_ITEM_LABEL_STYLE,
+              ...(isResolvedRow
+                ? {
+                    textDecoration: "line-through",
+                    color: COLORS.GRAY_M,
+                  }
+                : {}),
+            }}
+          >
+            {plainLabel}
+          </div>
           {unreadCount > 0 && !isHovered && (
             <Badge count={unreadCount} size="small" overflowCount={99} />
           )}
@@ -602,30 +652,77 @@ export function ChatPanel({
     if (!list || list.length === 0) {
       return null;
     }
-    const items = list.map(renderThreadRow);
+    const isResolvedSection = key === "resolved";
+    const collapsed = isResolvedSection && !resolvedExpanded;
+    const items = list.map((thread) =>
+      renderThreadRow(thread, isResolvedSection),
+    );
+    const headerStyle = isResolvedSection
+      ? {
+          ...THREAD_SECTION_HEADER_STYLE,
+          color: COLORS.GRAY_M,
+          cursor: "pointer",
+        }
+      : THREAD_SECTION_HEADER_STYLE;
     return (
       <div key={key} style={{ marginBottom: "18px" }}>
-        <div style={THREAD_SECTION_HEADER_STYLE}>
-          <span style={{ fontWeight: 600 }}>{title}</span>
-          {renderUnreadBadge(unreadCount, section)}
+        <div
+          style={headerStyle}
+          onClick={
+            isResolvedSection ? () => setResolvedExpanded((v) => !v) : undefined
+          }
+        >
+          <span
+            style={{
+              fontWeight: 600,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            {isResolvedSection && (
+              <Icon
+                name={collapsed ? "caret-right" : "caret-down"}
+                style={{ fontSize: "0.85em" }}
+              />
+            )}
+            {title}
+            {isResolvedSection && collapsed && (
+              <span
+                style={{
+                  marginLeft: 6,
+                  fontWeight: 400,
+                  color: COLORS.GRAY_M,
+                  fontSize: "0.85em",
+                }}
+              >
+                ({list.length})
+              </span>
+            )}
+          </span>
+          {!isResolvedSection && renderUnreadBadge(unreadCount, section)}
         </div>
-        <Menu
-          mode="inline"
-          selectedKeys={selectedThreadKey ? [selectedThreadKey] : []}
-          onClick={({ key: menuKey }) => {
-            setAllowAutoSelectThread(true);
-            setSelectedThreadKey(String(menuKey));
-            if (isCompact) {
-              setSidebarVisible(false);
-            }
-          }}
-          items={items}
-          style={{
-            border: "none",
-            background: "transparent",
-            padding: "0 10px",
-          }}
-        />
+        {!collapsed && (
+          <div style={isResolvedSection ? { opacity: 0.7 } : undefined}>
+            <Menu
+              mode="inline"
+              selectedKeys={selectedThreadKey ? [selectedThreadKey] : []}
+              onClick={({ key: menuKey }) => {
+                setAllowAutoSelectThread(true);
+                setSelectedThreadKey(String(menuKey));
+                if (isCompact) {
+                  setSidebarVisible(false);
+                }
+              }}
+              items={items}
+              style={{
+                border: "none",
+                background: "transparent",
+                padding: "0 10px",
+              }}
+            />
+          </div>
+        )}
       </div>
     );
   };
@@ -930,21 +1027,36 @@ export function ChatPanel({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#888",
+            color: COLORS.GRAY,
             fontSize: "14px",
           }}
         >
           <div style={{ textAlign: "center" }}>
             <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-              Start discussion for{" "}
-              {pendingAnchorThread.label ?? "this anchor"}
+              Start discussion for {pendingAnchorThread.label ?? "this anchor"}
             </div>
             <div>Type your first message below to create the thread.</div>
             <Button
               size="small"
               style={{ marginTop: "8px" }}
               onClick={() => {
-                actions.setPendingAnchorThread?.(null);
+                // Editor-generic discard: clears the staged anchor AND
+                // removes the just-inserted source marker (only if no
+                // chat message ever referenced this hash). Editors that
+                // don't expose this just lose the cleanup half — fall
+                // back to the bare anchor clear.
+                const editorActions: any = actions.frameTreeActions;
+                if (
+                  typeof editorActions?.cancelPendingAnchorThread === "function"
+                ) {
+                  editorActions.cancelPendingAnchorThread({
+                    id: pendingAnchorThread.id,
+                    label: pendingAnchorThread.label,
+                    path: pendingAnchorThread.path,
+                  });
+                } else {
+                  actions.setPendingAnchorThread?.(null);
+                }
               }}
             >
               Cancel
@@ -981,102 +1093,110 @@ export function ChatPanel({
           </div>
         </div>
       )}
-      <div style={{ display: "flex", marginBottom: "5px", overflow: "auto" }}>
-        <div
-          style={{
-            flex: "1",
-            padding: "0px 5px 0px 2px",
-          }}
-        >
-          <ChatInput
-            fontSize={fontSize}
-            autoFocus
-            cacheId={`${path}${project_id}-new`}
-            input={input}
-            on_send={on_send}
-            height={INPUT_HEIGHT}
-            onChange={(value) => {
-              setInput(value);
-              const inputText =
-                submitMentionsRef.current?.(undefined, true) ?? value;
-              actions?.llmEstimateCost({ date: 0, input: inputText });
+      {selectedThreadResolved ? (
+        <ResolvedThreadPanel
+          actions={actions}
+          account_id={selectedThreadResolved.account_id}
+          at={selectedThreadResolved.at}
+        />
+      ) : (
+        <div style={{ display: "flex", marginBottom: "5px", overflow: "auto" }}>
+          <div
+            style={{
+              flex: "1",
+              padding: "0px 5px 0px 2px",
             }}
-            submitMentionsRef={submitMentionsRef}
-            syncdb={actions.syncdb}
-            date={0}
-            editBarStyle={{ overflow: "auto" }}
-          />
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            padding: "0",
-            marginBottom: "0",
-          }}
-        >
-          <div style={{ flex: 1 }} />
-          {costEstimate?.get("date") == 0 && (
-            <LLMCostEstimationChat
-              costEstimate={costEstimate?.toJS()}
-              compact
-              style={{
-                flex: 0,
-                fontSize: "85%",
-                textAlign: "center",
-                margin: "0 0 5px 0",
-              }}
-            />
-          )}
-          <Tooltip
-            title={
-              <FormattedMessage
-                id="chatroom.chat_input.send_button.tooltip"
-                defaultMessage={"Send message (shift+enter)"}
-              />
-            }
           >
+            <ChatInput
+              fontSize={fontSize}
+              autoFocus
+              cacheId={`${path}${project_id}-new`}
+              input={input}
+              on_send={on_send}
+              height={INPUT_HEIGHT}
+              onChange={(value) => {
+                setInput(value);
+                const inputText =
+                  submitMentionsRef.current?.(undefined, true) ?? value;
+                actions?.llmEstimateCost({ date: 0, input: inputText });
+              }}
+              submitMentionsRef={submitMentionsRef}
+              syncdb={actions.syncdb}
+              date={0}
+              editBarStyle={{ overflow: "auto" }}
+            />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              padding: "0",
+              marginBottom: "0",
+            }}
+          >
+            <div style={{ flex: 1 }} />
+            {costEstimate?.get("date") == 0 && (
+              <LLMCostEstimationChat
+                costEstimate={costEstimate?.toJS()}
+                compact
+                style={{
+                  flex: 0,
+                  fontSize: "85%",
+                  textAlign: "center",
+                  margin: "0 0 5px 0",
+                }}
+              />
+            )}
+            <Tooltip
+              title={
+                <FormattedMessage
+                  id="chatroom.chat_input.send_button.tooltip"
+                  defaultMessage={"Send message (shift+enter)"}
+                />
+              }
+            >
+              <Button
+                onClick={() => sendMessage()}
+                disabled={input.trim() === ""}
+                type="primary"
+                style={{ height: "47.5px" }}
+                icon={<Icon name="paper-plane" />}
+              >
+                <FormattedMessage
+                  id="chatroom.chat_input.send_button.label"
+                  defaultMessage={"Send"}
+                />
+              </Button>
+            </Tooltip>
+            <div style={{ height: "5px" }} />
             <Button
-              onClick={() => sendMessage()}
-              disabled={input.trim() === ""}
-              type="primary"
+              type={showPreview ? "dashed" : undefined}
+              onClick={() => actions.setShowPreview(!showPreview)}
               style={{ height: "47.5px" }}
-              icon={<Icon name="paper-plane" />}
             >
               <FormattedMessage
-                id="chatroom.chat_input.send_button.label"
-                defaultMessage={"Send"}
+                id="chatroom.chat_input.preview_button.label"
+                defaultMessage={"Preview"}
               />
             </Button>
-          </Tooltip>
-          <div style={{ height: "5px" }} />
-          <Button
-            type={showPreview ? "dashed" : undefined}
-            onClick={() => actions.setShowPreview(!showPreview)}
-            style={{ height: "47.5px" }}
-          >
-            <FormattedMessage
-              id="chatroom.chat_input.preview_button.label"
-              defaultMessage={"Preview"}
-            />
-          </Button>
-          <div style={{ height: "5px" }} />
-          <Button
-            style={{ height: "47.5px" }}
-            onClick={() => {
-              const message = actions?.frameTreeActions
-                ?.getVideoChat()
-                .startChatting(actions);
-              if (!message) {
-                return;
-              }
-              sendMessage(undefined, "\n\n" + message);
-            }}
-          >
-            <Icon name="video-camera" /> Video
-          </Button>
+            <div style={{ height: "5px" }} />
+            <Button
+              style={{ height: "47.5px" }}
+              onClick={() => {
+                const message = actions?.frameTreeActions
+                  ?.getVideoChat()
+                  .startChatting(actions);
+                if (!message) {
+                  return;
+                }
+                sendMessage(undefined, "\n\n" + message);
+              }}
+            >
+              <Icon name="video-camera" /> Video
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 
@@ -1105,6 +1225,7 @@ export function ChatPanel({
         style={{
           padding: "10px",
           display: "flex",
+          flexWrap: "wrap",
           gap: "8px",
           alignItems: "center",
         }}
@@ -1115,8 +1236,14 @@ export function ChatPanel({
             actions={actions}
           />
         )}
-        <div style={{ flex: 1 }} />
+        {selectedThreadAnchorId && !selectedThreadResolved && (
+          <ThreadResolveButton
+            anchorId={selectedThreadAnchorId}
+            actions={actions}
+          />
+        )}
         <Button
+          style={{ marginLeft: "auto" }}
           icon={<Icon name="bars" />}
           onClick={() => setSidebarVisible(true)}
         >

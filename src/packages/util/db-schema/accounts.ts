@@ -689,6 +689,7 @@ Table({
             [USE_BALANCE_TOWARD_SUBSCRIPTIONS]:
               USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT,
             hide_navbar_balance: false,
+            cookie_consent: null,
           },
           name: null,
           first_name: "",

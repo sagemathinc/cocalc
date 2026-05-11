@@ -11,6 +11,7 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { CookieConsentSettings } from "./cookie-consent-settings";
 
 export const COMMUNICATION_ICON_NAME: IconName = "mail";
 
@@ -114,18 +115,21 @@ export function AccountPreferencesCommunication(): React.JSX.Element {
   }
 
   return (
-    <Panel
-      size="small"
-      header={
-        <>
-          <Icon name={COMMUNICATION_ICON_NAME} />{" "}
-          {intl.formatMessage(labels.communication)}
-        </>
-      }
-    >
-      {render_global_banner()}
-      {render_no_free_warnings()}
-      {render_no_email_new_messages()}
-    </Panel>
+    <>
+      <Panel
+        size="small"
+        header={
+          <>
+            <Icon name={COMMUNICATION_ICON_NAME} />{" "}
+            {intl.formatMessage(labels.communication)}
+          </>
+        }
+      >
+        {render_global_banner()}
+        {render_no_free_warnings()}
+        {render_no_email_new_messages()}
+      </Panel>
+      <CookieConsentSettings />
+    </>
   );
 }

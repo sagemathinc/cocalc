@@ -14,7 +14,6 @@ import { WORD_COUNT_ICON } from "./constants";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
-import { TableOfContents } from "../markdown-editor/table-of-contents";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { Build } from "./build";
@@ -23,6 +22,7 @@ import { LatexWordCount } from "./latex-word-count";
 import { Output } from "./output";
 import { PDFEmbed } from "./pdf-embed";
 import { PDFJS } from "./pdfjs";
+import { LatexTableOfContents } from "./table-of-contents-frame";
 
 export const pdfjsCommands = set([
   "print",
@@ -191,7 +191,7 @@ const latex_table_of_contents: EditorDescription = {
   short: editor.table_of_contents_short,
   name: editor.table_of_contents_name,
   icon: "align-right",
-  component: TableOfContents,
+  component: LatexTableOfContents,
   commands: set(["decrease_font_size", "increase_font_size"]),
 } as const;
 

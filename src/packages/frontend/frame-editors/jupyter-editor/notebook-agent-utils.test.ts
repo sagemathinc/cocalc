@@ -403,6 +403,20 @@ describe("compactAssistantMessageForHistory", () => {
     expect(result).toContain("truncated");
     expect(result).toContain("5000 chars total");
   });
+
+  // Empty / whitespace-only assistant turns happen when a streaming call
+  // is cancelled mid-flight or the provider hiccups. Returning "" here
+  // would later poison the conversation: Anthropic's API rejects empty
+  // text content blocks with a 400 error, breaking every follow-up turn.
+  test("returns a non-empty placeholder for empty assistant text", () => {
+    const result = compactAssistantMessageForHistory("");
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  test("returns a non-empty placeholder for whitespace-only text", () => {
+    const result = compactAssistantMessageForHistory("   \n\n\t  ");
+    expect(result.length).toBeGreaterThan(0);
+  });
 });
 
 describe("compactToolResultForHistory", () => {
