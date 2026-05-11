@@ -306,26 +306,31 @@ acceptance of the `usage` category. If the admin disables the banner site-
 wide, the cookie consent layer collapses to a passthrough and the admin
 setting alone gates (legacy behaviour).
 
-Sign-up, sign-in, and "use anonymously" are blocked until the user
-acknowledges the banner. The Sign In / Sign Up buttons stay disabled and
-show *"Acknowledge cookie banner to continue"*. On `/auth/sign-in`,
-`/auth/sign-up`, and `/auth/try`, the banner runs in **force-consent mode**:
+`/auth/sign-up` and `/sso/*` run the banner in **force-consent mode**:
 a dark overlay covers the page and clicks outside the banner are blocked
-(via vanilla-cookieconsent's `disablePageInteraction: true`).
+(via vanilla-cookieconsent's `disablePageInteraction: true`). On sign-up,
+the Sign Up button stays disabled and shows *"Acknowledge cookie banner
+to continue"* until consent is given. `/sso/*` is gated for the same
+reason — its redirect hands control to an external IdP whose callback
+sets session cookies, so consent must be settled before that handoff.
+`/auth/sign-in` and `/auth/try` show the banner but do not enforce it —
+those flows land the user in the SPA, where the in-app force-consent
+fallback (described below) kicks in if consent is still missing.
 
-**SSO fallback in the SPA**: a successful SSO callback can drop a
-logged-in user on `/app` without ever passing through the auth-page
-overlay (e.g. when they followed a bookmarked SSO start URL). The SPA's
-root `App` component (`packages/frontend/app/render.tsx`) waits for
-`accountStore.waitUntilReady()` — so the dim never flashes during boot
-for users whose customize/account is still loading — and only then, if
-the user is logged in *and* `hasEssentialConsent()` is false, calls
-`enableForceConsent()`. That helper toggles the same `disable--interaction`
-class on `<html>` that vanilla-cookieconsent uses for its built-in
-overlay, and auto-removes it when the user accepts or declines (via
-`cc:onConsent` / `cc:onChange`). This is belt-and-braces: the auth pages
-already gate the common path; the SPA fallback covers users who reached
-`/app` through any other route.
+**Force-consent in the SPA**: this is the primary enforcement point for
+every signed-in user. Sign-in and anonymous-try land on `/app` without
+going through a force-consent overlay, and a returning user with a
+`remember_me` cookie skips the auth pages entirely. (SSO is the
+exception: its launch page is gated up front, since the IdP callback
+drops cookies before the SPA boots.)
+The SPA's root `App` component (`packages/frontend/app/render.tsx`)
+waits for `accountStore.waitUntilReady()` — so the dim never flashes
+during boot for users whose customize/account is still loading — and
+only then, if the user is logged in *and* `hasEssentialConsent()` is
+false, calls `enableForceConsent()`. That helper toggles the same
+`disable--interaction` class on `<html>` that vanilla-cookieconsent uses
+for its built-in overlay, and auto-removes it when the user accepts or
+declines (via `cc:onConsent` / `cc:onChange`).
 
 ### Admin settings
 

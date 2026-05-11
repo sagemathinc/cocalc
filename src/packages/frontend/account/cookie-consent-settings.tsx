@@ -17,6 +17,10 @@ import {
   onConsentChange,
   showPreferences,
 } from "@cocalc/frontend/cookie-consent";
+import {
+  revokeYouTubeConsent,
+  useYouTubeConsent,
+} from "@cocalc/frontend/cookie-consent/youtube";
 import { COLORS } from "@cocalc/util/theme";
 
 // Visual style mirrors project Settings → Features (project-capabilites.tsx)
@@ -49,6 +53,11 @@ export function CookieConsentSettings(): React.JSX.Element | null {
   const [snap, setSnap] = useState<ConsentSnapshot | null>(() =>
     getConsentSnapshot(),
   );
+  // YouTube consent is stored in a dedicated cookie, parallel to the v3
+  // banner (see frontend/cookie-consent/youtube.ts). We surface it in
+  // this same panel because users naturally come here looking for "all
+  // cookie-style consents I've granted on this site".
+  const ytAllowed = useYouTubeConsent();
 
   useEffect(() => onConsentChange(setSnap), []);
 
@@ -78,6 +87,10 @@ export function CookieConsentSettings(): React.JSX.Element | null {
               label={c.label}
             />
           ))}
+          <CategoryStatus
+            accepted={ytAllowed}
+            label="Embedded YouTube videos"
+          />
           {snap.timestamp && (
             <div style={{ color: COLORS.GRAY }}>
               Last updated: <TimeAgo date={snap.timestamp} />
@@ -86,9 +99,20 @@ export function CookieConsentSettings(): React.JSX.Element | null {
         </Space>
       )}
       <div style={{ marginTop: 12 }}>
-        <Button onClick={() => showPreferences()}>
-          <Icon name="cog" /> Manage cookie preferences
-        </Button>
+        <Space wrap>
+          <Button onClick={() => showPreferences()}>
+            <Icon name="cog" /> Manage cookie preferences
+          </Button>
+          {ytAllowed && (
+            <Button
+              danger
+              onClick={() => revokeYouTubeConsent()}
+              title="Block embedded YouTube videos again. They will show a click-to-load placeholder."
+            >
+              <Icon name="youtube" /> Revoke YouTube embed consent
+            </Button>
+          )}
+        </Space>
       </div>
     </Panel>
   );

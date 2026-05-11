@@ -25,7 +25,18 @@ import { markdown_to_html } from "@cocalc/frontend/markdown";
 import { COOKIE_CATEGORIES, type CookieCategory } from "./categories";
 import { COOKIE_CONSENT_REVISION } from "./index";
 import { markBannerActive, markBannerDecidedDisabled } from "./state";
-import { buildTranslation } from "./translations";
+import {
+  YOUTUBE_SECTION_BUTTON_ID,
+  YOUTUBE_SECTION_CSS,
+  YOUTUBE_SECTION_STATUS_ID,
+  buildTranslation,
+} from "./translations";
+import {
+  YOUTUBE_CONSENT_EVENT,
+  grantYouTubeConsent,
+  hasYouTubeConsent,
+  revokeYouTubeConsent,
+} from "./youtube";
 
 function buildCategoriesConfig(): Record<string, CookieConsent.Category> {
   const out: Record<string, CookieConsent.Category> = {};
@@ -109,8 +120,64 @@ export function initCookieConsent({
         console.error("cookie-consent: run rejected", err),
       );
     }
+    injectYouTubeSectionStyles();
+    wireYouTubePreferencesSection();
   } catch (err) {
     console.error("cookie-consent: run threw", err);
   }
+}
+
+// Mount the YouTube section stylesheet into <head>. v3 places our section
+// description inside a <p>, which can't host a <style> child without the
+// HTML parser auto-closing the paragraph. Putting the rules in <head>
+// avoids that and applies them to every modal open.
+function injectYouTubeSectionStyles(): void {
+  if (typeof document === "undefined") return;
+  const id = "cocalc-yt-styles";
+  if (document.getElementById(id) != null) return;
+  const style = document.createElement("style");
+  style.id = id;
+  style.textContent = YOUTUBE_SECTION_CSS;
+  document.head.appendChild(style);
+}
+
+// Hook up the "Embedded videos" section the translations file injected into
+// the preferences modal. v3 only renders that HTML — it doesn't know about
+// our parallel YouTube consent cookie — so we re-populate the status badge
+// and bind the toggle checkbox each time the modal opens, and refresh
+// state whenever the cookie changes (e.g. from a click-to-load gate on the
+// landing page while the modal is already open).
+function wireYouTubePreferencesSection(): void {
+  if (typeof window === "undefined") return;
+  const refresh = () => {
+    const status = document.getElementById(YOUTUBE_SECTION_STATUS_ID);
+    const toggle = document.getElementById(
+      YOUTUBE_SECTION_BUTTON_ID,
+    ) as HTMLInputElement | null;
+    if (status == null || toggle == null) return;
+    const granted = hasYouTubeConsent();
+    status.textContent = granted ? "Allowed" : "Blocked";
+    status.classList.toggle("cocalc-yt-status--on", granted);
+    status.classList.toggle("cocalc-yt-status--off", !granted);
+    if (toggle.checked !== granted) toggle.checked = granted;
+  };
+  // v3 fires cc:onModalShow when either modal opens; we don't try to
+  // filter to just the preferences modal because the elements are scoped
+  // by id and absent when the consent modal is open.
+  window.addEventListener("cc:onModalShow", refresh);
+  window.addEventListener(YOUTUBE_CONSENT_EVENT, refresh);
+  // Delegated change handler — the checkbox is re-rendered each time v3
+  // mounts the preferences modal, so binding directly on the element
+  // would miss subsequent opens.
+  document.addEventListener("change", (ev) => {
+    const target = ev.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    if (target.id !== YOUTUBE_SECTION_BUTTON_ID) return;
+    if (target.checked) {
+      grantYouTubeConsent();
+    } else {
+      revokeYouTubeConsent();
+    }
+  });
 }
 
