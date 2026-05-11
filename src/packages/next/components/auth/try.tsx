@@ -53,6 +53,10 @@ function Try0({ minimal, onSuccess, publicPathId }: Props) {
     anonymousSignupLicensedShares,
   } = useCustomize();
   const [state, setState] = useState<"wait" | "creating" | "done">("wait");
+  // The anonymous trial flow is mounted both on /auth/try and inside the
+  // share-page OpenAnonymously block. Neither path routes through the
+  // SPA's force-consent fallback after success, so we keep the cookie
+  // banner explicitly gating the action here.
   const consentReady = useEssentialConsent();
   const [error, setError] = useState<string>("");
   const { executeRecaptcha } = useGoogleReCaptcha();

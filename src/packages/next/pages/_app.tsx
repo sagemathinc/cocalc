@@ -60,20 +60,28 @@ AppProps & { locale: Locale }) {
     });
   }, [customizeAvailable, cookieBannerEnabled, cookieBannerText]);
 
-  // Force-consent mode on auth + SSO launch pages: a dark overlay blocks
-  // interaction with the form until the user accepts the banner. We toggle
-  // this on every route change rather than baking it into the banner config
-  // at init — `disablePageInteraction` is a one-shot config option, so a
-  // user who lands on `/` first and then navigates to `/auth/sign-in`
-  // wouldn't see the dim otherwise. enableForceConsent is also a no-op when
-  // the user has already consented.
+  // Force-consent mode on sign-up / anonymous-try / SSO launch pages: a
+  // dark overlay blocks interaction with the form until the user accepts
+  // the banner. We toggle this on every route change rather than baking
+  // it into the banner config at init — `disablePageInteraction` is a
+  // one-shot config option, so a user who lands on `/` first and then
+  // navigates to `/auth/sign-up` wouldn't see the dim otherwise.
+  // enableForceConsent is also a no-op when the user has already
+  // consented. Sign-up gates the new-account flow before the first
+  // remember_me cookie is set; /auth/try gates anonymous account
+  // creation (the redirect lands back on a Next page, so the SPA's
+  // fallback never fires); /sso/* gates the redirect that hands control
+  // to the external IdP, since the callback drops session cookies.
+  // Sign-in is intentionally *not* gated here — once that flow reaches
+  // the SPA, the SPA's own force-consent fallback (app/render.tsx)
+  // takes over, and the in-place sign-in/up panel adds its own gate.
   const path = router.pathname ?? "";
-  const isAuthRoute =
-    /^\/auth\/(sign-in|sign-up|try)/.test(path) || /^\/sso(\/|$)/.test(path);
+  const isMandatoryRoute =
+    /^\/auth\/(sign-up|try)/.test(path) || /^\/sso(\/|$)/.test(path);
   useEffect(() => {
-    if (!cookieBannerEnabled || !isAuthRoute) return;
+    if (!cookieBannerEnabled || !isMandatoryRoute) return;
     return enableForceConsent();
-  }, [cookieBannerEnabled, isAuthRoute]);
+  }, [cookieBannerEnabled, isMandatoryRoute]);
   return (
     <AppContext.Provider value={{ ...DEFAULT_CONTEXT }}>
       <ConfigProvider theme={antdTheme}>
