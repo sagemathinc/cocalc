@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -18,8 +18,8 @@ import { liveDemoUrl } from "components/landing/live-demo";
 import SocialMediaIconList from "./social-media-icon-list";
 
 const FOOTER_STYLE: CSS = {
-  borderTop: "1px solid lightgrey",
-  backgroundColor: "white",
+  borderTop: `1px solid ${COLORS.GRAY_L}`,
+  backgroundColor: COLORS.WHITE,
 };
 
 const FOOTER_COLUMNS_STYLE: CSS = {
@@ -38,6 +38,10 @@ const FOOTER_TABLE_STYLE: CSS = {
   width: "100%",
 } as const;
 
+const FOOTER_LINK_STYLE: CSS = {
+  color: COLORS.GRAY_D,
+} as const;
+
 const LOGO_COLUMN_STYLE = {
   paddingBottom: "24px",
   marginTop: "32px",
@@ -45,8 +49,9 @@ const LOGO_COLUMN_STYLE = {
 
 interface FooterLink {
   text: string;
-  url: string;
+  url?: string;
   hide?: boolean;
+  onClick?: () => void;
 }
 
 interface FooterColumn {
@@ -61,6 +66,8 @@ export default function Footer() {
     organizationName,
     organizationURL,
     enabledPages,
+    cookieBannerEnabled,
+    isAuthenticated,
     termsOfServiceURL,
     supportVideoCall,
   } = useCustomize();
@@ -189,6 +196,11 @@ export default function Footer() {
           hide: !enabledPages?.policies.index,
         },
         {
+          text: "Clear cookies",
+          hide: !cookieBannerEnabled || !!isAuthenticated,
+          onClick: clearCookieChoices,
+        },
+        {
           text: "Terms of Service",
           url: termsOfServiceURL || "",
           hide: !enabledPages?.termsOfService,
@@ -214,17 +226,10 @@ export default function Footer() {
         {column.links
           .filter((footerLink) => !footerLink.hide)
           .map((footerLink) => (
-            <A
-              key={footerLink.url}
-              href={
-                isValidEmailAddress(footerLink.url)
-                  ? `mailto:${footerLink.url}`
-                  : footerLink.url
-              }
-              style={{ color: COLORS.GRAY_D }}
-            >
-              {footerLink.text}
-            </A>
+            <FooterColumnLink
+              footerLink={footerLink}
+              key={footerLink.url ?? footerLink.text}
+            />
           ))}
       </Space>
     ));
@@ -269,4 +274,64 @@ export default function Footer() {
       </Flex>
     </Layout.Footer>
   );
+}
+
+function FooterColumnLink({ footerLink }: { footerLink: FooterLink }) {
+  if (footerLink.onClick != null) {
+    return (
+      <Typography.Link onClick={footerLink.onClick} style={FOOTER_LINK_STYLE}>
+        {footerLink.text}
+      </Typography.Link>
+    );
+  }
+  const url = footerLink.url ?? "";
+  return (
+    <A
+      href={isValidEmailAddress(url) ? `mailto:${url}` : url}
+      style={FOOTER_LINK_STYLE}
+    >
+      {footerLink.text}
+    </A>
+  );
+}
+
+function clearCookieChoices(): void {
+  if (typeof document === "undefined" || typeof window === "undefined") {
+    return;
+  }
+
+  const names = new Set(["cc_cookie", "cocalc_youtube_consent", "CC_ANA"]);
+  for (const cookie of document.cookie.split(";")) {
+    const name = cookie.trim().split("=")[0];
+    if (/^_ga/.test(name) || /^_gid/.test(name)) {
+      names.add(name);
+    }
+  }
+
+  const domains = getCookieClearDomains(window.location.hostname);
+  for (const name of names) {
+    for (const domain of domains) {
+      clearCookie(name, domain);
+    }
+  }
+  window.location.reload();
+}
+
+function getCookieClearDomains(hostname: string): Array<string | undefined> {
+  const domains: Array<string | undefined> = [
+    undefined,
+    hostname,
+    `.${hostname}`,
+  ];
+  const parts = hostname.split(".");
+  if (parts.length > 2) {
+    domains.push(`.${parts.slice(-2).join(".")}`);
+  }
+  return domains;
+}
+
+function clearCookie(name: string, domain?: string): void {
+  document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax${
+    domain == null ? "" : `; domain=${domain}`
+  }`;
 }

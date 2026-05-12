@@ -20,7 +20,7 @@ export type { CookieCategoryKey };
 
 // Bump this if the cookie categories or banner text change in a way that
 // invalidates prior consent. vanilla-cookieconsent will re-prompt the user.
-export const COOKIE_CONSENT_REVISION = 1;
+export const COOKIE_CONSENT_REVISION = 2;
 
 // Snapshot of the user's consent we persist in account.other_settings. Kept
 // minimal on purpose: the browser cookie is authoritative for the session;
@@ -212,13 +212,13 @@ export function getConsentSnapshot(): ConsentSnapshot | null {
     if (cookie == null) return null;
     const accepted = new Set<string>(cookie.categories ?? []);
     const snap = {
-      timestamp:
-        cookie.lastConsentTimestamp ?? cookie.consentTimestamp ?? "",
+      timestamp: cookie.lastConsentTimestamp ?? cookie.consentTimestamp ?? "",
       revision: cookie.revision ?? 0,
     } as ConsentSnapshot;
     for (const c of COOKIE_CATEGORIES) {
-      (snap as Record<string, boolean | string | number>)[c.key] =
-        accepted.has(c.key);
+      (snap as Record<string, boolean | string | number>)[c.key] = accepted.has(
+        c.key,
+      );
     }
     return snap;
   } catch {
