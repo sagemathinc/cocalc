@@ -20,6 +20,16 @@ const config = {
   env: { BASE_PATH },
   eslint: { ignoreDuringBuilds: true },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    // Opt-in filesystem cache for local dev builds (e.g. cocalc-hub.sh sets
+    // NEXTJS_FS_CACHE=1). Production CI/Docker leaves the var unset, so this
+    // never affects deployed builds.
+    if (process.env.NEXTJS_FS_CACHE) {
+      config.cache = {
+        type: "filesystem",
+        buildDependencies: { config: [__filename] },
+        cacheDirectory,
+      };
+    }
     // Webpack breaks without this pg-native alias, even though it's dead code,
     // due to how the pg module does package detection internally.
     config.resolve.alias["pg-native"] = ".";
