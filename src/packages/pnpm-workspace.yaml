@@ -7,8 +7,7 @@ packages:
   - "!compute"
 minimumReleaseAge: 4320 # 3 days
 
-minimumReleaseAgeExclude:
-  - socks
+minimumReleaseAgeExclude: []
 
 onlyBuiltDependencies:
   - better-sqlite3
