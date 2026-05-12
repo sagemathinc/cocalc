@@ -1,10 +1,12 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Col, Flex, Layout, Row, Space, Typography } from "antd";
+import { MouseEvent } from "react";
 
+import { clearAllConsentCookies } from "@cocalc/frontend/cookie-consent";
 import { COLORS } from "@cocalc/util/theme";
 
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
@@ -18,8 +20,8 @@ import { liveDemoUrl } from "components/landing/live-demo";
 import SocialMediaIconList from "./social-media-icon-list";
 
 const FOOTER_STYLE: CSS = {
-  borderTop: "1px solid lightgrey",
-  backgroundColor: "white",
+  borderTop: `1px solid ${COLORS.GRAY_L}`,
+  backgroundColor: COLORS.WHITE,
 };
 
 const FOOTER_COLUMNS_STYLE: CSS = {
@@ -38,6 +40,10 @@ const FOOTER_TABLE_STYLE: CSS = {
   width: "100%",
 } as const;
 
+const FOOTER_LINK_STYLE: CSS = {
+  color: COLORS.GRAY_D,
+} as const;
+
 const LOGO_COLUMN_STYLE = {
   paddingBottom: "24px",
   marginTop: "32px",
@@ -47,6 +53,7 @@ interface FooterLink {
   text: string;
   url: string;
   hide?: boolean;
+  onClick?: (e: MouseEvent) => void;
 }
 
 interface FooterColumn {
@@ -61,6 +68,8 @@ export default function Footer() {
     organizationName,
     organizationURL,
     enabledPages,
+    cookieBannerEnabled,
+    isAuthenticated,
     termsOfServiceURL,
     supportVideoCall,
   } = useCustomize();
@@ -189,6 +198,16 @@ export default function Footer() {
           hide: !enabledPages?.policies.index,
         },
         {
+          text: "Clear cookies",
+          url: "#",
+          hide: !cookieBannerEnabled || !!isAuthenticated,
+          onClick: (e) => {
+            e.preventDefault();
+            clearAllConsentCookies();
+            window.location.reload();
+          },
+        },
+        {
           text: "Terms of Service",
           url: termsOfServiceURL || "",
           hide: !enabledPages?.termsOfService,
@@ -221,7 +240,8 @@ export default function Footer() {
                   ? `mailto:${footerLink.url}`
                   : footerLink.url
               }
-              style={{ color: COLORS.GRAY_D }}
+              onClick={footerLink.onClick}
+              style={FOOTER_LINK_STYLE}
             >
               {footerLink.text}
             </A>
@@ -270,3 +290,4 @@ export default function Footer() {
     </Layout.Footer>
   );
 }
+
