@@ -503,6 +503,25 @@ export default function Privacy({ customize }) {
                               HAProxy.{" "}
                             </td>
                           </tr>
+                          <tr>
+                            <td> cc_cookie </td>
+                            <td>
+                              {" "}
+                              Records your cookie banner choices (which
+                              categories you accepted and when), so the
+                              banner doesn't reappear on every page load.{" "}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td> cocalc_youtube_consent </td>
+                            <td>
+                              {" "}
+                              Remembers your consent to load embedded
+                              YouTube videos. Until set, video embeds show
+                              a placeholder and no request is made to
+                              YouTube.{" "}
+                            </td>
+                          </tr>
                         </tbody>
                       </table>
                       Please note that we do our best to keep this table

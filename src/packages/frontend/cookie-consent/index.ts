@@ -311,7 +311,10 @@ export function clearAllConsentCookies(): void {
   const names = new Set<string>(["cc_cookie"]);
   const matchers: Array<string | RegExp> = [];
   for (const category of COOKIE_CATEGORIES) {
-    for (const item of category.autoClearCookies ?? []) {
+    // `as const satisfies` narrows each entry to its literal type, so only
+    // entries that declare autoClearCookies expose the property.
+    if (!("autoClearCookies" in category)) continue;
+    for (const item of category.autoClearCookies) {
       matchers.push(item.name);
     }
   }
