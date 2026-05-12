@@ -28,7 +28,7 @@ export default function Privacy({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Privacy Policy</h1>
-              <h2>Last Updated: April 21, 2026</h2>
+              <h2>Last Updated: May 12, 2026</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -501,6 +501,25 @@ export default function Privacy({ customize }) {
                               {" "}
                               Load balancer stickiness cookie set by
                               HAProxy.{" "}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td> cc_cookie </td>
+                            <td>
+                              {" "}
+                              Records your cookie banner choices (which
+                              categories you accepted and when), so the
+                              banner doesn't reappear on every page load.{" "}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td> cocalc_youtube_consent </td>
+                            <td>
+                              {" "}
+                              Remembers your consent to load embedded
+                              YouTube videos. Until set, video embeds show
+                              a placeholder and no request is made to
+                              YouTube.{" "}
                             </td>
                           </tr>
                         </tbody>
@@ -1343,6 +1362,13 @@ export default function Privacy({ customize }) {
                     <tr>
                       <td>Update: simplify vendor references</td>
                       <td> 2026-04-21 </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        Update: list cookie-consent and YouTube embed
+                        consent cookies
+                      </td>
+                      <td> 2026-05-12 </td>
                     </tr>
                   </tbody>
                 </table>
