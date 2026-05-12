@@ -14,6 +14,7 @@ import * as CookieConsent from "vanilla-cookieconsent";
 
 import { COOKIE_CATEGORIES, type CookieCategoryKey } from "./categories";
 import { BANNER_STATE_EVENT, isBannerActive, isBannerDecided } from "./state";
+import { revokeYouTubeConsent } from "./youtube";
 
 export { COOKIE_CATEGORIES };
 export type { CookieCategoryKey };
@@ -291,4 +292,66 @@ export function useEssentialConsent(): boolean {
     };
   }, []);
   return accepted;
+}
+
+// Erase every cookie this module is responsible for: the vanilla-cookieconsent
+// state cookie (cc_cookie), the dedicated YouTube consent cookie, and the
+// autoClearCookies declared by each category in categories.ts. Used by the
+// "Clear cookies" affordance in the next.js footer for signed-out visitors
+// who can't reach the in-app preferences modal. Best-effort: we don't know
+// the (domain, path) attributes used at write time, so we issue an expiring
+// write for every plausible variant of the current hostname — browsers
+// silently reject invalid public-suffix domains, so over-attempting is
+// harmless.
+export function clearAllConsentCookies(): void {
+  if (typeof document === "undefined" || typeof window === "undefined") return;
+
+  // Collect names: cc_cookie itself plus everything categories.ts knows about.
+  // RegExp matchers (e.g. /^_ga/) are expanded against the live cookie jar.
+  const names = new Set<string>(["cc_cookie"]);
+  const matchers: Array<string | RegExp> = [];
+  for (const category of COOKIE_CATEGORIES) {
+    for (const item of category.autoClearCookies ?? []) {
+      matchers.push(item.name);
+    }
+  }
+  for (const m of matchers) {
+    if (typeof m === "string") {
+      names.add(m);
+    } else {
+      for (const cookie of document.cookie.split(";")) {
+        const n = cookie.trim().split("=")[0];
+        if (n && m.test(n)) names.add(n);
+      }
+    }
+  }
+
+  const domains = parentDomainCandidates(window.location.hostname);
+  for (const name of names) {
+    for (const domain of domains) {
+      document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax${
+        domain == null ? "" : `; domain=${domain}`
+      }`;
+    }
+  }
+
+  // YouTube consent has its own module that owns the cookie name + change
+  // event. Defer to it rather than duplicating the constant here.
+  revokeYouTubeConsent();
+}
+
+// Every parent suffix of hostname in both `host` and `.host` form, plus an
+// `undefined` first entry (= write without a domain attribute, matching
+// host-only cookies). Robust against multi-level TLDs (.co.uk, .com.au)
+// without needing the Public Suffix List: invalid candidates (`co.uk`, `com`)
+// are rejected by the browser.
+function parentDomainCandidates(hostname: string): Array<string | undefined> {
+  const result: Array<string | undefined> = [undefined];
+  const parts = hostname.split(".");
+  for (let i = 0; i < parts.length; i++) {
+    const suffix = parts.slice(i).join(".");
+    if (!suffix) continue;
+    result.push(suffix, `.${suffix}`);
+  }
+  return result;
 }

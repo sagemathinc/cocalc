@@ -4,7 +4,9 @@
  */
 
 import { Col, Flex, Layout, Row, Space, Typography } from "antd";
+import { MouseEvent } from "react";
 
+import { clearAllConsentCookies } from "@cocalc/frontend/cookie-consent";
 import { COLORS } from "@cocalc/util/theme";
 
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
@@ -49,9 +51,9 @@ const LOGO_COLUMN_STYLE = {
 
 interface FooterLink {
   text: string;
-  url?: string;
+  url: string;
   hide?: boolean;
-  onClick?: () => void;
+  onClick?: (e: MouseEvent) => void;
 }
 
 interface FooterColumn {
@@ -197,8 +199,13 @@ export default function Footer() {
         },
         {
           text: "Clear cookies",
+          url: "#",
           hide: !cookieBannerEnabled || !!isAuthenticated,
-          onClick: clearCookieChoices,
+          onClick: (e) => {
+            e.preventDefault();
+            clearAllConsentCookies();
+            window.location.reload();
+          },
         },
         {
           text: "Terms of Service",
@@ -226,10 +233,18 @@ export default function Footer() {
         {column.links
           .filter((footerLink) => !footerLink.hide)
           .map((footerLink) => (
-            <FooterColumnLink
-              footerLink={footerLink}
-              key={footerLink.url ?? footerLink.text}
-            />
+            <A
+              key={footerLink.url}
+              href={
+                isValidEmailAddress(footerLink.url)
+                  ? `mailto:${footerLink.url}`
+                  : footerLink.url
+              }
+              onClick={footerLink.onClick}
+              style={FOOTER_LINK_STYLE}
+            >
+              {footerLink.text}
+            </A>
           ))}
       </Space>
     ));
@@ -276,62 +291,3 @@ export default function Footer() {
   );
 }
 
-function FooterColumnLink({ footerLink }: { footerLink: FooterLink }) {
-  if (footerLink.onClick != null) {
-    return (
-      <Typography.Link onClick={footerLink.onClick} style={FOOTER_LINK_STYLE}>
-        {footerLink.text}
-      </Typography.Link>
-    );
-  }
-  const url = footerLink.url ?? "";
-  return (
-    <A
-      href={isValidEmailAddress(url) ? `mailto:${url}` : url}
-      style={FOOTER_LINK_STYLE}
-    >
-      {footerLink.text}
-    </A>
-  );
-}
-
-function clearCookieChoices(): void {
-  if (typeof document === "undefined" || typeof window === "undefined") {
-    return;
-  }
-
-  const names = new Set(["cc_cookie", "cocalc_youtube_consent", "CC_ANA"]);
-  for (const cookie of document.cookie.split(";")) {
-    const name = cookie.trim().split("=")[0];
-    if (/^_ga/.test(name) || /^_gid/.test(name)) {
-      names.add(name);
-    }
-  }
-
-  const domains = getCookieClearDomains(window.location.hostname);
-  for (const name of names) {
-    for (const domain of domains) {
-      clearCookie(name, domain);
-    }
-  }
-  window.location.reload();
-}
-
-function getCookieClearDomains(hostname: string): Array<string | undefined> {
-  const domains: Array<string | undefined> = [
-    undefined,
-    hostname,
-    `.${hostname}`,
-  ];
-  const parts = hostname.split(".");
-  if (parts.length > 2) {
-    domains.push(`.${parts.slice(-2).join(".")}`);
-  }
-  return domains;
-}
-
-function clearCookie(name: string, domain?: string): void {
-  document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax${
-    domain == null ? "" : `; domain=${domain}`
-  }`;
-}
