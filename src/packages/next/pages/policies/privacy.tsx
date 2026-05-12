@@ -507,19 +507,16 @@ export default function Privacy({ customize }) {
                             <td> cc_cookie </td>
                             <td>
                               {" "}
-                              Records your cookie banner choices (which
-                              categories you accepted and when), so the
-                              banner doesn't reappear on every page load.{" "}
+                              Stores cookie banner choices, including consent
+                              categories and revision.{" "}
                             </td>
                           </tr>
                           <tr>
                             <td> cocalc_youtube_consent </td>
                             <td>
                               {" "}
-                              Remembers your consent to load embedded
-                              YouTube videos. Until set, video embeds show
-                              a placeholder and no request is made to
-                              YouTube.{" "}
+                              Stores whether you allowed embedded YouTube videos
+                              to load.{" "}
                             </td>
                           </tr>
                         </tbody>
@@ -528,8 +525,22 @@ export default function Privacy({ customize }) {
                       updated, but the number and names of cookies may change
                       from time to time. You may not opt-out of the use of these
                       cookies since it would be impossible for us to provide the
-                      service otherwise. We do NOT use cookies for marketing or
-                      advertising purpuses.
+                      service otherwise.
+                      <p>
+                        {" "}
+                        With your consent, we may use optional analytics cookies
+                        to understand how the site is used. Examples include
+                        Google Analytics cookies such as <code>_ga</code>,{" "}
+                        <code>_gid</code>, and related <code>_ga*</code>{" "}
+                        cookies, as well as the CoCalc analytics cookie{" "}
+                        <code>CC_ANA</code>.
+                      </p>
+                      <p>
+                        {" "}
+                        If enabled and consented to, first-party usage metrics
+                        may record product interactions in our own systems.
+                        These usage metrics are not managed as browser cookies.
+                      </p>
                     </li>{" "}
                     <li>
                       {" "}
