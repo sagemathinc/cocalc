@@ -200,7 +200,9 @@ class Project extends BaseProject {
 
   async copyPath(opts: CopyOptions): Promise<string> {
     logger.debug("copyPath ", this.project_id, opts);
-    await copyPath(opts, this.project_id);
+    // util.copyPath's async branch is fire-and-forget and swallows errors,
+    // and this controller can't return a usable copy_id, so always wait.
+    await copyPath({ ...opts, wait_until_done: true }, this.project_id);
     return "";
   }
 }

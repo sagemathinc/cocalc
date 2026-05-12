@@ -2,9 +2,13 @@
 API endpoint to query the status of a copy_paths row submitted via
 /api/v2/projects/copy-path with wait_until_done=false.
 
-The frontend polls this until `finished` is set; then `error` is either
-null (success) or contains a human-readable description of what went
-wrong on the project pod / manage side.
+The frontend polls this until `finished` is set; then `copy_error` is
+either null (success) or contains a human-readable description of what
+went wrong on the project pod / manage side. We deliberately use
+`copy_error` rather than `error` so the shared apiPost wrapper, which
+throws on any top-level `error` field, doesn't conflate "the copy
+failed" with "this status request failed" — the caller wants to
+distinguish those.
 
 Auth: the requesting account must be a collaborator on the target
 project that the copy was directed to. (Anonymous owners count, since
@@ -48,7 +52,7 @@ export default async function handle(req, res) {
     res.json({
       started: row.started,
       finished: row.finished,
-      error: row.error,
+      copy_error: row.error,
     });
   } catch (err) {
     res.json({ error: `${err.message}` });

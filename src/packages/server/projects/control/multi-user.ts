@@ -167,8 +167,10 @@ class Project extends BaseProject {
 
   async copyPath(opts: CopyOptions): Promise<string> {
     winston.debug("copyPath ", this.project_id, opts);
+    // util.copyPath's async branch is fire-and-forget and swallows errors,
+    // and this controller can't return a usable copy_id, so always wait.
     await copyPath(
-      opts,
+      { ...opts, wait_until_done: true },
       this.project_id,
       opts.target_project_id ? getUid(opts.target_project_id) : undefined,
     );

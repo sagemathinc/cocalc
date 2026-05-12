@@ -6,6 +6,10 @@ const POLL_INTERVAL_MS = 5_000;
 // surface a timeout to the user. Manage's per-rsync timeout is 7 min,
 // so this leaves headroom for queueing.
 const MAX_POLL_DURATION_MS = 10 * 60 * 1000;
+// Transient network blips (502, ECONNRESET, etc.) shouldn't fail the
+// whole copy — the backend rsync continues regardless. We only give up
+// after this many consecutive poll request failures.
+const MAX_CONSECUTIVE_POLL_ERRORS = 3;
 
 interface CopyPublicPathOpts {
   id: string;
@@ -56,6 +60,7 @@ export default async function copyPublicPath({
   }
 
   const deadline = submitStart + MAX_POLL_DURATION_MS;
+  let consecutiveErrors = 0;
   while (true) {
     if (Date.now() > deadline) {
       throw Error(
@@ -63,14 +68,29 @@ export default async function copyPublicPath({
           "in the background — try opening your new project shortly.",
       );
     }
-    const status = await api("/projects/copy-path-status", { copy_id });
+    let status;
+    try {
+      status = await api("/projects/copy-path-status", { copy_id });
+      consecutiveErrors = 0;
+    } catch (err) {
+      // The backend copy keeps running even if our poll request blips,
+      // so tolerate a few transient request failures before giving up.
+      // Real copy failures come through as status.copy_error below, not
+      // as apiPost throwing, so this catch is safely for transients only.
+      consecutiveErrors += 1;
+      if (consecutiveErrors >= MAX_CONSECUTIVE_POLL_ERRORS) {
+        throw err;
+      }
+      await sleep(POLL_INTERVAL_MS);
+      continue;
+    }
     onProgress?.({
       started: !!status.started,
       elapsed_s: Math.round((Date.now() - submitStart) / 1000),
     });
     if (status.finished) {
-      if (status.error) {
-        throw Error(status.error);
+      if (status.copy_error) {
+        throw Error(status.copy_error);
       }
       return;
     }
