@@ -28,7 +28,7 @@ export default function Privacy({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Privacy Policy</h1>
-              <h2>Last Updated: April 21, 2026</h2>
+              <h2>Last Updated: May 12, 2026</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -1362,6 +1362,13 @@ export default function Privacy({ customize }) {
                     <tr>
                       <td>Update: simplify vendor references</td>
                       <td> 2026-04-21 </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        Update: list cookie-consent and YouTube embed
+                        consent cookies
+                      </td>
+                      <td> 2026-05-12 </td>
                     </tr>
                   </tbody>
                 </table>
