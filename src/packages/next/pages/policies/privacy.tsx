@@ -125,39 +125,26 @@ export default function Privacy({ customize }) {
                   Collect and How We Use It
                 </h1>
                 <p>
-                  The types of Personal Information we may collect (directly
-                  from you or from Third-Party sources) and our privacy
-                  practices depend on the nature of the relationship you have
-                  with Sagemath and the requirements of applicable law. Some of
-                  the ways that Sagemath may collect Personal Information
-                  include:{" "}
+                  The types of Personal Information we may collect, how we use
+                  it, and the lawful basis for processing depend on the nature
+                  of your relationship with Sagemath and the requirements of
+                  applicable law. We endeavor to collect only Personal
+                  Information that is relevant to providing, securing,
+                  improving, and supporting the Services and to meeting our
+                  legal and business obligations.{" "}
                 </p>{" "}
-                <ul>
-                  {" "}
-                  <li>
-                    {" "}
-                    <p>
-                      {" "}
-                      You may provide Personal Information directly to Sagemath
-                      through interacting with the Services, participating in
-                      surveys, and requesting Services, or information.{" "}
-                    </p>{" "}
-                  </li>{" "}
-                  <li>
-                    {" "}
-                    <p>
-                      {" "}
-                      As you navigate the Services, certain passive information
-                      may also be collected about your visit, including through
-                      cookies and similar technologies as described below.{" "}
-                    </p>{" "}
-                  </li>{" "}
-                </ul>{" "}
                 <p>
                   {" "}
-                  We endeavor to collect only that information which is relevant
-                  for the purposes of Processing. Below are the ways we collect
-                  Personal Information and how we use it.{" "}
+                  Where applicable data protection law requires a lawful basis
+                  for processing Personal Information, Sagemath relies on the
+                  lawful basis appropriate for the particular purpose, including
+                  performance of a contract, legitimate interests, consent,
+                  compliance with legal obligations, and, where applicable,
+                  vital interests or tasks carried out in the public interest.
+                  For example, we may process Personal Information to provide
+                  and secure the Services, process payments, respond to
+                  requests, comply with law, or process optional cookies and
+                  marketing communications where consent is required.{" "}
                 </p>{" "}
                 <div id="types-of-personal-information-we-collect">
                   {" "}
@@ -374,13 +361,14 @@ export default function Privacy({ customize }) {
                         information, information about the computer or device
                         from which you access Sagemath’s Services, or other
                         analyses we create. Anonymized or aggregated information
-                        is not Personal Information, and Sagemath may use such
-                        information in a number of ways, including research,
-                        internal analysis, analytics, and any other legally
-                        permissible purposes. We may share this information
-                        within Sagemath and with Third Parties for our or their
-                        purposes in an anonymized or aggregated form that is
-                        designed to prevent anyone from identifying you.{" "}
+                        is not treated as Personal Information when it cannot
+                        reasonably be used to identify you, and Sagemath may use
+                        such information in a number of ways, including
+                        research, internal analysis, analytics, and any other
+                        legally permissible purposes. We may share this
+                        information within Sagemath and with Third Parties for
+                        our or their purposes in a form designed to prevent
+                        anyone from identifying you.{" "}
                       </p>{" "}
                     </li>{" "}
                     <li>
@@ -802,11 +790,12 @@ export default function Privacy({ customize }) {
                   </h2>{" "}
                   <p>
                     {" "}
-                    You agree that all information collected via or by Sagemath
-                    may be transferred, processed, and stored in the United
-                    States, in the cloud, on our servers, on the servers of our
-                    affiliates, or the servers of our service providers, in
-                    order to provide the Services.{" "}
+                    Information collected via or by Sagemath may be transferred,
+                    processed, and stored in the United States, in the cloud, on
+                    our servers, on the servers of our affiliates, or on the
+                    servers of our service providers, as necessary to provide
+                    the Services and subject to applicable legal requirements
+                    and transfer safeguards.{" "}
                   </p>{" "}
                   <p>
                     If you use Services that require you to select a geographic
@@ -830,18 +819,14 @@ export default function Privacy({ customize }) {
                   <p>
                     {" "}
                     You have the right to object to and opt out of certain uses
-                    of your Personal Information. Where you have consented to
-                    Sagemath’s Processing of your Personal Information or
-                    Sensitive Personal Information, you may withdraw that
-                    consent at any time and opt out of further Processing by
-                    contacting{" "}
+                    of your Personal Information. Where we rely on your consent
+                    to process Personal Information, or explicit consent to
+                    process Sensitive Personal Information, you may withdraw
+                    that consent at any time by contacting{" "}
                     <A href="mailto:office@sagemath.com">office@sagemath.com</A>
-                    . Even if you opt out, we may still collect and use
-                    non-Personal Information regarding your activities on our
-                    Services and/or information from the advertisements on
-                    Third-Party websites for non-interest based advertising
-                    purposes, such as to determine the effectiveness of the
-                    advertisements.{" "}
+                    . Withdrawing consent does not affect processing that
+                    occurred before withdrawal or processing that relies on
+                    another lawful basis or applicable legal permission.{" "}
                   </p>{" "}
                 </div>{" "}
                 <div id="email-and-telephone-communications">
@@ -946,9 +931,13 @@ export default function Privacy({ customize }) {
                   incomplete personal information; (vi) request erasure of
                   personal information held about you by Sagemath, subject to
                   certain exceptions prescribed by law; (vii) object to
-                  processing of your personal information. If you would like to
-                  exercise any of these rights, please contact us as set forth
-                  below.{" "}
+                  processing of your personal information; (viii) where
+                  applicable, exercise rights relating to decisions based solely
+                  on automated processing, including profiling, that produce
+                  legal effects concerning you or similarly significantly affect
+                  you, including requesting human intervention where required by
+                  law. If you would like to exercise any of these rights, please
+                  contact us as set forth below.{" "}
                 </p>{" "}
                 <p>
                   {" "}
@@ -984,31 +973,31 @@ export default function Privacy({ customize }) {
                 </h1>{" "}
                 <p>
                   {" "}
-                  We take steps to ensure that your information is treated
-                  securely and in accordance with this Privacy Policy. We
-                  encrypt data storage and backups, use firewalls and access
-                  control. You can learn more details about measures taken and
-                  third party audits and certifications on our Trust page at{" "}
+                  We implement appropriate technical and organizational measures
+                  designed to protect Personal Information against unauthorized
+                  access, loss, misuse, alteration, or disclosure. These
+                  measures include encryption for data storage and backups,
+                  firewalls, and access controls. You can learn more about our
+                  security controls, third-party audits, and certifications on
+                  our Trust page at{" "}
                   <A href="/policies/trust">
                     https://cocalc.com/policies/trust
                   </A>{" "}
-                  Unfortunately, the Internet cannot be guaranteed to be 100%
-                  secure, and we cannot ensure or warrant the security of any
-                  information you provide to us. To the fullest extent permitted
-                  by applicable law, we do not accept liability for
-                  unintentional disclosure.{" "}
+                  No method of transmission or storage over the Internet is
+                  completely secure, and we cannot guarantee absolute security.
+                  To the fullest extent permitted by applicable law, we do not
+                  accept liability for unintentional disclosure.{" "}
                 </p>{" "}
                 <p>
                   {" "}
-                  By using the Services or providing Personal Information to us,
-                  you agree that we may communicate with you electronically
-                  regarding security, privacy, and administrative issues
-                  relating to your use of the Services. If we learn of a
-                  personal data breach, in accordance with GDPR we will inform
-                  the Supervisory Authority within 72 hours. If there is a high
-                  risk to your security or if required by the Supervisory
-                  Authority, we will notify you electronically by posting a
-                  notice on the Services or sending an e-mail to you.
+                  We may communicate with you electronically regarding security,
+                  privacy, and administrative issues relating to your use of the
+                  Services. If we learn of a personal data breach, in accordance
+                  with GDPR we will inform the Supervisory Authority within 72
+                  hours. If there is a high risk to your security or if required
+                  by the Supervisory Authority, we will notify you
+                  electronically by posting a notice on the Services or sending
+                  an e-mail to you.
                 </p>{" "}
               </div>{" "}
               <div id="childrens-privacy">
@@ -1131,13 +1120,11 @@ export default function Privacy({ customize }) {
                   </h2>{" "}
                   <p>
                     {" "}
-                    We may revise this Privacy Policy from time to time in our
-                    sole discretion. If there are any material changes to this
-                    Privacy Policy, we will notify you as required by applicable
-                    law. You understand and agree that you will be deemed to
-                    have accepted the updated Privacy Policy if you continue to
-                    use the Services after the new Privacy Policy takes
-                    effect.{" "}
+                    We may revise this Privacy Policy from time to time. When we
+                    do, we will post the updated Privacy Policy here and update
+                    the “Last Updated” date. If applicable law requires
+                    additional notice or consent for a change, we will provide
+                    it before the change applies.{" "}
                   </p>{" "}
                 </div>{" "}
                 <div id="california-privacy-rights">
