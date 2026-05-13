@@ -28,7 +28,7 @@ export default function Privacy({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Privacy Policy</h1>
-              <h2>Last Updated: May 12, 2026</h2>
+              <h2>Last Updated: May 13, 2026</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -232,7 +232,12 @@ export default function Privacy({ customize }) {
                   <p>
                     {" "}
                     We Process Personal Information about Individuals for the
-                    following business purposes:{" "}
+                    following business purposes, relying on the lawful basis
+                    appropriate for each purpose, such as performance of a
+                    contract, legitimate interests in operating, securing,
+                    improving, and supporting the Services, compliance with
+                    legal obligations, or consent where required by applicable
+                    law:{" "}
                   </p>{" "}
                   <p>
                     {" "}
@@ -559,13 +564,16 @@ export default function Privacy({ customize }) {
                   <h2>3.5 Third-Party Payment Processing </h2>{" "}
                   <p>
                     {" "}
-                    When you make purchases through the Services, we process
-                    your payments through our payment processor, Stripe. Stripe
-                    collects information from and about you that is necessary to
-                    process your payment and help prevent abuse. This may
-                    include your name, email address, billing address, tax
-                    identifiers, IP address, and payment information. We do not
-                    receive your full payment account numbers. You can review
+                    When you make purchases through the Services, payments are
+                    processed by our payment processor, Stripe. Stripe collects
+                    information from and about you that is necessary to complete
+                    the transaction, comply with legal and tax obligations, and
+                    help prevent fraud and abuse. This may include your name,
+                    email address, billing address, tax identifiers, IP address,
+                    and payment information. We do not receive your full payment
+                    account numbers. We use Stripe for payment processing based
+                    on the need to complete transactions and our legitimate
+                    interests in preventing fraud and abuse. You can review
                     Stripe&apos;s privacy policy on Stripe&apos;s website.
                   </p>{" "}
                 </div>{" "}
@@ -590,7 +598,10 @@ export default function Privacy({ customize }) {
                 <p>
                   {" "}
                   We Process Human Resources Data for a variety of business
-                  purposes including:{" "}
+                  purposes, relying on the lawful basis appropriate for each
+                  use, such as performance of an employment or contractor
+                  relationship, legal obligations, legitimate interests, or
+                  consent where required by applicable law:{" "}
                 </p>{" "}
                 <ul>
                   {" "}
@@ -642,9 +653,13 @@ export default function Privacy({ customize }) {
                   <p>
                     {" "}
                     We may share your information as described in this Privacy
-                    Policy (e.g., with our Third-Party service providers; to
-                    comply with legal obligations; to protect and defend our
-                    rights and property) or with your permission.{" "}
+                    Policy, relying on the lawful basis appropriate for the
+                    disclosure, such as performance of a contract, legitimate
+                    interests, legal obligations, consent where required by
+                    applicable law, or the same lawful basis that supports the
+                    underlying processing. Examples include sharing with our
+                    Third-Party service providers, protecting and defending our
+                    rights and property, or sharing with your permission.{" "}
                   </p>{" "}
                   <ul>
                     {" "}
@@ -1335,6 +1350,10 @@ export default function Privacy({ customize }) {
                         consent cookies
                       </td>
                       <td> 2026-05-12 </td>
+                    </tr>
+                    <tr>
+                      <td>Update: clarify lawful bases for processing</td>
+                      <td> 2026-05-13 </td>
                     </tr>
                   </tbody>
                 </table>
