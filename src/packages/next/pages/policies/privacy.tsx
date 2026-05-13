@@ -291,125 +291,93 @@ export default function Privacy({ customize }) {
                   <p>
                     {" "}
                     <strong>
-                      Marketing Sagemath Products and Services:
+                      Marketing Sagemath Products and Services.
                     </strong>{" "}
+                    We may use Personal Information to tailor content and notify
+                    you about offers, products, and services that may be of
+                    interest to you. We rely on consent where required by
+                    applicable law, or on legitimate interests where permitted
+                    by applicable law. You may contact us at any time to opt out
+                    of the use of your Personal Information for marketing
+                    purposes as set forth below.{" "}
                   </p>{" "}
-                  <ul>
-                    {" "}
-                    <li>To tailor content; </li>{" "}
-                    <li>
-                      To notify you about offers, products, and services that
-                      may be of interest to you;{" "}
-                    </li>{" "}
-                    <li>To provide Services to you; </li>{" "}
-                    <li>
-                      For other purposes disclosed at the time that Individuals
-                      provide Personal Information;{" "}
-                    </li>{" "}
-                    <li>Otherwise with your consent. </li>{" "}
-                  </ul>{" "}
                   <p>
                     {" "}
-                    You may contact us at any time to opt out of the use of your
-                    Personal Information for marketing purposes as set forth
-                    below.{" "}
+                    <strong>Research and Development.</strong> Sagemath may use
+                    Personal Information to create non-identifiable information
+                    that we may use alone or in the aggregate with information
+                    obtained from other sources, in order to help us to
+                    optimally deliver our existing products and Services or
+                    develop new products and Services. We may share anonymous
+                    Individual and aggregate data for research and analysis
+                    purposes.{" "}
                   </p>{" "}
-                  <ul>
+                  <p>
                     {" "}
-                    <li>
-                      {" "}
-                      <p>
-                        {" "}
-                        <strong>Research and Development.</strong> Sagemath may
-                        use Personal Information to create non-identifiable
-                        information that we may use alone or in the aggregate
-                        with information obtained from other sources, in order
-                        to help us to optimally deliver our existing products
-                        and Services or develop new products and Services. We
-                        may share anonymous Individual and aggregate data for
-                        research and analysis purposes.{" "}
-                      </p>{" "}
-                    </li>{" "}
-                    <li>
-                      {" "}
-                      <p>
-                        {" "}
-                        <strong>
-                          Direct Mail, Email and Outbound Telemarketing.
-                        </strong>{" "}
-                        Individuals who provide us with Personal Information, or
-                        whose Personal Information we obtain from Third Parties,
-                        may receive periodic emails, newsletters, mailings, or
-                        phone calls from us with information on Sagemath’s or
-                        our business partners’ products and services or upcoming
-                        special offers/events. We offer the option to decline
-                        these communications at no cost to the Individual by
-                        following the instructions set forth below.{" "}
-                      </p>{" "}
-                    </li>{" "}
-                    <li>
-                      {" "}
-                      <p>
-                        {" "}
-                        <strong>
-                          Anonymous and Aggregated Information Use.
-                        </strong>{" "}
-                        Sagemath may use Personal Information and other
-                        information about you to create anonymized and
-                        aggregated information, such as de-identified
-                        demographic information, de-identified location
-                        information, information about the computer or device
-                        from which you access Sagemath’s Services, or other
-                        analyses we create. Anonymized or aggregated information
-                        is not treated as Personal Information when it cannot
-                        reasonably be used to identify you, and Sagemath may use
-                        such information in a number of ways, including
-                        research, internal analysis, analytics, and any other
-                        legally permissible purposes. We may share this
-                        information within Sagemath and with Third Parties for
-                        our or their purposes in a form designed to prevent
-                        anyone from identifying you.{" "}
-                      </p>{" "}
-                    </li>{" "}
-                    <li>
-                      {" "}
-                      <p>
-                        {" "}
-                        <strong>Sharing Content.</strong> Sagemath’s Services
-                        may offer various tools and functionalities that allow
-                        you to share content. For example, Sagemath allows you
-                        to provide information about your colleagues, students,
-                        or friends through our course management system and
-                        referral services, such as inviting a collaborator to a
-                        project. Our referral services may allow you to forward
-                        or share certain content with others, such as emails
-                        inviting them to use our Services. Email addresses that
-                        you may provide in such situations will be used to send
-                        the content or link you request, but will not be
-                        collected or otherwise used by Sagemath or any other
-                        Third Parties for any other purpose. The Services also
-                        allow you to share your content with Third Parties such
-                        as GitHub and NPM. Any Personal Information you choose
-                        to share with these Third Parties is not covered by this
-                        Privacy Policy. We encourage you to review the privacy
-                        policy of these Third Parties before submitting your
-                        Personal Information.{" "}
-                      </p>{" "}
-                    </li>{" "}
-                    <li>
-                      {" "}
-                      <p>
-                        {" "}
-                        <strong>Other Uses.</strong> Sagemath may use Personal
-                        Information to pursue our legitimate interests, such as
-                        direct marketing, marketing research, network and
-                        information security, and fraud prevention and any other
-                        purpose disclosed to you at the time you provide
-                        Personal Information or otherwise with your
-                        consent.{" "}
-                      </p>{" "}
-                    </li>{" "}
-                  </ul>{" "}
+                    <strong>
+                      Direct Mail, Email and Outbound Telemarketing.
+                    </strong>{" "}
+                    Individuals who provide us with Personal Information, or
+                    whose Personal Information we obtain from Third Parties, may
+                    receive periodic emails, newsletters, mailings, or phone
+                    calls from us with information on Sagemath’s or our business
+                    partners’ products and services or upcoming special
+                    offers/events. We offer the option to decline these
+                    communications at no cost to the Individual by following the
+                    instructions set forth below.{" "}
+                  </p>{" "}
+                  <p>
+                    {" "}
+                    <strong>
+                      Anonymous and Aggregated Information Use.
+                    </strong>{" "}
+                    Sagemath may use Personal Information and other information
+                    about you to create anonymized and aggregated information,
+                    such as de-identified demographic information, de-identified
+                    location information, information about the computer or
+                    device from which you access Sagemath’s Services, or other
+                    analyses we create. Anonymized or aggregated information is
+                    not treated as Personal Information when it cannot
+                    reasonably be used to identify you, and Sagemath may use
+                    such information in a number of ways, including research,
+                    internal analysis, analytics, and any other legally
+                    permissible purposes. We may share this information within
+                    Sagemath and with Third Parties for our or their purposes in
+                    a form designed to prevent anyone from identifying you.{" "}
+                  </p>{" "}
+                  <p>
+                    {" "}
+                    <strong>Sharing Content.</strong> Sagemath’s Services may
+                    offer various tools and functionalities that allow you to
+                    share content. For example, Sagemath allows you to provide
+                    information about your colleagues, students, or friends
+                    through our course management system and referral services,
+                    such as inviting a collaborator to a project. Our referral
+                    services may allow you to forward or share certain content
+                    with others, such as emails inviting them to use our
+                    Services. Email addresses that you may provide in such
+                    situations will be used to send the content or link you
+                    request, but will not be collected or otherwise used by
+                    Sagemath or any other Third Parties for any other purpose.
+                    The Services also allow you to share your content with Third
+                    Parties such as GitHub and NPM. Any Personal Information you
+                    choose to share with these Third Parties is not covered by
+                    this Privacy Policy. We encourage you to review the privacy
+                    policy of these Third Parties before submitting your
+                    Personal Information.{" "}
+                  </p>{" "}
+                  <p>
+                    {" "}
+                    <strong>Other Uses.</strong> Sagemath may use Personal
+                    Information to pursue our legitimate interests, such as
+                    direct marketing where permitted by applicable law,
+                    marketing research, network and information security, and
+                    fraud prevention, where those interests are not overridden
+                    by your rights and interests. Sagemath may also use Personal
+                    Information for other purposes disclosed to you at the time
+                    you provide Personal Information or otherwise with your
+                    consent.{" "}
+                  </p>{" "}
                 </div>{" "}
                 <div id="cookies-pixel-tagsweb-beacons-analytics-information-and-interest-based-advertising">
                   {" "}
