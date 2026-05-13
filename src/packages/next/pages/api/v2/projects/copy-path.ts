@@ -33,6 +33,7 @@ export default async function handle(req, res) {
     backup,
     timeout,
     bwlimit,
+    wait_until_done,
   } = params;
 
   try {
@@ -61,7 +62,7 @@ export default async function handle(req, res) {
       }
     }
     const project = getProject(src_project_id);
-    await project.copyPath({
+    const copy_id = await project.copyPath({
       path,
       target_project_id,
       target_path,
@@ -71,10 +72,12 @@ export default async function handle(req, res) {
       timeout,
       bwlimit,
       public: !!public_id,
-      wait_until_done: true,
+      wait_until_done: wait_until_done ?? true,
     });
     // success means no exception and no error field in response.
-    res.json({});
+    // copy_id is set only when wait_until_done is false and the underlying
+    // controller (kucalc) supports asynchronous copies; otherwise "".
+    res.json({ copy_id: copy_id ?? "" });
   } catch (err) {
     res.json({ error: `${err.message}` });
   }
