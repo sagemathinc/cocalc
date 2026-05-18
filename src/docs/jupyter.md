@@ -405,6 +405,111 @@ export async function nbconvert(opts: NbconvertParams): Promise<void>;
 - Checksum validation for tamper detection
 - Clear solutions/hidden tests for student distribution
 
+## Versioned Kernels (Kernel Update Awareness)
+
+When a notebook is pinned to an old kernel (e.g. `sage-10.5`) and a newer
+kernel of the same software is installed, a yellow "Update…" button appears in
+the kernel status line so users notice.
+
+### Kernel metadata
+
+Optional fields on a kernelspec's `metadata.cocalc`
+(`packages/util/jupyter/types.ts`):
+
+| Field             | Type     | Meaning                                                            |
+| ----------------- | -------- | ------------------------------------------------------------------ |
+| `family`          | `string` | Stable id for a line of versioned kernels (e.g. `"sagemath"`).      |
+| `version`         | `string` | Dotted numeric version `^\d+(\.\d+)*$` (e.g. `10`, `10.6`, `3.12`). |
+| `display_version` | `string` | Optional human-readable version label.                             |
+
+A kernel participates only if it has both `family` and a contract-valid
+`version` (no name/`language` fallback). `family` is intentionally distinct
+from the Jupyter `language`: e.g. `python-system` / `python-cocalc` /
+`python-anaconda` share `language: "python"` but are different families and
+must not be offered as updates of one another.
+
+The two **existing** `metadata.cocalc` fields `disabled` and `priority` are
+distinct concepts and must not be conflated:
+
+- **`disabled: true`** — the kernel is **fully hidden** from the CoCalc UI:
+  filtered out by `get_kernels_by_name_or_language`, so it never appears in
+  the select-kernel dialog or the Change Kernel menu and cannot be picked.
+  Use this for broken/unwanted kernels (the original motivation was a broken
+  GAP kernel; see `browser-actions.ts:1059`).
+- **`priority: < 0`** — **deprecated but still selectable**: the kernel
+  appears normally in the selector and Change Kernel menu, and the user can
+  choose it. It is just skipped by `closest_kernel_match` (never auto-suggested
+  as a fallback for an unknown kernel) and by `kernelUpdateInfo` (never
+  offered as an update target).
+- **`priority: >= 10`** — appears in the "Suggested kernels" list and gets a
+  ⭐ (see `KERNEL_POPULAR_THRESHOLD`).
+
+So to truly hide a kernel, use `disabled: true`; `priority: -1` is the right
+choice when you want the kernel to remain pickable but never auto-suggested
+or offered as an update.
+
+### Detection
+
+`kernelUpdateInfo(currentKernelName, kernels)` in
+`packages/jupyter/util/misc.ts` (pure) returns the newest kernel in the same
+`family` with a strictly greater `version`, compared via
+`compareDottedVersions()` (per-segment numeric, shorter is less; the existing
+private `compareVersionStrings()` is left untouched). Candidates that are
+`disabled` or have `priority < 0` are excluded. `priority` and `version` are
+orthogonal — "latest" is decided by `version`, not `priority`.
+
+The status line (`packages/frontend/jupyter/status.tsx`) calls this reactively
+from the `kernel` / `kernels` / notebook-`metadata` redux state, so the button
+updates immediately on any kernel change (Update button, selector, `.ipynb`
+import, remote sync).
+
+### Update dialog & "Keep"
+
+The button opens a modal with three exits:
+
+- **Update to &lt;latest&gt;** — `actions.set_kernel(latestKernelName)`.
+- **Keep** — writes `metadata.cocalc.update_dismissed = <currentKernelName>`
+  via `actions.set_global_metadata` (shallow-merging the existing `cocalc`
+  object). Scoped to the kept kernel: suppressed only while the notebook is on
+  that exact kernel (render-time compare).
+- **X** — no action; the button stays.
+
+An **explicit** kernel switch resets the dismissal: `browser-actions.set_kernel`
+(the common path for the selector, the Change Kernel menu, and the Update
+dialog) deletes `update_dismissed` when changing to a kernel other than the
+dismissed one — so returning to a kernel you moved away from prompts again,
+while re-selecting the kept kernel keeps it silent. `.ipynb` import and
+remote-sync changes do not go through this path, so they don't clear it
+(degrades to the scoped behavior — harmless).
+
+### Selector & menu grouping
+
+Both kernel pickers keep their per-`language` grouping and add `family` as a
+secondary grouping:
+
+- **Select-a-kernel dialog** (`select-kernel.tsx`): within a language, each
+  family renders as a prominent button for the latest version plus compact
+  version-number buttons for older versions; kernels without a family keep the
+  flat rendering.
+- **Kernel → Change Kernel menu** (`frame-editors/jupyter-editor/editor.ts`):
+  per language submenu, family+version kernels first (family asc, version
+  desc) with a divider between family groups, then a divider, then the
+  remaining kernels in display-name order. Submenu dividers are a
+  `{ type: "divider" }` child, supported in `frame-tree/commands`.
+
+The frontend caches kernelspecs for 5 minutes; the selector's Refresh forwards
+`noCache` (`frontend/jupyter/kernelspecs.ts`) so freshly added/edited
+kernelspecs show up.
+
+### Local testing
+
+`src/scripts/make_test_kernels.py` creates throwaway versioned kernelspecs
+under `~/.local/share/jupyter/kernels` (reusing the existing python `argv`):
+`testfam-{1.0,1.1,2.0}`, `otherfam-{3.4,3.5}`, `otherfam-3.7`
+(`priority: -1` — must not be offered as an update), and `plainkernel-{a,b}`
+(no family/version). Run with `--clean` to remove; click **Refresh** in the
+kernel selector afterwards.
+
 ## Key Source Files
 
 | File                                               | Description                            |
