@@ -28,7 +28,7 @@
     "cookie": "^1.0.0",
     "debug": "^4.4.0",
     "primus": "^8.0.9",
-    "ws": "^8.18.0"
+    "ws": "^8.20.1"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync-client",
   "repository": {
