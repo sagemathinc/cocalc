@@ -14,6 +14,7 @@ import {
   Checkbox,
   Descriptions,
   Popover,
+  Space,
   Spin,
   Tabs,
   Tooltip,
@@ -43,7 +44,11 @@ import { SiteName } from "@cocalc/frontend/customize";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
-import { Kernel as KernelType } from "@cocalc/jupyter/util/misc";
+import {
+  compareDottedVersions,
+  isDottedVersion,
+  Kernel as KernelType,
+} from "@cocalc/jupyter/util/misc";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { KernelStar } from "../components/run-button/kernel-star";
@@ -176,6 +181,87 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       );
     }
 
+    function cocalc_attr(name: string, key: string): any {
+      return kernels_by_name?.getIn([name, "metadata", "cocalc", key]);
+    }
+
+    // Compact button for an older version in a family: shows just the
+    // version number (display_version preferred), with the full kernel
+    // name in a tooltip.
+    function render_version_button(name: string): Rendered {
+      const ver = (cocalc_attr(name, "display_version") ??
+        cocalc_attr(name, "version") ??
+        name) as string;
+      const key = `kernel-v-${name}`;
+      return (
+        <Tooltip key={key} title={kernel_name(name) || name}>
+          <Button
+            onClick={() => {
+              actions.select_kernel(name);
+              track("jupyter", {
+                action: "select-kernel",
+                kernel: name,
+                how: "click-button-in-dialog",
+              });
+            }}
+            style={{ height: "35px" }}
+          >
+            {ver}
+          </Button>
+        </Tooltip>
+      );
+    }
+
+    // Render all kernels of one language: kernels that declare a
+    // metadata.cocalc.family + version are grouped by family (latest version
+    // as a prominent button, older versions as compact version buttons next
+    // to it); kernels without family/version keep the flat rendering.
+    function render_lang_kernels(names: List<string>): Rendered {
+      const families: { [family: string]: string[] } = {};
+      const familyOrder: string[] = [];
+      const ungrouped: string[] = [];
+      names.forEach((name) => {
+        const fam = cocalc_attr(name, "family");
+        const ver = cocalc_attr(name, "version");
+        if (typeof fam === "string" && fam !== "" && isDottedVersion(ver)) {
+          if (families[fam] == null) {
+            families[fam] = [];
+            familyOrder.push(fam);
+          }
+          families[fam].push(name);
+        } else {
+          ungrouped.push(name);
+        }
+      });
+      familyOrder.sort();
+      const groups: Rendered[] = familyOrder.map((fam) => {
+        const members = families[fam].slice().sort((a, b) =>
+          -compareDottedVersions(
+            cocalc_attr(a, "version"),
+            cocalc_attr(b, "version"),
+          ),
+        );
+        const [latest, ...older] = members;
+        return (
+          <Space.Compact
+            key={`fam-${fam}`}
+            style={{ marginRight: "10px", marginBottom: "5px" }}
+          >
+            {render_kernel_button(latest)}
+            {older.map((n) => render_version_button(n))}
+          </Space.Compact>
+        );
+      });
+      return (
+        <div
+          style={{ display: "flex", flexWrap: "wrap", alignItems: "center" }}
+        >
+          {groups}
+          {ungrouped.map((n) => render_kernel_button(n))}
+        </div>
+      );
+    }
+
     function render_suggested() {
       if (kernel_selection == null || kernels_by_name == null) return;
 
@@ -274,17 +360,13 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
       const all: Rendered[] = [];
       kernels_by_language.forEach((names, lang) => {
-        const kernels = names.map((name) => render_kernel_button(name));
-
         const label = (
           <span style={ALL_LANGS_LABEL_STYLE}>{misc.capitalize(lang)}</span>
         );
 
         all.push(
           <Descriptions.Item key={lang} label={label}>
-            <Button.Group style={{ display: "flex", flexWrap: "wrap" }}>
-              {kernels}
-            </Button.Group>
+            {render_lang_kernels(names)}
           </Descriptions.Item>,
         );
         return true;

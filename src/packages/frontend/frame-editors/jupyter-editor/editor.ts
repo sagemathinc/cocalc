@@ -20,6 +20,10 @@ import { labels, menu } from "@cocalc/frontend/i18n";
 import { editor, jupyter } from "@cocalc/frontend/i18n/common";
 import { AllActions, commands } from "@cocalc/frontend/jupyter/commands";
 import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts";
+import {
+  compareDottedVersions,
+  isDottedVersion,
+} from "@cocalc/jupyter/util/misc";
 import { capitalize, field_cmp, set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
@@ -519,44 +523,95 @@ const JUPYTER_MENUS = {
               actions.fetch_jupyter_kernels();
               return [];
             }
-            const languages: Partial<Command>[] = [];
-            const addKernel = (kernelName: string) => {
-              const { language = "language", metadata } = kernels[kernelName];
-              const menuItem = {
-                label: createElement(KernelMenuItem, {
-                  ...kernels[kernelName],
-                  currentKernel,
-                }),
-                onClick: () => {
-                  actions.set_kernel(kernelName);
-                  actions.set_default_kernel(kernelName);
-                },
-              };
-              const Language = capitalize(language);
-              let done = false;
-              for (const z of languages) {
-                if (z.label == Language) {
-                  // @ts-ignore
-                  z.children.push(menuItem);
-                  done = true;
-                  break;
+            // Group kernel names by language, preserving the existing
+            // (display-name) order from kernels_by_name.
+            const byLanguage: { [lang: string]: string[] } = {};
+            const langOrder: string[] = [];
+            const langPriority: { [lang: string]: number } = {};
+            for (const kernelName in kernels) {
+              const spec = kernels[kernelName];
+              const language = spec.language ?? "language";
+              if (byLanguage[language] == null) {
+                byLanguage[language] = [];
+                langOrder.push(language);
+              }
+              byLanguage[language].push(kernelName);
+              const prio = spec.metadata?.cocalc?.priority ?? 0;
+              if (
+                langPriority[language] == null ||
+                prio > langPriority[language]
+              ) {
+                langPriority[language] = prio;
+              }
+            }
+            const cocalcAttr = (name: string, key: string) =>
+              kernels[name]?.metadata?.cocalc?.[key];
+            const makeItem = (kernelName: string) => ({
+              label: createElement(KernelMenuItem, {
+                ...kernels[kernelName],
+                currentKernel,
+              }),
+              onClick: () => {
+                actions.set_kernel(kernelName);
+                actions.set_default_kernel(kernelName);
+              },
+            });
+            const languages: Partial<Command>[] = langOrder.map((language) => {
+              const names = byLanguage[language];
+              // Partition into family+version kernels vs. the rest.
+              const families: { [fam: string]: string[] } = {};
+              const familyOrder: string[] = [];
+              const ungrouped: string[] = [];
+              for (const name of names) {
+                const fam = cocalcAttr(name, "family");
+                const ver = cocalcAttr(name, "version");
+                if (
+                  typeof fam === "string" &&
+                  fam !== "" &&
+                  isDottedVersion(ver)
+                ) {
+                  if (families[fam] == null) {
+                    families[fam] = [];
+                    familyOrder.push(fam);
+                  }
+                  families[fam].push(name);
+                } else {
+                  ungrouped.push(name);
                 }
               }
-              if (!done) {
-                languages.push({
-                  pos: -(metadata?.cocalc?.priority ?? 0),
-                  icon: languageToIcon(language),
-                  // Explicitly don't use this, since it adds no value and gets in the way.
-                  // title: `Select the ${display_name} Jupyter kernel for writing code in ${Language}.`,
-                  label: Language,
-                  children: [menuItem],
-                  disabled: ({ readOnly }) => readOnly,
-                });
+              familyOrder.sort(); // family ascending
+              const children: Partial<Command>[] = [];
+              familyOrder.forEach((fam, idx) => {
+                if (idx > 0) {
+                  children.push({ type: "divider" });
+                }
+                const members = families[fam]
+                  .slice()
+                  .sort(
+                    (a, b) =>
+                      -compareDottedVersions(
+                        cocalcAttr(a, "version"),
+                        cocalcAttr(b, "version"),
+                      ),
+                  ); // version descending (newest first)
+                for (const n of members) {
+                  children.push(makeItem(n));
+                }
+              });
+              if (children.length > 0 && ungrouped.length > 0) {
+                children.push({ type: "divider" });
               }
-            };
-            for (const kernelName in kernels) {
-              addKernel(kernelName);
-            }
+              for (const n of ungrouped) {
+                children.push(makeItem(n));
+              }
+              return {
+                pos: -(langPriority[language] ?? 0),
+                icon: languageToIcon(language),
+                label: capitalize(language),
+                children,
+                disabled: ({ readOnly }) => readOnly,
+              };
+            });
             languages.sort(field_cmp("pos"));
             return languages;
           },

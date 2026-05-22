@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -545,7 +545,7 @@ export const site_settings_conf: SiteSettings = {
   },
   cookie_banner_enabled: {
     name: "Cookie banner",
-    desc: "Show a GDPR-style cookie consent banner with two categories: *necessary* (sign-in / session) and *analytics* (optional tracking). Page-blocking on sign-up, SSO launch, and inside the web app for signed-in users.",
+    desc: "Show a GDPR-style cookie consent banner with strictly necessary cookies, optional analytics / usage metrics, and embedded video consent. Page-blocking on sign-up, SSO launch, and inside the web app for signed-in users.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
@@ -555,7 +555,7 @@ export const site_settings_conf: SiteSettings = {
     name: "Cookie banner text",
     desc: "Markdown body shown in the cookie banner and preferences modal. Links to the privacy policy and terms of service are rendered as separate footer links and do not need to be repeated here.",
     default:
-      "We use cookies that are strictly necessary for sign-in and session management, and optional analytics cookies to understand how the site is used. Embedded YouTube videos are blocked until you click them. You can change your preferences at any time.",
+      "We use cookies that are strictly necessary for sign-in and session management. With your consent, we use optional analytics cookies and first-party usage metrics to understand how the site is used. Embedded YouTube videos are not loaded until you choose to play them. Signed-in users can manage these preferences in Account settings; signed-out visitors can clear cookie choices from the footer.",
     clearable: true,
     multiline: 5,
     tags: ["Cookie Banner"],
