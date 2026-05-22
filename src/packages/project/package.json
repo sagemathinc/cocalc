@@ -50,7 +50,7 @@
     "rimraf": "^5.0.5",
     "temp": "^0.9.4",
     "tmp": "0.2.4",
-    "uuid": "^8.3.2",
+    "uuid": "^11.1.1",
     "websocket-sftp": "^0.8.4",
     "which": "^2.0.2",
     "ws": "^8.20.1"
@@ -60,8 +60,7 @@
     "@types/express": "^5.0.6",
     "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14",
-    "@types/primus": "^7.3.9",
-    "@types/uuid": "^8.3.1"
+    "@types/primus": "^7.3.9"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
