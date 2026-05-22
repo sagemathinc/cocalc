@@ -106,6 +106,9 @@ Table({
   rules: {
     desc: "Shopping Cart Items",
     primary_key: "id",
+    pg_indexes: [
+      "project_id", // used by cleanup_old_projects_data
+    ],
   },
 });
 

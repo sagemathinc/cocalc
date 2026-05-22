@@ -869,6 +869,24 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         dbg = @_dbg("_user_set_query_project_change_before #{account_id}")
         dbg()
 
+        # Stamp deleted_at when transitioning to deleted=true; clear it on
+        # restore. cleanup_old_projects_data uses deleted_at to gate the
+        # grace window; without this a long-dormant project (old
+        # last_edited) used to be eligible for unlink on the first cleanup
+        # pass after the user clicked delete.
+        #
+        # Also bump last_edited on either transition so downstream
+        # consumers that key off it (notably the compute-server cleanup in
+        # server/compute/maintenance/clean/deleted-projects.ts and its
+        # 7-day deprovision cutoff) see the delete/restore as an event.
+        if new_val?.deleted? and new_val.deleted != old_val?.deleted
+            now = new Date()
+            new_val.last_edited = now
+            if new_val.deleted
+                new_val.deleted_at = now
+            else
+                new_val.deleted_at = null
+
         if new_val?.name and (new_val?.name != old_val?.name)
             # Changing or setting the name of the project to something nontrivial.
             try

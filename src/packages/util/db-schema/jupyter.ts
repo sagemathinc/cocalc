@@ -66,7 +66,11 @@ Table({
   rules: {
     desc: "Jupyter Kernel Execution Log",
     primary_key: "id",
-    pg_indexes: ["created", "hash"],
+    pg_indexes: [
+      "created",
+      "hash",
+      "project_id", // used by cleanup_old_projects_data to chunk-delete a deleted project's log rows
+    ],
   },
 });
 

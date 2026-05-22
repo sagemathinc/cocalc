@@ -44,7 +44,7 @@ async function handle(req, res) {
     // TOCTOU window against a concurrent cleanup run.
     const pool = getPool();
     const { rowCount } = await pool.query(
-      `UPDATE projects SET deleted = false
+      `UPDATE projects SET deleted = false, deleted_at = NULL, last_edited = NOW()
        WHERE project_id = $1
          AND users IS NOT NULL
          AND coalesce(state ->> 'state', '') <> 'deleted'`,

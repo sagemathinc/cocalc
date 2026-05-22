@@ -48,6 +48,7 @@ Table({
       "((settings ->> 'always_running'))", // to quickly know which projects have this setting
       "((run_quota ->> 'always_running'))", // same reason as above
       "deleted", // in various queries we quickly fiter deleted projects
+      "deleted_at", // used by unlink_old_deleted_projects (grace window)
       "site_license", // for queries across projects related to site_license#>>{license_id}
     ],
 
@@ -260,6 +261,10 @@ Table({
       type: "boolean",
       desc: "Whether or not this project is deleted.",
       render: { type: "boolean", editable: true },
+    },
+    deleted_at: {
+      type: "timestamp",
+      desc: "Timestamp of when this project was marked deleted. Drives the grace period in unlink_old_deleted_projects so a long-dormant project (low last_edited) is still recoverable for `age_d` days after the user clicks delete. Cleared on restore.",
     },
     host: {
       type: "map",

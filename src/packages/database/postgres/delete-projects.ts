@@ -161,9 +161,21 @@ async function get_account_id(
 }
 
 /*
-This removes all users from all projects older than the given number of days and marked as deleted.
-In particular, users are no longer able to access that project.
-The "cleanup_old_projects_data" function has to run to actually get rid of the data, etc.
+This removes all users from all projects that were marked deleted at least
+age_d days ago. In particular, users are no longer able to access that
+project. The "cleanup_old_projects_data" function has to run to actually
+get rid of the data, etc.
+
+Gated on `deleted_at`, not `last_edited`: a long-dormant project (e.g.
+last edited 6 months ago) used to be immediately eligible for unlink on
+the first cleanup pass after the user clicked delete, leaving no real
+recovery window. `deleted_at` is set whenever the deleted flag flips true
+(via _user_set_query_project_change_before and server/projects/delete.ts)
+and cleared on restore.
+
+Legacy rows (deleted=true with deleted_at IS NULL from before this column
+existed) get backfilled to NOW() on first run so they get a fresh grace
+window starting at deploy time rather than being unlinked immediately.
 
 Chunked: on installations with a backlog of tens/hundreds of thousands of
 deleted projects, a single UPDATE would be one huge transaction with big WAL
@@ -176,6 +188,30 @@ export async function unlink_old_deleted_projects(
 ): Promise<void> {
   const L = log.extend("unlink_old_deleted_projects").debug;
   const pool = getPool();
+
+  // Backfill deleted_at for legacy deleted projects (pre-column) so they
+  // still get a full grace window before unlink.
+  const backfillStats = await throttledRunner(
+    async (limit) => {
+      const ret = await pool.query(
+        `UPDATE projects SET deleted_at = NOW()
+         WHERE project_id IN (
+           SELECT project_id FROM projects
+           WHERE deleted = true AND deleted_at IS NULL
+           LIMIT $1
+         )`,
+        [limit],
+      );
+      return ret.rowCount ?? 0;
+    },
+    { label: "unlink_old_deleted_projects/backfill" },
+  );
+  if (backfillStats.rowsDeleted > 0) {
+    L(
+      `backfilled deleted_at on ${backfillStats.rowsDeleted} legacy deleted projects`,
+    );
+  }
+
   // Chunk by primary key so each UPDATE touches at most LIMIT rows.
   const q = `
 UPDATE projects SET users = NULL
@@ -183,7 +219,8 @@ WHERE project_id IN (
   SELECT project_id FROM projects
   WHERE deleted = true
     AND users IS NOT NULL
-    AND last_edited <= NOW() - '${age_d} days'::INTERVAL
+    AND deleted_at IS NOT NULL
+    AND deleted_at <= NOW() - '${age_d} days'::INTERVAL
   LIMIT $1
 )`;
   const stats = await throttledRunner(
@@ -357,17 +394,42 @@ export async function cleanup_old_projects_data(
     L(`deleting project data is disabled ('delete_project_data' setting).`);
     return;
   }
-  if (!(await requireIndex(L, "syncstrings_project_id_idx", "syncstrings", ["project_id"]))) {
-    return;
+  // Every table that cleanup chunk-deletes through `project_id` (or an
+  // analogous column) needs an index — otherwise the per-chunk subselect
+  // becomes a seq scan and the throttling math is meaningless. requireIndex
+  // checks all of them up front so a misconfigured deploy fails loudly
+  // instead of saturating the database.
+  const required: Array<[string, string, string[]]> = [
+    ["syncstrings_project_id_idx", "syncstrings", ["project_id"]],
+    ["jupyter_api_log_project_id_idx", "jupyter_api_log", ["project_id"]],
+    ["openai_chatgpt_log_project_id_idx", "openai_chatgpt_log", ["project_id"]],
+    ["shopping_cart_items_project_id_idx", "shopping_cart_items", ["project_id"]],
+    ["mentions_project_id_idx", "mentions", ["project_id"]],
+    ["copy_paths_target_project_id_idx", "copy_paths", ["target_project_id"]],
+    ["copy_paths_source_project_id_idx", "copy_paths", ["source_project_id"]],
+  ];
+  for (const [idx, table, cols] of required) {
+    if (!(await requireIndex(L, idx, table, cols))) {
+      return;
+    }
   }
 
   const start_ts = new Date();
   const pool = getPool();
 
+  // Single source of truth for the deadline. Checked at three levels —
+  // outer projects-fetch loop, per-project, and inside the syncstring
+  // sub-loop — because one pathological project (hundreds of thousands of
+  // syncstrings / patches) can otherwise eat the whole interval on its
+  // own. All cleanup work is idempotent, so bailing mid-project is safe:
+  // the project stays un-tombstoned, the next run picks up where this
+  // one stopped.
+  const deadlineExceeded = (): boolean => start_ts < minutes_ago(max_run_m);
+
   let numProj = 0;
 
   while (true) {
-    if (start_ts < minutes_ago(max_run_m)) {
+    if (deadlineExceeded()) {
       L(`time budget exceeded; processed ${numProj} projects so far`);
       return;
     }
@@ -380,13 +442,34 @@ export async function cleanup_old_projects_data(
     }
 
     for (const { project_id } of projects) {
+      // Re-check the deadline between projects. The outer-loop check only
+      // fires every 1000 projects, so without this a few pathological
+      // projects could blow well past max_run_m and overlap the next
+      // hub-job run.
+      if (deadlineExceeded()) {
+        L(`time budget exceeded mid-batch; processed ${numProj} projects so far`);
+        return;
+      }
+
       const L2 = L0.extend(project_id).debug;
       delete_projects_prom.labels("project").inc();
       numProj += 1;
       let delRows = 0;
 
-      // 1. Delete syncstrings + their patches for this project.
-      delRows += await delete_project_syncstrings(L2, project_id);
+      // 1. Delete syncstrings + their patches/blobs/widget rows for this
+      //    project. Threads `deadlineExceeded` so a project with many
+      //    syncstrings can yield without finishing — we then skip
+      //    tombstoning below and resume next run.
+      delRows += await delete_project_syncstrings(
+        db,
+        L2,
+        project_id,
+        deadlineExceeded,
+      );
+      if (deadlineExceeded()) {
+        L(`time budget exceeded inside syncstring loop for ${project_id}; stopping`);
+        return;
+      }
 
       // 2. Clean up fields *on* the project row itself.
       await pool.query(
@@ -420,19 +503,33 @@ export async function cleanup_old_projects_data(
         value: { deleting: "database", project_id },
       });
 
-      // 5. Mark project state=deleted only when all required on-disk deletes
-      //    succeeded. If they didn't, leave the project un-tombstoned so
-      //    the next run retries; DB deletes are idempotent (already-gone
-      //    rows are no-ops) so the cost of retry is bounded.
-      if (fsOk) {
+      // 5. Tear down compute servers + cloud filesystems. These would
+      //    otherwise keep running (and billing) even after the project is
+      //    tombstoned, since the user no longer has access to manage them.
+      //    Both functions return false if there's still work that another
+      //    maintenance job must finish (e.g. waiting for compute-server
+      //    deprovision, or for the cloud-filesystem bucket delete to land);
+      //    in that case we leave the project un-tombstoned and revisit next
+      //    cycle. The maintenance jobs themselves are wired up separately
+      //    in server/compute/maintenance and run regardless of this code
+      //    path.
+      const cfOk = await cleanup_project_cloud_filesystems(L2, project_id);
+      const csOk = await cleanup_project_compute_servers(L2, project_id);
+
+      // 6. Mark project state=deleted only when all required on-disk deletes
+      //    succeeded and all billable resources are torn down. If they
+      //    didn't, leave the project un-tombstoned so the next run retries;
+      //    DB deletes are idempotent (already-gone rows are no-ops) so the
+      //    cost of retry is bounded.
+      if (fsOk && cfOk && csOk) {
         await callback2(db.set_project_state, { project_id, state: "deleted" });
         L2(
           `finished deleting project data | deleted ${delRows} entries | state.state="deleted"`,
         );
       } else {
-        delete_projects_prom.labels("fs_delete_failed").inc();
+        delete_projects_prom.labels("tombstone_blocked").inc();
         L2(
-          `on-disk delete failed; leaving project un-tombstoned for retry | deleted ${delRows} DB entries`,
+          `tombstone blocked (fsOk=${fsOk}, cfOk=${cfOk}, csOk=${csOk}); leaving un-tombstoned for retry | deleted ${delRows} DB entries`,
         );
       }
     }
@@ -440,41 +537,179 @@ export async function cleanup_old_projects_data(
 }
 
 /*
- Delete all patches + syncstring rows belonging to one project.
+ Drive teardown of cloud_filesystems belonging to a deleted project.
+
+ Cloud filesystems persist (and continue to bill) until they're explicitly
+ deleted. Once the project is unlinked the owner can no longer reach them,
+ so the cleanup job has to drive teardown. We don't import the cloud-fs
+ deletion code directly (database -> server would be a cycle); instead we
+ mark `deleting=TRUE` and let the existing `deleteMaintenance()` job
+ (server/compute/maintenance/cloud-filesystem) actually delete buckets and
+ rows on its next cycle. We return `true` only when no rows remain — that's
+ the signal that it is safe to tombstone the project.
+*/
+async function cleanup_project_cloud_filesystems(
+  L2: WinstonLogger["debug"],
+  project_id: string,
+): Promise<boolean> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT id, deleting FROM cloud_filesystems WHERE project_id = $1",
+    [project_id],
+  );
+  if (rows.length === 0) return true;
+  const toMark = rows.filter((r) => !r.deleting).map((r) => r.id);
+  if (toMark.length > 0) {
+    // last_edited backdated by 30min so deleteMaintenance() picks the rows
+    // up on its next pass (it skips rows whose last_edited is too recent).
+    // `AND deleting = FALSE` makes this a no-op if a concurrent launchDelete
+    // already started — we don't want to clobber its fresh last_edited and
+    // trigger a parallel delete.
+    const upd = await pool.query(
+      `UPDATE cloud_filesystems
+         SET deleting = TRUE, mount = FALSE,
+             last_edited = NOW() - interval '30 minutes'
+       WHERE id = ANY($1::INTEGER[])
+         AND deleting = FALSE`,
+      [toMark],
+    );
+    L2(`marked ${upd.rowCount} cloud_filesystems for deletion`);
+  }
+  L2(
+    `${rows.length} cloud_filesystems still present for project ${project_id}; not tombstoning yet`,
+  );
+  return false;
+}
+
+/*
+ Drive teardown of compute_servers belonging to a deleted project.
+
+ The compute-server maintenance task (clean/deleted-projects.ts) already
+ stops running servers for deleted projects and deprovisions them after
+ ~7 days. We just need to (a) refuse to tombstone while any server is not
+ yet in the `deprovisioned` (or NULL = never-provisioned) state, and (b)
+ once they're all safely deprovisioned, drop the rows so we don't keep
+ referencing a tombstoned project_id.
+*/
+async function cleanup_project_compute_servers(
+  L2: WinstonLogger["debug"],
+  project_id: string,
+): Promise<boolean> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT id, state FROM compute_servers WHERE project_id = $1",
+    [project_id],
+  );
+  if (rows.length === 0) return true;
+  const notReady = rows.filter(
+    (r) => r.state != null && r.state !== "deprovisioned",
+  );
+  if (notReady.length > 0) {
+    L2(
+      `${notReady.length} compute_servers not deprovisioned (states: ${notReady
+        .map((r) => r.state)
+        .join(", ")}); not tombstoning yet`,
+    );
+    return false;
+  }
+  const ret = await pool.query(
+    "DELETE FROM compute_servers WHERE project_id = $1",
+    [project_id],
+  );
+  L2(`deleted ${ret.rowCount} compute_servers rows for project ${project_id}`);
+  return true;
+}
+
+/*
+ Delete all syncstring-owned rows belonging to one project.
 
  Batched so a pathological project with hundreds of thousands of syncstrings
  does not load the full list into memory and does not issue one huge DELETE.
- Per batch: read SYNCSTRING_BATCH string_ids, chunk-delete their patches
- (patches.pkey is compound, so bulkDelete chunks by ctid), then delete those
- syncstring rows. Order matters — if the loop crashes mid-batch, the already-
- deleted patches have no orphans, and the surviving syncstrings will be
+ Per batch we read SYNCSTRING_BATCH (string_id, archived) pairs and, for each
+ syncstring:
+   - if `archived` is set, the patches have been spilled into a blob; delete
+     the blob via db.delete_blob (which also handles gcloud-side cleanup).
+     The pre-existing delete_syncstring path already did this — the new bulk
+     path used to drop syncstring rows directly, orphaning blobs in `blobs`
+     and the GCS bucket.
+   - if not archived, chunk-delete from `patches` (compound PK → ctid).
+   - chunk-delete `cursors`, `eval_inputs`, `eval_outputs`, `ipywidgets` —
+     all four are keyed only on `string_id` (compound PKs with no FK), so
+     without this they accumulate forever after a project is purged.
+
+ Order matters — if the loop crashes mid-batch, the dropped patches/blobs/
+ widget rows have no orphans, and the surviving syncstrings will be
  revisited on the next run.
 */
 const SYNCSTRING_BATCH = 1000;
+const STRING_ID_KEYED_TABLES = [
+  "cursors",
+  "eval_inputs",
+  "eval_outputs",
+  "ipywidgets",
+] as const;
 async function delete_project_syncstrings(
+  db: PostgreSQL,
   L2: WinstonLogger["debug"],
   project_id: string,
+  deadlineExceeded?: () => boolean,
 ): Promise<number> {
   const pool = getPool();
   let total = 0;
   while (true) {
+    // Check the deadline at the top of each SYNCSTRING_BATCH (1000
+    // syncstrings). The caller treats an early return as "not done" and
+    // leaves the project un-tombstoned for next run.
+    if (deadlineExceeded?.()) {
+      L2(`time budget exceeded after ${total} rows; yielding`);
+      return total;
+    }
     // Uses the syncstrings.project_id index (added alongside this code path).
     const { rows: syncstrings } = await pool.query(
-      "SELECT string_id FROM syncstrings WHERE project_id = $1 LIMIT $2",
+      "SELECT string_id, archived FROM syncstrings WHERE project_id = $1 LIMIT $2",
       [project_id, SYNCSTRING_BATCH],
     );
     if (syncstrings.length === 0) return total;
 
-    for (const { string_id } of syncstrings) {
-      const { rowsDeleted } = await bulkDelete({
-        table: "patches",
-        field: "string_id",
-        value: string_id,
-        id: "ctid",
-      });
-      total += rowsDeleted;
+    for (const { string_id, archived } of syncstrings) {
+      if (archived) {
+        // patches are in a blob, not the patches table — drop the blob (and
+        // its gcloud object if any) so it doesn't outlive the project.
+        try {
+          await callback2(db.delete_blob, { uuid: archived });
+          total += 1;
+          L2(`deleted archived blob ${archived} for syncstring ${string_id}`);
+        } catch (err) {
+          // Don't abort the whole project for one stuck blob — log and move
+          // on. The syncstring row is dropped below, so we will never see
+          // this archived UUID again; leaving the blob is the failure mode.
+          L2(`failed to delete archived blob ${archived}: ${err}`);
+        }
+      } else {
+        const { rowsDeleted } = await bulkDelete({
+          table: "patches",
+          field: "string_id",
+          value: string_id,
+          id: "ctid",
+        });
+        total += rowsDeleted;
+        L2(`deleted ${rowsDeleted} patches for syncstring ${string_id}`);
+      }
+      // soft-durability tables keyed on string_id: never cleaned up
+      // automatically, so they'd orphan otherwise.
+      for (const table of STRING_ID_KEYED_TABLES) {
+        const { rowsDeleted } = await bulkDelete({
+          table,
+          field: "string_id",
+          value: string_id,
+          id: "ctid",
+        });
+        total += rowsDeleted;
+        if (rowsDeleted > 0) {
+          L2(`deleted ${rowsDeleted} ${table} for syncstring ${string_id}`);
+        }
+      }
       delete_projects_prom.labels("syncstring").inc();
-      L2(`deleted ${rowsDeleted} patches for syncstring ${string_id}`);
     }
 
     const stringIds = syncstrings.map((r) => r.string_id);

@@ -105,7 +105,12 @@ Table({
   rules: {
     desc: "Language Model Log",
     primary_key: "id",
-    pg_indexes: ["account_id", "analytics_cookie", "time"],
+    pg_indexes: [
+      "account_id",
+      "analytics_cookie",
+      "time",
+      "project_id", // used by cleanup_old_projects_data
+    ],
     user_query: {
       get: {
         pg_where: [{ "account_id = $::UUID": "account_id" }],

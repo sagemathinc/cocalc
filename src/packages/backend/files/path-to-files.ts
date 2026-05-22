@@ -8,10 +8,12 @@
 
 import { join } from "node:path";
 
-import { projects } from "@cocalc/backend/data";
+import { homePath } from "@cocalc/backend/misc";
 
 // Given a project_id/path, return the directory on the file system where
-// that path should be located.
+// that path should be located. Honors $MOUNTED_PROJECTS_ROOT via homePath
+// so OnPrem deployments resolve public-share paths and on-disk project
+// homes against the same tree.
 export function pathToFiles(project_id: string, path: string): string {
-  return join(projects.replace("[project_id]", project_id), path);
+  return join(homePath(project_id), path);
 }

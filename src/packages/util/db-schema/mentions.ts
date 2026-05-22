@@ -58,7 +58,10 @@ Table({
   rules: {
     primary_key: ["time", "project_id", "path", "target"],
     db_standby: "unsafe",
-    pg_indexes: ["action"],
+    pg_indexes: [
+      "action",
+      "project_id", // used by cleanup_old_projects_data
+    ],
     user_query: {
       get: {
         pg_where: ["time >= NOW() - interval '45 days'", "projects"],

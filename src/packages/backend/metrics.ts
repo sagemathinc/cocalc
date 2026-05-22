@@ -1,6 +1,6 @@
 import { Counter, Gauge, Histogram } from "prom-client";
 
-type Aspect = "db" | "database" | "server" | "llm" | "database";
+type Aspect = "db" | "database" | "server" | "llm";
 
 function withPrefix(aspect: Aspect, name: string): string {
   return `cocalc_${aspect}_${name}`;
