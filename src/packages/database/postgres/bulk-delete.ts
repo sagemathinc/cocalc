@@ -30,6 +30,8 @@ interface BulkDeleteOpts {
   value: string; // a UUID (or any scalar)
   limit?: number;
   maxUtilPct?: number;
+  // Optional deadline check; same semantics as ThrottledRunnerOpts.shouldStop.
+  shouldStop?: () => boolean;
 }
 
 export interface ChunkStats {
@@ -43,6 +45,13 @@ interface ThrottledRunnerOpts {
   limit?: number;
   maxUtilPct?: number;
   label?: string;
+  // Optional deadline predicate. Checked at the top of each chunk and
+  // again right after the chunk's mandatory wait — if it returns true,
+  // the loop exits early. Callers (notably cleanup_old_projects_data)
+  // need this because one big table on one project can otherwise eat
+  // their entire time budget: the adaptive throttling does its job but
+  // a multi-million-row deletion is still a lot of 100ms chunks.
+  shouldStop?: () => boolean;
 }
 
 /**
@@ -61,12 +70,17 @@ export async function throttledRunner(
   }
   let limit = opts.limit ?? DEFAULT_LIMIT;
   const label = opts.label ?? "throttled";
+  const shouldStop = opts.shouldStop;
 
   const start_ts = Date.now();
   let rowsDeleted = 0;
   let totalWaitS = 0;
   let totalPgTimeS = 0;
   while (true) {
+    if (shouldStop?.()) {
+      D(`${label}: shouldStop=true; yielding after ${rowsDeleted} rows`);
+      break;
+    }
     const t0 = Date.now();
     const rowCount = await fn(limit);
     const dt = (Date.now() - t0) / 1000;
@@ -76,6 +90,11 @@ export async function throttledRunner(
     const next =
       dt > MAX_TARGET_S ? limit / 2 : dt < MIN_TARGET_S ? limit * 2 : limit;
     limit = Math.max(1, Math.min(MAX_LIMIT, Math.round(next)));
+
+    if (rowCount === 0) {
+      D(`${label}: affected=0 | done`);
+      break;
+    }
 
     // Target `maxUtilPct`% DB utilization. Adaptive limit above keeps dt near
     // MAX_TARGET_S, so the wait is typically ~0.9s at 10%. The cap only bites
@@ -88,8 +107,6 @@ export async function throttledRunner(
     totalWaitS += waitS;
 
     D(`${label}: affected=${rowCount} | dt=${dt} | wait=${waitS} | limit=${limit}`);
-
-    if (rowCount === 0) break;
   }
 
   const durationS = (Date.now() - start_ts) / 1000;
@@ -125,6 +142,7 @@ export async function bulkDelete(opts: BulkDeleteOpts): Promise<ChunkStats> {
     {
       limit: opts.limit,
       maxUtilPct: opts.maxUtilPct,
+      shouldStop: opts.shouldStop,
       label: `bulkDelete ${table}.${field}`,
     },
   );

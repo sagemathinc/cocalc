@@ -151,9 +151,13 @@ async function updateIndex(
 ): Promise<void> {
   log.debug("updateIndex", { table, action, name });
   if (action == "create") {
-    // ATTN if you consider adding CONCURRENTLY to create index, read the note earlier above about this
+    // CONCURRENTLY: see the long note in indexes.ts::createIndexes. Same
+    // story here — sync runs serially, so the historical "invalid index"
+    // failure mode from rapid-fire creates does not apply. Must NOT be
+    // inside an explicit transaction; the pg client auto-commits per
+    // statement so this is fine.
     await db.query(
-      `CREATE ${unique ? "UNIQUE" : ""} INDEX IF NOT EXISTS ${name} ON ${table} ${query}`,
+      `CREATE ${unique ? "UNIQUE" : ""} INDEX CONCURRENTLY IF NOT EXISTS ${name} ON ${table} ${query}`,
     );
   } else if (action == "delete") {
     await db.query(`DROP INDEX ${name}`);

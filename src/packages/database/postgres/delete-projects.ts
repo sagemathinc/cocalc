@@ -348,12 +348,18 @@ WHERE account_id IN (
   });
 }
 
+// $1 is an exclusion list of project_ids already attempted (and blocked)
+// in the current run; without it, a project where (e.g.) fs delete keeps
+// failing would be picked again on the very next outer iteration and
+// re-do all the destructive cleanup work each time, until max_run_m
+// expired. We exclude in-process project_ids so each run advances.
 const Q_CLEANUP_PROJECTS = `
 SELECT project_id
 FROM projects
 WHERE deleted = true
   AND users IS NULL
   AND coalesce(state ->> 'state', '') != 'deleted'
+  AND project_id <> ALL($1::UUID[])
 ORDER BY created ASC
 LIMIT 1000
 `;
@@ -427,6 +433,12 @@ export async function cleanup_old_projects_data(
   const deadlineExceeded = (): boolean => start_ts < minutes_ago(max_run_m);
 
   let numProj = 0;
+  // project_ids attempted in this run but left un-tombstoned (e.g. fs
+  // delete failed, archived-blob delete failed). Excluded from
+  // subsequent Q_CLEANUP_PROJECTS so we don't immediately re-pick them
+  // and replay the destructive steps. The next hub-job run starts with
+  // an empty set and retries cleanly.
+  const attempted = new Set<string>();
 
   while (true) {
     if (deadlineExceeded()) {
@@ -434,10 +446,13 @@ export async function cleanup_old_projects_data(
       return;
     }
 
-    const { rows: projects } = await pool.query(Q_CLEANUP_PROJECTS);
+    const excluded = Array.from(attempted);
+    const { rows: projects } = await pool.query(Q_CLEANUP_PROJECTS, [excluded]);
     L(`deleting the data of ${projects.length} projects`);
     if (projects.length === 0) {
-      L(`all deleted projects have been processed (${numProj} total)`);
+      L(
+        `no more deletable projects (${numProj} processed, ${attempted.size} blocked for retry next run)`,
+      );
       return;
     }
 
@@ -459,13 +474,16 @@ export async function cleanup_old_projects_data(
       // 1. Delete syncstrings + their patches/blobs/widget rows for this
       //    project. Threads `deadlineExceeded` so a project with many
       //    syncstrings can yield without finishing — we then skip
-      //    tombstoning below and resume next run.
-      delRows += await delete_project_syncstrings(
+      //    tombstoning below and resume next run. `syncOk` is false iff
+      //    an archived-blob delete failed: the syncstring row stays so
+      //    the blob UUID remains reachable, and we refuse to tombstone.
+      const sync = await delete_project_syncstrings(
         db,
         L2,
         project_id,
         deadlineExceeded,
       );
+      delRows += sync.rows;
       if (deadlineExceeded()) {
         L(`time budget exceeded inside syncstring loop for ${project_id}; stopping`);
         return;
@@ -497,39 +515,59 @@ export async function cleanup_old_projects_data(
       }
 
       // 4. Delete rows in tables that reference this project_id.
-      delRows += await delete_associated_project_data(L2, project_id);
+      delRows += await delete_associated_project_data(
+        L2,
+        project_id,
+        deadlineExceeded,
+      );
+      if (deadlineExceeded()) {
+        L(`time budget exceeded in associated-data delete for ${project_id}; stopping`);
+        return;
+      }
       db.log({
         event: "delete_project",
         value: { deleting: "database", project_id },
       });
 
-      // 5. Tear down compute servers + cloud filesystems. These would
-      //    otherwise keep running (and billing) even after the project is
-      //    tombstoned, since the user no longer has access to manage them.
-      //    Both functions return false if there's still work that another
-      //    maintenance job must finish (e.g. waiting for compute-server
-      //    deprovision, or for the cloud-filesystem bucket delete to land);
-      //    in that case we leave the project un-tombstoned and revisit next
-      //    cycle. The maintenance jobs themselves are wired up separately
-      //    in server/compute/maintenance and run regardless of this code
-      //    path.
-      const cfOk = await cleanup_project_cloud_filesystems(L2, project_id);
-      const csOk = await cleanup_project_compute_servers(L2, project_id);
+      // 5. Cloud-filesystem teardown: mark deleting=TRUE so the existing
+      //    `deleteMaintenance()` job picks the rows up on its next pass.
+      //    Fire-and-forget — we don't block tombstoning on it because
+      //    that maintenance keys off `cloud_filesystems.deleting`, not
+      //    on project state, so it'll finish independently. (Earlier
+      //    revisions blocked here, which made one-stuck-bucket projects
+      //    spin in the outer loop.)
+      //
+      //    NOTE: compute_servers rows are intentionally NOT deleted.
+      //    The compute-purchase maintenance (server/compute/maintenance
+      //    /purchases/manage-purchases.ts) tracks open purchases through
+      //    compute_servers rows and would lose its handle on
+      //    not-yet-finalized network/usage costs if we dropped them.
+      //    Servers are already stopped + deprovisioned by `deletedTask`
+      //    over the existing 7-day window, so leaving the rows costs
+      //    nothing in compute but preserves billing state.
+      await cleanup_project_cloud_filesystems(L2, project_id);
 
-      // 6. Mark project state=deleted only when all required on-disk deletes
-      //    succeeded and all billable resources are torn down. If they
-      //    didn't, leave the project un-tombstoned so the next run retries;
-      //    DB deletes are idempotent (already-gone rows are no-ops) so the
-      //    cost of retry is bounded.
-      if (fsOk && cfOk && csOk) {
+      // 6. Mark project state=deleted iff the prerequisite cleanups
+      //    succeeded. We block on:
+      //      - fsOk: don't tombstone if files might still be on disk
+      //        (the next run won't pick this project up again — files
+      //        would leak forever).
+      //      - syncOk: don't tombstone if an archived blob couldn't be
+      //        deleted (the blob UUID is still reachable via the
+      //        syncstring row; tombstoning would lose that pointer).
+      //    Cloud-fs and compute-server state are NOT in the gate — see
+      //    above. DB deletes are idempotent so the next-run retry is
+      //    cheap (after one cycle, most of the bulk-deletes are no-ops).
+      if (fsOk && sync.ok) {
         await callback2(db.set_project_state, { project_id, state: "deleted" });
         L2(
           `finished deleting project data | deleted ${delRows} entries | state.state="deleted"`,
         );
       } else {
+        attempted.add(project_id);
         delete_projects_prom.labels("tombstone_blocked").inc();
         L2(
-          `tombstone blocked (fsOk=${fsOk}, cfOk=${cfOk}, csOk=${csOk}); leaving un-tombstoned for retry | deleted ${delRows} DB entries`,
+          `tombstone blocked (fsOk=${fsOk}, syncOk=${sync.ok}); leaving un-tombstoned for next run | deleted ${delRows} DB entries`,
         );
       }
     }
@@ -541,83 +579,39 @@ export async function cleanup_old_projects_data(
 
  Cloud filesystems persist (and continue to bill) until they're explicitly
  deleted. Once the project is unlinked the owner can no longer reach them,
- so the cleanup job has to drive teardown. We don't import the cloud-fs
- deletion code directly (database -> server would be a cycle); instead we
- mark `deleting=TRUE` and let the existing `deleteMaintenance()` job
+ so the cleanup job nudges teardown. We don't import the cloud-fs deletion
+ code directly (database -> server would be a cycle); instead we mark
+ `deleting=TRUE` and let the existing `deleteMaintenance()` job
  (server/compute/maintenance/cloud-filesystem) actually delete buckets and
- rows on its next cycle. We return `true` only when no rows remain — that's
- the signal that it is safe to tombstone the project.
+ rows on its next cycle.
+
+ Fire-and-forget — we do NOT block tombstoning on cloud-fs teardown:
+ deleteMaintenance keys off `cloud_filesystems.deleting`, not project
+ state, so the bucket+row delete proceeds whether or not the project is
+ tombstoned. Blocking caused projects with one stuck bucket to spin in
+ the outer cleanup loop until the whole job timed out.
 */
 async function cleanup_project_cloud_filesystems(
   L2: WinstonLogger["debug"],
   project_id: string,
-): Promise<boolean> {
+): Promise<void> {
   const pool = getPool();
-  const { rows } = await pool.query(
-    "SELECT id, deleting FROM cloud_filesystems WHERE project_id = $1",
+  // last_edited backdated by 30min so deleteMaintenance() picks the rows
+  // up on its next pass (it skips rows whose last_edited is too recent).
+  // `AND deleting = FALSE` makes this a no-op if a concurrent launchDelete
+  // already started — we don't want to clobber its fresh last_edited and
+  // trigger a parallel delete.
+  const upd = await pool.query(
+    `UPDATE cloud_filesystems
+       SET deleting = TRUE, mount = FALSE,
+           last_edited = NOW() - interval '30 minutes'
+     WHERE project_id = $1
+       AND deleting = FALSE`,
     [project_id],
   );
-  if (rows.length === 0) return true;
-  const toMark = rows.filter((r) => !r.deleting).map((r) => r.id);
-  if (toMark.length > 0) {
-    // last_edited backdated by 30min so deleteMaintenance() picks the rows
-    // up on its next pass (it skips rows whose last_edited is too recent).
-    // `AND deleting = FALSE` makes this a no-op if a concurrent launchDelete
-    // already started — we don't want to clobber its fresh last_edited and
-    // trigger a parallel delete.
-    const upd = await pool.query(
-      `UPDATE cloud_filesystems
-         SET deleting = TRUE, mount = FALSE,
-             last_edited = NOW() - interval '30 minutes'
-       WHERE id = ANY($1::INTEGER[])
-         AND deleting = FALSE`,
-      [toMark],
-    );
+  if (upd.rowCount && upd.rowCount > 0) {
     L2(`marked ${upd.rowCount} cloud_filesystems for deletion`);
   }
-  L2(
-    `${rows.length} cloud_filesystems still present for project ${project_id}; not tombstoning yet`,
-  );
-  return false;
-}
-
-/*
- Drive teardown of compute_servers belonging to a deleted project.
-
- The compute-server maintenance task (clean/deleted-projects.ts) already
- stops running servers for deleted projects and deprovisions them after
- ~7 days. We just need to (a) refuse to tombstone while any server is not
- yet in the `deprovisioned` (or NULL = never-provisioned) state, and (b)
- once they're all safely deprovisioned, drop the rows so we don't keep
- referencing a tombstoned project_id.
-*/
-async function cleanup_project_compute_servers(
-  L2: WinstonLogger["debug"],
-  project_id: string,
-): Promise<boolean> {
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "SELECT id, state FROM compute_servers WHERE project_id = $1",
-    [project_id],
-  );
-  if (rows.length === 0) return true;
-  const notReady = rows.filter(
-    (r) => r.state != null && r.state !== "deprovisioned",
-  );
-  if (notReady.length > 0) {
-    L2(
-      `${notReady.length} compute_servers not deprovisioned (states: ${notReady
-        .map((r) => r.state)
-        .join(", ")}); not tombstoning yet`,
-    );
-    return false;
-  }
-  const ret = await pool.query(
-    "DELETE FROM compute_servers WHERE project_id = $1",
-    [project_id],
-  );
-  L2(`deleted ${ret.rowCount} compute_servers rows for project ${project_id}`);
-  return true;
 }
 
 /*
@@ -637,6 +631,13 @@ async function cleanup_project_compute_servers(
      all four are keyed only on `string_id` (compound PKs with no FK), so
      without this they accumulate forever after a project is purged.
 
+ If db.delete_blob fails for an archived syncstring, we collect that
+ string_id and skip it in the final batch DELETE so the syncstring row —
+ and thus the blob UUID — stays reachable for the next run's retry.
+ The caller is told via `ok=false` and refuses to tombstone the project.
+ Without this, a transient gcloud error would tombstone the project while
+ leaving the blob and backing GCS object orphaned forever.
+
  Order matters — if the loop crashes mid-batch, the dropped patches/blobs/
  widget rows have no orphans, and the surviving syncstrings will be
  revisited on the next run.
@@ -653,24 +654,29 @@ async function delete_project_syncstrings(
   L2: WinstonLogger["debug"],
   project_id: string,
   deadlineExceeded?: () => boolean,
-): Promise<number> {
+): Promise<{ rows: number; ok: boolean }> {
   const pool = getPool();
   let total = 0;
+  let ok = true;
   while (true) {
     // Check the deadline at the top of each SYNCSTRING_BATCH (1000
     // syncstrings). The caller treats an early return as "not done" and
     // leaves the project un-tombstoned for next run.
     if (deadlineExceeded?.()) {
       L2(`time budget exceeded after ${total} rows; yielding`);
-      return total;
+      return { rows: total, ok };
     }
     // Uses the syncstrings.project_id index (added alongside this code path).
     const { rows: syncstrings } = await pool.query(
       "SELECT string_id, archived FROM syncstrings WHERE project_id = $1 LIMIT $2",
       [project_id, SYNCSTRING_BATCH],
     );
-    if (syncstrings.length === 0) return total;
+    if (syncstrings.length === 0) return { rows: total, ok };
 
+    // string_ids whose syncstring row we MUST keep this batch — because
+    // their archived blob delete failed and the UUID would otherwise be
+    // lost (the syncstring is the only pointer to it).
+    const failedBlobIds = new Set<string>();
     for (const { string_id, archived } of syncstrings) {
       if (archived) {
         // patches are in a blob, not the patches table — drop the blob (and
@@ -680,10 +686,14 @@ async function delete_project_syncstrings(
           total += 1;
           L2(`deleted archived blob ${archived} for syncstring ${string_id}`);
         } catch (err) {
-          // Don't abort the whole project for one stuck blob — log and move
-          // on. The syncstring row is dropped below, so we will never see
-          // this archived UUID again; leaving the blob is the failure mode.
-          L2(`failed to delete archived blob ${archived}: ${err}`);
+          // Keep this syncstring row so the blob UUID is still reachable
+          // on retry. Mark the whole project as not-yet-tombstone-able.
+          ok = false;
+          failedBlobIds.add(string_id);
+          L2(
+            `failed to delete archived blob ${archived} (string_id=${string_id}): ${err}; keeping syncstring for retry`,
+          );
+          continue;
         }
       } else {
         const { rowsDeleted } = await bulkDelete({
@@ -691,6 +701,7 @@ async function delete_project_syncstrings(
           field: "string_id",
           value: string_id,
           id: "ctid",
+          shouldStop: deadlineExceeded,
         });
         total += rowsDeleted;
         L2(`deleted ${rowsDeleted} patches for syncstring ${string_id}`);
@@ -703,6 +714,7 @@ async function delete_project_syncstrings(
           field: "string_id",
           value: string_id,
           id: "ctid",
+          shouldStop: deadlineExceeded,
         });
         total += rowsDeleted;
         if (rowsDeleted > 0) {
@@ -712,13 +724,26 @@ async function delete_project_syncstrings(
       delete_projects_prom.labels("syncstring").inc();
     }
 
-    const stringIds = syncstrings.map((r) => r.string_id);
-    const ret = await pool.query(
-      "DELETE FROM syncstrings WHERE string_id = ANY($1::CHAR(40)[])",
-      [stringIds],
-    );
-    total += ret.rowCount ?? 0;
-    L2(`deleted ${ret.rowCount} syncstring rows`);
+    const stringIds = syncstrings
+      .map((r) => r.string_id)
+      .filter((id) => !failedBlobIds.has(id));
+    if (stringIds.length > 0) {
+      const ret = await pool.query(
+        "DELETE FROM syncstrings WHERE string_id = ANY($1::CHAR(40)[])",
+        [stringIds],
+      );
+      total += ret.rowCount ?? 0;
+      L2(`deleted ${ret.rowCount} syncstring rows`);
+    }
+    if (failedBlobIds.size > 0) {
+      // Stop the batch loop: with failed-blob syncstrings still in the
+      // table, the next SELECT would return them again and we'd retry
+      // every blob in this run. Defer to the next run.
+      L2(
+        `${failedBlobIds.size} archived-blob deletes failed; deferring rest of project to next run`,
+      );
+      return { rows: total, ok };
+    }
   }
 }
 
@@ -739,10 +764,13 @@ function assertPathContainsProjectId(path: string, project_id: string): void {
 async function delete_associated_project_data(
   L2: WinstonLogger["debug"],
   project_id: string,
+  shouldStop?: () => boolean,
 ): Promise<number> {
-  // TODO: two tables reference a project, but become useless.
-  // There should be a fallback strategy to move these objects to another project or surface them as being orphaned.
-  // tables: cloud_filesystems, compute_servers
+  // NOTE on cloud_filesystems and compute_servers: those tables are
+  // handled separately (cleanup_project_cloud_filesystems triggers
+  // bucket teardown via the existing maintenance job; compute_servers
+  // rows are intentionally kept so the purchase-finalization maintenance
+  // can still find them). Don't add them to the bulk-delete list here.
 
   let total = 0;
   // collecting tables, where the primary key is the default (i.e. "id") and
@@ -759,10 +787,12 @@ async function delete_associated_project_data(
   ] as const;
 
   for (const table of tables) {
+    if (shouldStop?.()) return total;
     const { rowsDeleted } = await bulkDelete({
       table,
       field: "project_id",
       value: project_id,
+      shouldStop,
     });
     total += rowsDeleted;
     L2(`deleted in ${table}: ${rowsDeleted} entries`);
@@ -770,12 +800,13 @@ async function delete_associated_project_data(
 
   // `mentions` has a compound primary key (time, project_id, path, target)
   // and no `id` column, so we chunk by ctid (physical row id).
-  {
+  if (!shouldStop?.()) {
     const { rowsDeleted } = await bulkDelete({
       table: "mentions",
       field: "project_id",
       value: project_id,
       id: "ctid",
+      shouldStop,
     });
     total += rowsDeleted;
     L2(`deleted in mentions: ${rowsDeleted} entries`);
@@ -784,32 +815,36 @@ async function delete_associated_project_data(
   // these tables are different, i.e. another id, or the field to check the project_id value against is called differently
 
   for (const field of ["target_project_id", "source_project_id"] as const) {
+    if (shouldStop?.()) return total;
     const { rowsDeleted } = await bulkDelete({
       table: "copy_paths",
       field,
       value: project_id,
+      shouldStop,
     });
     total += rowsDeleted;
     L2(`deleted copy_paths/${field}: ${rowsDeleted} entries`);
   }
 
-  {
+  if (!shouldStop?.()) {
     const { rowsDeleted } = await bulkDelete({
       table: "listings",
       field: "project_id",
       id: "project_id", // TODO listings has a more complex ID, which means this gets rid of everything in one go. should be fine, though.
       value: project_id,
+      shouldStop,
     });
     total += rowsDeleted;
     L2(`deleted in listings: ${rowsDeleted} entries`);
   }
 
-  {
+  if (!shouldStop?.()) {
     const { rowsDeleted } = await bulkDelete({
       table: "project_invite_tokens",
       field: "project_id",
       value: project_id,
       id: "token",
+      shouldStop,
     });
     total += rowsDeleted;
     L2(`deleted in project_invite_tokens: ${rowsDeleted} entries`);
