@@ -879,13 +879,27 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         # consumers that key off it (notably the compute-server cleanup in
         # server/compute/maintenance/clean/deleted-projects.ts and its
         # 7-day deprovision cutoff) see the delete/restore as an event.
+        #
+        # The non-null writes (deleted_at on delete, last_edited always)
+        # can ride along on the upsert by mutating new_val. The NULL
+        # write on restore cannot — _user_set_query_main_query strips
+        # null/undefined fields from r.query unless the schema opts into
+        # allow_field_deletes, which we don't want to flip on for the
+        # whole projects table. So issue a small direct UPDATE for that
+        # one case.
         if new_val?.deleted? and new_val.deleted != old_val?.deleted
             now = new Date()
             new_val.last_edited = now
             if new_val.deleted
                 new_val.deleted_at = now
             else
-                new_val.deleted_at = null
+                try
+                    await callback2(@_query,
+                        query: "UPDATE projects SET deleted_at = NULL"
+                        where: "project_id = $::UUID": new_val.project_id)
+                catch err
+                    cb(err.toString())
+                    return
 
         if new_val?.name and (new_val?.name != old_val?.name)
             # Changing or setting the name of the project to something nontrivial.
