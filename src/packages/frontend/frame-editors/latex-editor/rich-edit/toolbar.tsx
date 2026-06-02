@@ -27,32 +27,24 @@ See `src/docs/latex-rich-edit-design.md`.
 import { Button, Divider, Dropdown, Popover, Segmented, Tooltip } from "antd";
 import { useState } from "react";
 
+import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 
-// localStorage key tracking whether the user has already seen the
-// first-run popover that explains Source / Rich. Stored once per
-// browser profile, never synced — purely a UX nudge.
-const HINT_LS_KEY = "cocalc.latex-rich-edit.first-run-hint.seen";
+// Whether the user has already seen the first-run popover that
+// explains Source / Rich. Backed by the account `tours` list so the
+// dismissal syncs across browsers/devices and can be reset from
+// Account → Completed Tours. Registered in account/tours.tsx.
+const HINT_TOUR_NAME = "latex-rich-edit";
 
 function hasSeenHint(): boolean {
-  try {
-    if (typeof window === "undefined") return true;
-    return window.localStorage?.getItem(HINT_LS_KEY) === "1";
-  } catch {
-    // localStorage can throw in private-mode Firefox / certain
-    // sandboxed contexts. Err on the side of NOT pestering.
-    return true;
-  }
+  // Treat "store not ready" as seen — err on the side of NOT pestering
+  // (the account store is reliably loaded inside an open editor).
+  return redux.getStore("account")?.isTourDone(HINT_TOUR_NAME) ?? true;
 }
 
 function markHintSeen(): void {
-  try {
-    window.localStorage?.setItem(HINT_LS_KEY, "1");
-  } catch {
-    // best-effort; if localStorage is unavailable the hint will
-    // just show once per page load instead of once per browser.
-  }
+  redux.getActions("account")?.setTourDone(HINT_TOUR_NAME);
 }
 
 const MODE_SOURCE = "Source";
@@ -119,11 +111,14 @@ export function RichEditToolbar({ id, editor_actions }: Props) {
 
   const fmt = (cmd: string) => () => dispatch(cmd);
 
+  // Only the levels the rich parser renders as section widgets and that
+  // map to valid LaTeX commands. (format_heading_4 in editor-button-bar
+  // inserts `\subsubsubsection{}`, which is neither valid LaTeX nor a
+  // parser-supported widget, so it's deliberately omitted here.)
   const headingItems = [
     { key: "format_heading_1", label: "Section" },
     { key: "format_heading_2", label: "Subsection" },
     { key: "format_heading_3", label: "Subsubsection" },
-    { key: "format_heading_4", label: "Subsubsubsection" },
     { type: "divider" as const },
     { key: "format_heading_0", label: "Plain (remove heading)" },
   ];

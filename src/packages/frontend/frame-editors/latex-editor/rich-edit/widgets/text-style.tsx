@@ -8,9 +8,10 @@ Inline text-style widgets:
   \textit \textbf \emph \underline \texttt \textsc \textsf \textrm \textcolor
   \textsuperscript \textsubscript
 
+Nested constructs inside a text-style command (e.g. `\textbf{\emph{x}}`,
+`\textbf{a $x^2$ b}`) render recursively via `renderInline`.
+
 Limitations (Phase 3):
- - Nested constructs inside a text-style command (e.g. `\textbf{\emph{x}}`)
-   render as literal source. Recursive rendering is a later concern.
  - `\textrm` is "roman, the default" — we don't apply any visible style
    change, but the widget still wraps so hover-source + click work.
  - `\emph` always renders italic; LaTeX's context-aware toggle (italic
@@ -25,6 +26,7 @@ import { CSSProperties } from "react";
 
 import { WidgetProps } from "../types";
 import { EmptyPlaceholder, Widget } from "./common";
+import { renderInline } from "./render-inline";
 
 function contentOf(props: WidgetProps): string {
   return (props.descriptor.payload?.content as string | undefined) ?? "";
@@ -43,7 +45,9 @@ function StyledContent({
 }) {
   const Tag = as ?? "span";
   if (text === "") return <EmptyPlaceholder label={emptyLabel} />;
-  return <Tag style={style}>{text}</Tag>;
+  // Render content recursively so nested constructs (e.g.
+  // `\textbf{a \textit{b}}`, inline math) render too.
+  return <Tag style={style}>{renderInline(text)}</Tag>;
 }
 
 export function Textit(props: WidgetProps) {

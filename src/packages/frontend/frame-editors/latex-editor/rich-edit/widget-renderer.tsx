@@ -17,7 +17,7 @@ TypeScript's `Record<WidgetType, …>` enforces that every type has a
 component — forget step 4 and the build fails.
 */
 
-import { ComponentType, ReactElement } from "react";
+import { Component, ComponentType, ReactElement, ReactNode } from "react";
 
 import { WidgetDescriptor, WidgetProps, WidgetType } from "./types";
 import {
@@ -54,7 +54,6 @@ import {
   Subsection,
   Subsubsection,
 } from "./widgets/section";
-import { SpikeBadge } from "./widgets/spike-badge";
 import { StructuralCommand } from "./widgets/structural";
 import { TabularEnv } from "./widgets/tabular";
 import {
@@ -73,7 +72,6 @@ import {
 import { Verb, VerbatimEnv } from "./widgets/verbatim";
 
 const WIDGETS: Record<WidgetType, ComponentType<WidgetProps>> = {
-  spike: SpikeBadge,
   // text style
   textit: Textit,
   textbf: Textbf,
@@ -153,17 +151,55 @@ export const AI_EDITABLE_TYPES: ReadonlySet<WidgetType> = new Set<WidgetType>([
   "math-env",
 ]);
 
+/**
+ * Contains a render-time throw in a single widget so one bad construct
+ * can't blank its host. On error we fall back to the raw LaTeX source
+ * as plain text (clickable, so the user can still dissolve/edit it).
+ * Each widget mounts in its own React root, so the blast radius is one
+ * widget regardless — this just makes the failure legible instead of
+ * an empty span.
+ */
+class WidgetErrorBoundary extends Component<
+  { source: string; onActivate: () => void; children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (this.state.failed) {
+      return (
+        <span
+          title={this.props.source}
+          style={{ fontFamily: "monospace", cursor: "text" }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            this.props.onActivate();
+          }}
+        >
+          {this.props.source}
+        </span>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export function renderWidget(
   descriptor: WidgetDescriptor,
   onActivate: () => void,
   onAiEdit: WidgetProps["onAiEdit"],
 ): ReactElement {
-  const Component = WIDGETS[descriptor.type];
+  const WidgetComponent = WIDGETS[descriptor.type];
   return (
-    <Component
-      descriptor={descriptor}
-      onActivate={onActivate}
-      onAiEdit={onAiEdit}
-    />
+    <WidgetErrorBoundary source={descriptor.source} onActivate={onActivate}>
+      <WidgetComponent
+        descriptor={descriptor}
+        onActivate={onActivate}
+        onAiEdit={onAiEdit}
+      />
+    </WidgetErrorBoundary>
   );
 }

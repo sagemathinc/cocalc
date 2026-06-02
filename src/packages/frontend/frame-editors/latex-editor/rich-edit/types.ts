@@ -22,8 +22,6 @@ component, and register it in `widget-renderer.tsx`. TypeScript's
 import * as CodeMirror from "codemirror";
 
 export type WidgetType =
-  // Dev / debug
-  | "spike"
   // Text style (Phase 3)
   | "textit"
   | "textbf"

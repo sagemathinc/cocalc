@@ -39,6 +39,8 @@ import {
   IFrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
+import { extractMacros } from "./latex-macros";
+import { MathMacrosContext } from "./math-macros-context";
 import { parseViewport } from "./parser";
 import { WidgetDescriptor, WidgetType } from "./types";
 import { AI_EDITABLE_TYPES, renderWidget } from "./widget-renderer";
@@ -64,15 +66,54 @@ function keyOf(
   return `${line}:${ch}:${type}:${source}`;
 }
 
-function cursorIsInRange(
-  cursor: CodeMirror.Position,
+interface ActiveRange {
+  from: number;
+  to: number;
+}
+
+/**
+ * The "edit zone": the line range covered by the primary selection
+ * (collapsed cursor → a single line). Any widget whose line span
+ * intersects this range dissolves to raw source so the whole line —
+ * and the whole of any multi-line construct the cursor sits inside —
+ * is editable as plain LaTeX.
+ */
+function spanIntersectsActive(
   from: CodeMirror.Position,
   to: CodeMirror.Position,
+  active: ActiveRange,
 ): boolean {
-  if (cursor.line < from.line || cursor.line > to.line) return false;
-  if (cursor.line === from.line && cursor.ch < from.ch) return false;
-  if (cursor.line === to.line && cursor.ch > to.ch) return false;
-  return true;
+  return from.line <= active.to && to.line >= active.from;
+}
+
+// Context window handed to the AI formula editor: up to CONTEXT_LINES
+// lines before the formula (capped at CONTEXT_BEFORE_MAX_CHARS) and
+// CONTEXT_LINES lines after. A `[FORMULA]` placeholder marks where the
+// edited formula sits so the model can reason about its surroundings.
+const CONTEXT_LINES = 5;
+const CONTEXT_BEFORE_MAX_CHARS = 1000;
+
+function surroundingContext(
+  cm: CodeMirror.Editor,
+  from: CodeMirror.Position,
+  to: CodeMirror.Position,
+): string {
+  const lineCount = cm.lineCount();
+  const beforeLines: string[] = [];
+  for (let l = Math.max(0, from.line - CONTEXT_LINES); l < from.line; l++) {
+    beforeLines.push(cm.getLine(l) ?? "");
+  }
+  let before = beforeLines.join("\n");
+  if (before.length > CONTEXT_BEFORE_MAX_CHARS) {
+    before = before.slice(before.length - CONTEXT_BEFORE_MAX_CHARS);
+  }
+  const afterLines: string[] = [];
+  const afterEnd = Math.min(lineCount - 1, to.line + CONTEXT_LINES);
+  for (let l = to.line + 1; l <= afterEnd; l++) {
+    afterLines.push(cm.getLine(l) ?? "");
+  }
+  const after = afterLines.join("\n");
+  return [before, "[FORMULA]", after].join("\n").trim();
 }
 
 /**
@@ -85,8 +126,49 @@ export function attachWidgetManager(
   frameContext: IFrameContext,
 ): () => void {
   let live: LiveMark[] = [];
-  let scheduled: ReturnType<typeof setTimeout> | null = null;
   let disposed = false;
+
+  // ---- Per-document macros ------------------------------------------
+  // Parsed from the buffer's \newcommand/\def/etc. and handed to math
+  // widgets so KaTeX previews match the real compile. Rescanned only on
+  // buffer changes (not viewport scrolls). When the set changes, math
+  // marks are disposed + recreated so they re-render with the new
+  // macros (a preamble edit doesn't change a formula's source, so the
+  // normal key-based reconcile would otherwise leave them stale).
+  let currentMacros: Record<string, string> = {};
+  let macrosKey = "";
+  let needMacroScan = true;
+  let macrosChanged = false;
+
+  const ensureMacros = () => {
+    if (!needMacroScan) return;
+    const next = extractMacros(cm.getValue());
+    const nextKey = JSON.stringify(next);
+    if (nextKey !== macrosKey) {
+      currentMacros = next;
+      macrosKey = nextKey;
+      macrosChanged = true;
+    }
+    needMacroScan = false;
+  };
+
+  // Deferred React unmounts, tracked so teardown is deterministic
+  // (flushed synchronously on dispose) and never leaks a root.
+  const pendingUnmounts = new Map<ReturnType<typeof setTimeout>, Root>();
+
+  const scheduleUnmount = (root: Root) => {
+    // Defer one tick to avoid unmounting inside a CM event / React
+    // render cycle.
+    const id = setTimeout(() => {
+      pendingUnmounts.delete(id);
+      try {
+        root.unmount();
+      } catch {
+        // ignored
+      }
+    }, 0);
+    pendingUnmounts.set(id, root);
+  };
 
   const disposeMark = (m: LiveMark) => {
     try {
@@ -94,20 +176,12 @@ export function attachWidgetManager(
     } catch {
       // already cleared (e.g. via clearOnEnter)
     }
-    const root = m.root;
-    // Defer unmount to avoid race with React render cycle.
-    setTimeout(() => {
-      try {
-        root.unmount();
-      } catch {
-        // ignored
-      }
-    }, 0);
     try {
       m.host.remove();
     } catch {
       // ignored
     }
+    scheduleUnmount(m.root);
   };
 
   const createMark = (d: WidgetDescriptor): LiveMark => {
@@ -116,6 +190,18 @@ export function attachWidgetManager(
     host.setAttribute("role", "button");
     host.setAttribute("tabindex", "0");
     host.setAttribute("aria-label", `LaTeX: ${d.source}`);
+    // Keep wide content (long bold runs, wide math/tables) from
+    // blowing out the wrapped CM line: cap at the text column and let
+    // prose wrap; inline-block children (math/tables) scroll instead.
+    host.style.maxWidth = "100%";
+    host.style.overflowWrap = "anywhere";
+    // Display math / math envs render as a centered block — make the
+    // host block-level so the centering spans the full line width
+    // (otherwise an inline host shrinks to the formula and "centering"
+    // is a no-op, leaving the formula left-aligned).
+    if (d.type === "math-display" || d.type === "math-env") {
+      host.style.display = "block";
+    }
 
     // `let` so the onActivate closure can refer to the marker created
     // below.
@@ -136,6 +222,18 @@ export function attachWidgetManager(
       cm.focus();
     };
 
+    // Keyboard activation: the host is focusable (role=button,
+    // tabindex=0), so Enter/Space must dissolve it to raw source —
+    // mirroring the mouse-down path in the Widget component. The AI
+    // pencil's own keydown handler stops propagation, so focusing it
+    // and pressing Enter edits instead of dissolving.
+    host.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onActivate();
+      }
+    });
+
     // Math widgets get an AI-edit closure (pencil button → AI dialog
     // → replace source). The accept path is race-safe: we look up
     // the current marker range via `marker.find()` AFTER the dialog
@@ -148,12 +246,14 @@ export function attachWidgetManager(
           const range = marker.find();
           if (range == null || !("from" in range)) return;
           const originalSource = cm.getRange(range.from, range.to);
+          const contextText = surroundingContext(cm, range.from, range.to);
           let result: string;
           try {
             result = await ai_gen_formula({
               mode: "tex",
-              text: originalSource,
               project_id: frameContext.project_id,
+              existingFormula: originalSource,
+              contextText,
             });
           } catch {
             // dialog dismissed via error / X — bail silently
@@ -181,7 +281,9 @@ export function attachWidgetManager(
     // wrap so any context-dependent hooks see the right value.
     root.render(
       <FrameContext.Provider value={frameContext}>
-        {renderWidget(d, onActivate, onAiEdit)}
+        <MathMacrosContext.Provider value={currentMacros}>
+          {renderWidget(d, onActivate, onAiEdit)}
+        </MathMacrosContext.Provider>
       </FrameContext.Provider>,
     );
 
@@ -201,17 +303,44 @@ export function attachWidgetManager(
     return { marker, host, root, source: d.source, type: d.type };
   };
 
-  const rescan = () => {
-    if (disposed) return;
+  // ---- Parse cache --------------------------------------------------
+  // Parsing the viewport is the expensive step; cursor moves don't
+  // change the buffer, so we reuse the last parse for cursor-only
+  // reconciles. `needParse` is raised by buffer/viewport changes and
+  // lowered after a fresh parse.
+  interface ParseCache {
+    descriptors: WidgetDescriptor[];
+  }
+  let parseCache: ParseCache | null = null;
+  let needParse = true;
+  let lastActive: ActiveRange | null = null;
 
-    const viewport = cm.getViewport();
-    const lineCount = cm.lineCount();
-    const fromLine = Math.max(0, viewport.from - VIEWPORT_HYSTERESIS_LINES);
-    const toLine = Math.min(viewport.to + VIEWPORT_HYSTERESIS_LINES, lineCount);
+  const activeRange = (): ActiveRange => {
+    const head = cm.getCursor("head");
+    const anchor = cm.getCursor("anchor");
+    if (head == null || anchor == null) {
+      const c = cm.getCursor() ?? { line: -1, ch: 0 };
+      return { from: c.line, to: c.line };
+    }
+    return {
+      from: Math.min(head.line, anchor.line),
+      to: Math.max(head.line, anchor.line),
+    };
+  };
 
-    const fresh = parseViewport(cm, fromLine, toLine);
-    const cursor = cm.getCursor() ?? { line: -1, ch: -1 };
+  const ensureParse = (): ParseCache => {
+    if (needParse || parseCache == null) {
+      const viewport = cm.getViewport();
+      const lineCount = cm.lineCount();
+      const fromLine = Math.max(0, viewport.from - VIEWPORT_HYSTERESIS_LINES);
+      const toLine = Math.min(viewport.to + VIEWPORT_HYSTERESIS_LINES, lineCount);
+      parseCache = { descriptors: parseViewport(cm, fromLine, toLine) };
+      needParse = false;
+    }
+    return parseCache;
+  };
 
+  const reconcile = (fresh: WidgetDescriptor[], active: ActiveRange) => {
     const freshByKey = new Map<string, WidgetDescriptor>();
     for (const d of fresh) {
       freshByKey.set(keyOf(d.from.line, d.from.ch, d.type, d.source), d);
@@ -223,6 +352,15 @@ export function attachWidgetManager(
     for (const m of live) {
       const range = m.marker.find();
       if (range == null || !("from" in range) || !("to" in range)) {
+        disposeMark(m);
+        continue;
+      }
+      // Whole-construct edit zone: a live widget whose line span
+      // touches the active selection dissolves to raw source. This is
+      // the authority — it also disposes widgets the cursor has just
+      // moved onto (the survivor loop previously had no cursor check,
+      // so already-rendered lines never became editable).
+      if (spanIntersectsActive(range.from, range.to, active)) {
         disposeMark(m);
         continue;
       }
@@ -246,9 +384,8 @@ export function attachWidgetManager(
     for (const d of fresh) {
       const key = keyOf(d.from.line, d.from.ch, d.type, d.source);
       if (consumed.has(key)) continue;
-      // Edit-zone exclusion: don't fight the user while the cursor
-      // is inside (or at the boundary of) the would-be marker range.
-      if (cursorIsInRange(cursor, d.from, d.to)) continue;
+      // Don't render inside the edit zone.
+      if (spanIntersectsActive(d.from, d.to, active)) continue;
       survivors.push(createMark(d));
       consumed.add(key);
     }
@@ -256,37 +393,96 @@ export function attachWidgetManager(
     live = survivors;
   };
 
-  const schedule = () => {
-    if (scheduled !== null) clearTimeout(scheduled);
-    scheduled = setTimeout(() => {
-      scheduled = null;
-      rescan();
+  const runReconcile = () => {
+    if (disposed) return;
+    ensureMacros();
+    if (macrosChanged) {
+      // Macro set changed → drop every live mark so all get recreated
+      // below with the new macros. Not just math widgets: text-style
+      // widgets can contain nested inline math (e.g. \textbf{$\R$}),
+      // which also depends on the macro map via MathMacrosContext.
+      for (const m of live) disposeMark(m);
+      live = [];
+      macrosChanged = false;
+    }
+    const parsed = ensureParse();
+    const active = activeRange();
+    reconcile(parsed.descriptors, active);
+    lastActive = active;
+  };
+
+  // ---- Scheduling ---------------------------------------------------
+  // Buffer/viewport changes need a re-parse → debounced. Cursor moves
+  // only shift the edit zone → cheap rAF reconcile that reuses the
+  // cached parse, with an early-out when the active line range is
+  // unchanged (e.g. moving within a line).
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let rafId: number | null = null;
+
+  const scheduleFull = () => {
+    if (debounceTimer !== null) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
+      runReconcile();
     }, DEBOUNCE_MS);
   };
 
-  const onChange = () => schedule();
-  const onViewport = () => schedule();
-  // cursorActivity is required so that a previously-skipped (cursor-
-  // in-range) descriptor gets a marker created once the cursor leaves.
-  // The reconciler makes this cheap — survivors don't get touched.
-  const onCursor = () => schedule();
+  const scheduleFast = () => {
+    if (!needParse && lastActive != null) {
+      const active = activeRange();
+      if (active.from === lastActive.from && active.to === lastActive.to) {
+        return;
+      }
+    }
+    if (rafId !== null) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = null;
+      runReconcile();
+    });
+  };
+
+  const onChange = () => {
+    needParse = true;
+    needMacroScan = true;
+    scheduleFull();
+  };
+  const onViewport = () => {
+    needParse = true;
+    scheduleFull();
+  };
+  const onCursor = () => scheduleFast();
   cm.on("change", onChange);
   cm.on("viewportChange", onViewport);
   cm.on("cursorActivity", onCursor);
 
   // Initial scan.
-  rescan();
+  runReconcile();
 
   return () => {
     disposed = true;
     cm.off("change", onChange);
     cm.off("viewportChange", onViewport);
     cm.off("cursorActivity", onCursor);
-    if (scheduled !== null) {
-      clearTimeout(scheduled);
-      scheduled = null;
+    if (debounceTimer !== null) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
     }
     for (const m of live) disposeMark(m);
     live = [];
+    // Flush any deferred unmounts synchronously so teardown leaves no
+    // orphaned roots.
+    for (const [id, root] of pendingUnmounts) {
+      clearTimeout(id);
+      try {
+        root.unmount();
+      } catch {
+        // ignored
+      }
+    }
+    pendingUnmounts.clear();
   };
 }

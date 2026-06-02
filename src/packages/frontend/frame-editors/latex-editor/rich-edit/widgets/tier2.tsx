@@ -35,6 +35,7 @@ import { COLORS } from "@cocalc/util/theme";
 
 import { WidgetProps } from "../types";
 import { EmptyPlaceholder, Widget } from "./common";
+import { renderInline } from "./render-inline";
 
 function contentOf(props: WidgetProps): string {
   return (props.descriptor.payload?.content as string | undefined) ?? "";
@@ -127,7 +128,7 @@ export function Caption(props: WidgetProps) {
           >
             Caption:
           </span>
-          {content}
+          {renderInline(content)}
         </em>
       )}
     </Widget>
@@ -141,7 +142,7 @@ export function Sout(props: WidgetProps) {
       {content === "" ? (
         <EmptyPlaceholder label="empty strikethrough" />
       ) : (
-        <s style={{ textDecorationStyle: "solid" }}>{content}</s>
+        <s style={{ textDecorationStyle: "solid" }}>{renderInline(content)}</s>
       )}
     </Widget>
   );
@@ -166,7 +167,7 @@ export function Hl(props: WidgetProps) {
             borderRadius: 1,
           }}
         >
-          {content}
+          {renderInline(content)}
         </mark>
       )}
     </Widget>

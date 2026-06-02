@@ -10,7 +10,6 @@ text → same descriptors, so the widget-manager can diff via
 `marker.find()` against fresh descriptors.
 
 Scope (Phase 5):
- - `<<SPIKE>>` / `<<SPIKE:label>>` — debug tokens
  - Single-arg brace-balanced commands: \textit \textbf \emph
    \underline \texttt \textsc \textsf \textrm \part \chapter \section
    \subsection \subsubsection \paragraph \subparagraph \url
@@ -38,7 +37,43 @@ import * as CodeMirror from "codemirror";
 
 import { WidgetDescriptor, WidgetType } from "./types";
 
-const SPIKE_RE = /<<SPIKE(?::([^>]*))?>>/g;
+/**
+ * Minimal read-only line source so the parser can run without a live
+ * CodeMirror instance (e.g. in unit tests). `parseViewport` adapts a
+ * `CodeMirror.Editor` to this interface; the multi-line scanners that
+ * previously read raw lines via `cm.getLine` / `cm.lineCount` now go
+ * through it.
+ *
+ * Note: the few scanners that need the RAW (un-stripped) text of a
+ * multi-line span use `getRangeFromSource` below rather than CM's
+ * `getRange`, so they too work off a `LineSource`.
+ */
+export interface LineSource {
+  getLine(line: number): string;
+  lineCount(): number;
+}
+
+/**
+ * Equivalent of `cm.getRange(from, to)` built purely from a
+ * `LineSource`, joining intervening whole lines with `\n`. Used by the
+ * multi-line scanners to capture raw widget source.
+ */
+function getRangeFromSource(
+  src: LineSource,
+  from: CodeMirror.Position,
+  to: CodeMirror.Position,
+): string {
+  if (from.line === to.line) {
+    return src.getLine(from.line).slice(from.ch, to.ch);
+  }
+  const parts: string[] = [src.getLine(from.line).slice(from.ch)];
+  for (let l = from.line + 1; l < to.line; l++) {
+    parts.push(src.getLine(l));
+  }
+  parts.push(src.getLine(to.line).slice(0, to.ch));
+  return parts.join("\n");
+}
+
 const ENV_SEARCH_MAX_LINES = 500;
 const ENV_SCAN_LOOKBACK = 200;
 const BEGIN_RE = /\\begin\{([^}]+)\}/g;
@@ -233,8 +268,21 @@ const CUSTOM_MACRO_SKIP: ReadonlySet<string> = new Set<string>([
   "\\usefont",
 ]);
 
+/**
+ * True iff the token at `idx` is escaped by an ODD run of immediately-
+ * preceding backslashes. A single `\` before it escapes it (`\$`);
+ * `\\` (an escaped backslash, e.g. a line break) does NOT escape the
+ * following token (`\\\[` is a line break then real display math).
+ * Mirrors the parity logic in `stripComment`.
+ */
 function isEscaped(text: string, idx: number): boolean {
-  return idx > 0 && text[idx - 1] === "\\";
+  let bs = 0;
+  let j = idx - 1;
+  while (j >= 0 && text[j] === "\\") {
+    bs++;
+    j--;
+  }
+  return bs % 2 === 1;
 }
 
 /**
@@ -283,8 +331,8 @@ function stripComment(text: string): string {
  * pass that raw text to KaTeX (which handles `%` comments in math
  * mode correctly).
  */
-function getLineStripped(cm: CodeMirror.Editor, line: number): string {
-  return stripComment(cm.getLine(line) ?? "");
+function getLineStripped(src: LineSource, line: number): string {
+  return stripComment(src.getLine(line));
 }
 
 function findMatchingBrace(text: string, openCh: number): number {
@@ -301,20 +349,6 @@ function findMatchingBrace(text: string, openCh: number): number {
     j++;
   }
   return depth === 0 ? j - 1 : -1;
-}
-
-function scanSpike(text: string, line: number, out: WidgetDescriptor[]): void {
-  SPIKE_RE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = SPIKE_RE.exec(text)) !== null) {
-    out.push({
-      type: "spike",
-      from: { line, ch: match.index },
-      to: { line, ch: match.index + match[0].length },
-      source: match[0],
-      payload: { label: match[1] ?? "" },
-    });
-  }
 }
 
 function scanSingleArgCommand(
@@ -635,15 +669,15 @@ function scanInlineDollarMath(
  * lines up to ENV_SEARCH_MAX_LINES — to find the matching `\]`.
  */
 function scanBracketDisplayMath(
-  cm: CodeMirror.Editor,
+  src: LineSource,
   fromLine: number,
   toLine: number,
   out: WidgetDescriptor[],
 ): void {
-  const lineCount = cm.lineCount();
+  const lineCount = src.lineCount();
   const maxSearchLine = Math.min(lineCount, toLine + ENV_SEARCH_MAX_LINES);
   for (let line = fromLine; line < toLine; line++) {
-    const text = getLineStripped(cm, line);
+    const text = getLineStripped(src, line);
     let i = 0;
     while (true) {
       const idx = text.indexOf("\\[", i);
@@ -661,7 +695,7 @@ function scanBracketDisplayMath(
         foundCh = sameIdx;
       } else {
         for (let l = line + 1; l <= maxSearchLine; l++) {
-          const t = getLineStripped(cm, l);
+          const t = getLineStripped(src, l);
           const fIdx = t.indexOf("\\]");
           if (fIdx !== -1) {
             foundLine = l;
@@ -676,7 +710,8 @@ function scanBracketDisplayMath(
       }
       const from = { line, ch: idx };
       const to = { line: foundLine, ch: foundCh + 2 };
-      const content = cm.getRange(
+      const content = getRangeFromSource(
+        src,
         { line, ch: idx + 2 },
         { line: foundLine, ch: foundCh },
       );
@@ -684,7 +719,7 @@ function scanBracketDisplayMath(
         type: "math-display",
         from,
         to,
-        source: cm.getRange(from, to),
+        source: getRangeFromSource(src, from, to),
         payload: { content },
       });
       // Continue past this match on the same line; multi-line
@@ -704,12 +739,12 @@ function scanBracketDisplayMath(
  * have to walk char-by-char and honor `\$` escapes.
  */
 function scanDoubleDollarMath(
-  cm: CodeMirror.Editor,
+  src: LineSource,
   fromLine: number,
   toLine: number,
   out: WidgetDescriptor[],
 ): void {
-  const lineCount = cm.lineCount();
+  const lineCount = src.lineCount();
   const maxSearchLine = Math.min(lineCount, toLine + ENV_SEARCH_MAX_LINES);
   const findDoubleDollar = (text: string, start: number): number => {
     let k = start;
@@ -724,7 +759,7 @@ function scanDoubleDollarMath(
     return -1;
   };
   for (let line = fromLine; line < toLine; line++) {
-    const text = getLineStripped(cm, line);
+    const text = getLineStripped(src, line);
     let i = 0;
     while (i < text.length - 1) {
       if (text[i] === "\\") {
@@ -744,7 +779,7 @@ function scanDoubleDollarMath(
         foundCh = sameIdx;
       } else {
         for (let l = line + 1; l <= maxSearchLine; l++) {
-          const t = getLineStripped(cm, l);
+          const t = getLineStripped(src, l);
           const fIdx = findDoubleDollar(t, 0);
           if (fIdx !== -1) {
             foundLine = l;
@@ -759,7 +794,8 @@ function scanDoubleDollarMath(
       }
       const from = { line, ch: i };
       const to = { line: foundLine, ch: foundCh + 2 };
-      const content = cm.getRange(
+      const content = getRangeFromSource(
+        src,
         { line, ch: i + 2 },
         { line: foundLine, ch: foundCh },
       );
@@ -768,7 +804,7 @@ function scanDoubleDollarMath(
           type: "math-display",
           from,
           to,
-          source: cm.getRange(from, to),
+          source: getRangeFromSource(src, from, to),
           payload: { content },
         });
       }
@@ -811,15 +847,15 @@ function scanParenMath(
 }
 
 function scanMathEnvs(
-  cm: CodeMirror.Editor,
+  src: LineSource,
   fromLine: number,
   toLine: number,
   out: WidgetDescriptor[],
 ): void {
-  const lineCount = cm.lineCount();
+  const lineCount = src.lineCount();
   const maxSearchLine = Math.min(lineCount, toLine + ENV_SEARCH_MAX_LINES);
   for (let line = fromLine; line < toLine; line++) {
-    const text = getLineStripped(cm, line);
+    const text = getLineStripped(src, line);
     BEGIN_RE.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = BEGIN_RE.exec(text)) !== null) {
@@ -835,7 +871,7 @@ function scanMathEnvs(
         foundEndCh = sameIdx + endStr.length;
       } else {
         for (let l = line + 1; l <= maxSearchLine; l++) {
-          const t = getLineStripped(cm, l);
+          const t = getLineStripped(src, l);
           const idx = t.indexOf(endStr);
           if (idx !== -1) {
             foundLine = l;
@@ -851,7 +887,7 @@ function scanMathEnvs(
         type: "math-env",
         from,
         to,
-        source: cm.getRange(from, to),
+        source: getRangeFromSource(src, from, to),
         payload: { envName },
       });
     }
@@ -1097,7 +1133,7 @@ function parseTabular(source: string, envName: string): TabularData | null {
  *    recover); we silently ignore unmatched `\end{…}`.
  */
 function scanEnvBlocks(
-  cm: CodeMirror.Editor,
+  src: LineSource,
   fromLine: number,
   toLine: number,
   out: WidgetDescriptor[],
@@ -1128,11 +1164,21 @@ function scanEnvBlocks(
     }> | null;
   }
 
-  const lineCount = cm.lineCount();
+  const lineCount = src.lineCount();
   const startLine = Math.max(0, fromLine - ENV_SCAN_LOOKBACK);
   const maxSearchLine = Math.min(lineCount, toLine + ENV_SEARCH_MAX_LINES);
 
   const stack: StackEntry[] = [];
+
+  // Raw-text envs (verbatim / Verbatim / lstlisting / minted) treat
+  // their body as OPAQUE: literal `\begin{…}` / `\end{…}` / `\item`
+  // text inside them must not perturb the env stack. While such an
+  // env is the top of stack, we skip event collection for body lines
+  // and only look for the literal matching `\end{<thatenv>}` to close
+  // it. Other env families (lists, theorem, tabular, math) keep their
+  // existing nested-scan behavior.
+  const isRawTextEnv = (envName: string): boolean =>
+    VERBATIM_ENV_NAMES.has(envName) || CODE_LISTING_ENV_NAMES.has(envName);
 
   type Event =
     | {
@@ -1158,8 +1204,36 @@ function scanEnvBlocks(
       };
 
   for (let line = startLine; line <= maxSearchLine; line++) {
-    const text = getLineStripped(cm, line);
+    const text = getLineStripped(src, line);
     const events: Event[] = [];
+
+    // When the top of stack is a raw-text env (verbatim / Verbatim /
+    // lstlisting / minted), the body is OPAQUE: do not scan for any
+    // begin/end/item tokens except the literal matching
+    // `\end{<thatenv>}` that closes it. This keeps embedded literal
+    // LaTeX (e.g. `\end{verbatim}` printed inside an lstlisting body)
+    // from corrupting the env stack.
+    const topEnv = stack.length > 0 ? stack[stack.length - 1] : null;
+    if (topEnv != null && isRawTextEnv(topEnv.envName)) {
+      const endStr = `\\end{${topEnv.envName}}`;
+      const idx = text.indexOf(endStr);
+      if (idx !== -1) {
+        events.push({
+          kind: "end",
+          envName: topEnv.envName,
+          ch: idx,
+          endCh: idx + endStr.length,
+          source: endStr,
+        });
+      }
+      // Process this (at most one) matching-end event through the
+      // shared handler, then advance to the next line. We deliberately
+      // skipped the normal begin/end/item collection above.
+      for (const ev of events) {
+        processEvent(ev, line);
+      }
+      continue;
+    }
 
     BEGIN_RE.lastIndex = 0;
     let bm: RegExpExecArray | null;
@@ -1204,6 +1278,12 @@ function scanEnvBlocks(
     events.sort((a, b) => a.ch - b.ch);
 
     for (const ev of events) {
+      processEvent(ev, line);
+    }
+  }
+
+  function processEvent(ev: Event, line: number): void {
+    {
       if (ev.kind === "begin") {
         const isList = LIST_ENV_NAMES.has(ev.envName);
         // List depth = number of list envs already open on the
@@ -1235,7 +1315,7 @@ function scanEnvBlocks(
             break;
           }
         }
-        if (idx === -1) continue;
+        if (idx === -1) return;
         const begin = stack[idx];
         stack.length = idx;
 
@@ -1296,7 +1376,7 @@ function scanEnvBlocks(
               type: "verbatim-env",
               from,
               to,
-              source: cm.getRange(from, to),
+              source: getRangeFromSource(src, from, to),
               payload: { envName: begin.envName },
             });
           }
@@ -1348,7 +1428,7 @@ function scanEnvBlocks(
               type: "code-listing-env",
               from,
               to,
-              source: cm.getRange(from, to),
+              source: getRangeFromSource(src, from, to),
               payload: { envName: begin.envName },
             });
           }
@@ -1363,7 +1443,7 @@ function scanEnvBlocks(
           if (begin.beginLine >= fromLine && begin.beginLine < toLine) {
             const from = { line: begin.beginLine, ch: begin.beginCh };
             const to = { line, ch: ev.endCh };
-            const source = cm.getRange(from, to);
+            const source = getRangeFromSource(src, from, to);
             const data = parseTabular(source, begin.envName);
             if (data != null) {
               out.push({
@@ -1403,9 +1483,9 @@ function scanEnvBlocks(
             break;
           }
         }
-        if (targetIdx === -1) continue;
+        if (targetIdx === -1) return;
         const env = stack[targetIdx];
-        if (env.items == null) continue;
+        if (env.items == null) return;
         env.items.push({
           line,
           ch: ev.ch,
@@ -1418,8 +1498,15 @@ function scanEnvBlocks(
   }
 }
 
-export function parseViewport(
-  cm: CodeMirror.Editor,
+/**
+ * Pure parser entry point: scans `[fromLine, toLine)` of a
+ * `LineSource` and returns the non-overlapping `WidgetDescriptor`s in
+ * document order. `parseViewport` is a thin adapter over this for the
+ * live-CodeMirror caller; tests build a `LineSource` from a
+ * `string[]`.
+ */
+export function parseLines(
+  src: LineSource,
   fromLine: number,
   toLine: number,
 ): WidgetDescriptor[] {
@@ -1434,19 +1521,18 @@ export function parseViewport(
   // correctly subsumes any inner widgets. List envs emit only narrow
   // descriptors (begin/end/item), so they intentionally don't
   // subsume the item content.
-  scanMathEnvs(cm, fromLine, toLine, out);
-  scanBracketDisplayMath(cm, fromLine, toLine, out);
-  scanDoubleDollarMath(cm, fromLine, toLine, out);
-  scanEnvBlocks(cm, fromLine, toLine, out, protectedRanges);
+  scanMathEnvs(src, fromLine, toLine, out);
+  scanBracketDisplayMath(src, fromLine, toLine, out);
+  scanDoubleDollarMath(src, fromLine, toLine, out);
+  scanEnvBlocks(src, fromLine, toLine, out, protectedRanges);
   for (let line = fromLine; line < toLine; line++) {
-    const raw = cm.getLine(line) ?? "";
+    const raw = src.getLine(line);
     if (raw.length === 0) continue;
     // Strip the line's `%` comment tail so e.g. `% \section{old}`
     // does not produce a widget. Multi-line scanners above use
     // `getLineStripped` for the same reason.
     const text = stripComment(raw);
     if (text.length === 0) continue;
-    scanSpike(text, line, out);
     for (const [cmd, type] of SINGLE_ARG_COMMANDS) {
       scanSingleArgCommand(text, line, cmd, type, out);
     }
@@ -1466,9 +1552,34 @@ export function parseViewport(
   }
   out.sort((a, b) => {
     if (a.from.line !== b.from.line) return a.from.line - b.from.line;
-    return a.from.ch - b.from.ch;
+    if (a.from.ch !== b.from.ch) return a.from.ch - b.from.ch;
+    // Tie-break at equal `from`: WIDER descriptor (greater `to`) first
+    // so a container sorts before a tiny earlier sibling and
+    // dropOverlaps keeps the container (widest-wins).
+    if (a.to.line !== b.to.line) return b.to.line - a.to.line;
+    return b.to.ch - a.to.ch;
   });
   return dropOverlaps(filterProtected(out, protectedRanges));
+}
+
+/**
+ * Thin adapter: run the pure parser against a live CodeMirror editor.
+ * Signature and behavior are identical to the previous `parseViewport`
+ * for the existing widget-manager caller.
+ */
+export function parseViewport(
+  cm: CodeMirror.Editor,
+  fromLine: number,
+  toLine: number,
+): WidgetDescriptor[] {
+  return parseLines(
+    {
+      getLine: (n) => cm.getLine(n) ?? "",
+      lineCount: () => cm.lineCount(),
+    },
+    fromLine,
+    toLine,
+  );
 }
 
 /**
@@ -1493,16 +1604,26 @@ function filterProtected(
 
 function dropOverlaps(descriptors: WidgetDescriptor[]): WidgetDescriptor[] {
   const result: WidgetDescriptor[] = [];
-  let lastEnd: { line: number; ch: number } | null = null;
+  // Track the MAX end-of-coverage seen so far (not just the last kept
+  // descriptor's `to`). A later descriptor that starts before this max
+  // is overlapping a previously kept container and is dropped, even if
+  // the immediately-preceding kept descriptor ended earlier.
+  let maxEnd: { line: number; ch: number } | null = null;
   for (const d of descriptors) {
-    if (lastEnd != null) {
+    if (maxEnd != null) {
       const startsInside =
-        d.from.line < lastEnd.line ||
-        (d.from.line === lastEnd.line && d.from.ch < lastEnd.ch);
+        d.from.line < maxEnd.line ||
+        (d.from.line === maxEnd.line && d.from.ch < maxEnd.ch);
       if (startsInside) continue;
     }
     result.push(d);
-    lastEnd = d.to;
+    if (
+      maxEnd == null ||
+      d.to.line > maxEnd.line ||
+      (d.to.line === maxEnd.line && d.to.ch > maxEnd.ch)
+    ) {
+      maxEnd = d.to;
+    }
   }
   return result;
 }

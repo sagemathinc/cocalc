@@ -22,6 +22,7 @@ import { CSSProperties } from "react";
 
 import { WidgetProps } from "../types";
 import { EmptyPlaceholder, Widget } from "./common";
+import { renderInline } from "./render-inline";
 
 function contentOf(props: WidgetProps): string {
   return (props.descriptor.payload?.content as string | undefined) ?? "";
@@ -58,7 +59,7 @@ function Heading({
       {text === "" ? (
         <EmptyPlaceholder label={emptyLabel} />
       ) : (
-        <span style={style}>{text}</span>
+        <span style={style}>{renderInline(text)}</span>
       )}
     </Widget>
   );

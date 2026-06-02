@@ -114,30 +114,35 @@ export function Includegraphics(props: WidgetProps) {
   const { width } = parseWidth(options);
   const url = imgRef ? resolveImageUrl(project_id, path, imgRef) : "";
 
+  const showImage = imgRef !== "" && !errored;
   return (
-    <Widget {...props} display="inline-block">
-      {imgRef === "" || errored ? (
+    <Widget
+      {...props}
+      display="inline-block"
+      // Put the resolved width on the wrapper and let the image fill it
+      // at 100%. Otherwise the inline-block shrink-wraps to the image's
+      // intrinsic width while the image renders at e.g. 80% of that,
+      // leaving a strip of empty hover-highlight beside the image.
+      style={showImage ? { width, maxWidth: "100%" } : undefined}
+    >
+      {showImage ? (
+        <img
+          src={url}
+          alt={imgRef}
+          onError={() => setErrored(true)}
+          style={{
+            width: "100%",
+            height: "auto",
+            verticalAlign: "middle",
+            display: "block",
+          }}
+        />
+      ) : (
         <span style={PLACEHOLDER_STYLE}>
           {imgRef === ""
             ? "(empty includegraphics)"
             : `image not found: ${imgRef}`}
         </span>
-      ) : (
-        <img
-          src={url}
-          alt={imgRef}
-          onError={() => setErrored(true)}
-          // The widget DOM goes inside a CM line slot. We use
-          // `inline-block` (set by the Widget wrapper above) so the
-          // image collapses to its content size; max-width prevents
-          // huge images from overflowing the editor.
-          style={{
-            width,
-            maxWidth: "100%",
-            height: "auto",
-            verticalAlign: "middle",
-          }}
-        />
       )}
     </Widget>
   );

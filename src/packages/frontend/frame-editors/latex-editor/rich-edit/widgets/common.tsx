@@ -70,7 +70,10 @@ export function Widget({
         }}
         style={{
           display: display ?? "inline",
-          cursor: "text",
+          // A rendered widget is a clickable object, not editable text —
+          // a pointer reads better than the text I-beam (which felt
+          // wrong over non-text widgets like images).
+          cursor: "pointer",
           background: hover ? COLORS.GRAY_LL : "transparent",
           borderRadius: 2,
           padding: "0 1px",
