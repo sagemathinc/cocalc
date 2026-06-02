@@ -42,7 +42,7 @@ overrides:
   es5-ext@<0.10.63: ^0.10.63
   undici@<5.28.3: ^5.28.4
   postcss@<8.5.10: ^8.5.10
-  qs@<6.14.1: ^6.14.1
+  qs@<6.15.2: ^6.15.2
   retry-request@<7.0.1: ^7.0.2
   ansi-styles@>=6: 5.2.0
   katex@<0.16.9: ^0.16.10
@@ -57,7 +57,7 @@ overrides:
   "@types/request@2.48.12": 2.48.13
   "@types/node-fetch@2.6.12": 2.6.13
   axios@<1.15.2: ^1.15.2
-  tmp@<0.2.4: ^0.2.4
+  tmp@<0.2.6: ^0.2.6
   lodash@>=4.0.0 <4.18.1: 4.18.1
   lodash-es@>=4.0.0 <4.18.1: 4.18.1
   "@isaacs/brace-expansion@<=5.0.0": 5.0.1
