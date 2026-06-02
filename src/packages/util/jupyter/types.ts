@@ -52,11 +52,15 @@ export interface KernelSpec {
 export type KernelMetadata = {
   // top level could contain a "cocalc" key, containing special settings understood by cocalc
   cocalc?: {
-    priority?: number; // level 10 means it is important, on short list of choices, etc. 1 is low priority, for older versions
-    description: string; // Explains what the kernel is, eventually visible to the user
-    url: string; // a link to a website with more info about the kernel
-  } & {
-    // nested string/string key/value dictionary
-    [key: string]: string | Record<string, string>;
+    priority?: number; // 10+ = "Suggested"/starred; 1 = older version (still selectable); <0 = deprecated: still visible/selectable but excluded from closest_kernel_match and from update-detection candidates. To hide entirely use `disabled: true`.
+    description?: string; // Explains what the kernel is, eventually visible to the user
+    url?: string; // a link to a website with more info about the kernel
+    disabled?: boolean; // if true, the kernel is hidden from the cocalc notebook UI
+    // Versioned-kernel support: two kernels with the same "family" are the
+    // same software line; "version" is a dotted numeric version (^\d+(\.\d+)*$)
+    // used to detect that a newer version of the same family is available.
+    family?: string;
+    version?: string;
+    display_version?: string; // optional human-readable version label
   };
 };

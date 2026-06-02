@@ -10,10 +10,15 @@ import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { AlertLevel, BackendState, Usage } from "@cocalc/jupyter/types";
+import {
+  kernelUpdateInfo,
+  type KernelUpdateInfo,
+} from "@cocalc/jupyter/util/misc";
 import { capitalize, closest_kernel_match, rpad_html } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import {
   Button,
+  Modal,
   Popconfirm,
   Popover,
   Progress,
@@ -23,7 +28,14 @@ import {
   Typography,
 } from "antd";
 import * as immutable from "immutable";
-import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import ProgressEstimate from "../components/progress-estimate";
 import { jupyter as jupyterI18n, labels } from "../i18n";
@@ -128,6 +140,20 @@ export function Kernel({
     "backend_state",
   ]);
   const kernel_state: undefined | string = useRedux([name, "kernel_state"]);
+  const metadata: undefined | immutable.Map<string, any> = useRedux([
+    name,
+    "metadata",
+  ]);
+
+  // Versioned kernels: is a newer version of the same family available, and
+  // has the user dismissed ("Keep") the prompt for the current kernel?
+  const kernelUpdate: KernelUpdateInfo | null = useMemo(
+    () => kernelUpdateInfo(kernel, kernels),
+    [kernel, kernels],
+  );
+  const updateDismissed =
+    kernel != null && metadata?.getIn(["cocalc", "update_dismissed"]) === kernel;
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
 
   const backendIsStarting =
     backend_state === "starting" || backend_state === "spawning";
@@ -220,6 +246,90 @@ export function Kernel({
       return;
     }
     return <Logo kernel={kernel} />;
+  }
+
+  function doKernelUpdate() {
+    if (kernelUpdate == null) return;
+    actions.set_kernel(kernelUpdate.latestKernelName);
+    setUpdateModalOpen(false);
+  }
+
+  function dismissKernelUpdate() {
+    if (kernel == null) return;
+    const cur = metadata?.get("cocalc")?.toJS?.() ?? {};
+    actions.set_global_metadata({
+      cocalc: { ...cur, update_dismissed: kernel },
+    });
+    setUpdateModalOpen(false);
+  }
+
+  // Yellow "Update…" button shown when a newer version of the same kernel
+  // family is available and the user hasn't dismissed it for this kernel.
+  function renderKernelUpdate() {
+    if (kernelUpdate == null || updateDismissed || read_only || IS_MOBILE) {
+      return;
+    }
+    return (
+      <>
+        <Tooltip
+          title={`A newer version (${kernelUpdate.latestDisplayName}) of this kernel is available.`}
+        >
+          <Button
+            size="small"
+            onClick={() => setUpdateModalOpen(true)}
+            style={{
+              margin: "0 6px",
+              height: "auto",
+              lineHeight: 1.4,
+              padding: "0 8px",
+              fontSize: "inherit",
+              backgroundColor: COLORS.YELL_L,
+              borderColor: COLORS.YELL_L,
+              color: COLORS.GRAY_D,
+            }}
+          >
+            <Icon name="exclamation-triangle" /> Update…
+          </Button>
+        </Tooltip>
+        <Modal
+          open={updateModalOpen}
+          title={
+            <>
+              <Icon name="exclamation-triangle" /> Kernel update available
+            </>
+          }
+          onCancel={() => setUpdateModalOpen(false)}
+          footer={[
+            <Button key="keep" onClick={dismissKernelUpdate}>
+              Keep {kernel_info?.get("display_name") ?? kernel}
+            </Button>,
+            <Button key="update" type="primary" onClick={doKernelUpdate}>
+              Update to {kernelUpdate.latestDisplayName}
+            </Button>,
+          ]}
+        >
+          <p>
+            A newer version of this kernel is available:{" "}
+            <b>{kernelUpdate.latestDisplayName}</b> (version{" "}
+            {kernelUpdate.latestVersion}). You are currently using version{" "}
+            {kernelUpdate.currentVersion}.
+          </p>
+          <ul>
+            <li>
+              <b>Update to {kernelUpdate.latestDisplayName}</b> — switch this
+              notebook to the new kernel now.
+            </li>
+            <li>
+              <b>Keep</b> — stay on the current kernel and stop showing this
+              prompt for it.
+            </li>
+            <li>
+              Closing this dialog leaves the button so you can decide later.
+            </li>
+          </ul>
+        </Modal>
+      </>
+    );
   }
 
   // this renders the name of the kernel, if known, or a button to change to a similar but known one
@@ -794,10 +904,12 @@ export function Kernel({
         flex: "1 0",
         flexDirection: "row",
         flexWrap: "nowrap",
+        alignItems: "center",
       }}
     >
       {render_name()}
       {render_backend_state_icon()}
+      {renderKernelUpdate()}
       {render_trust()}
     </div>
   );

@@ -80,6 +80,13 @@ export type CommandText =
  */
 export interface Command {
   /**
+   * If "divider", this entry is not a command but a visual separator in a
+   * submenu (rendered as an antd Menu divider). Used inside `children` arrays
+   * to group related items.
+   */
+  type?: "divider";
+
+  /**
    * The menu group this command belongs to.
    * Commands are organized into groups for logical menu structure.
    */

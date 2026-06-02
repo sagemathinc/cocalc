@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -17,6 +17,7 @@ import SignIn from "components/landing/sign-in";
 import Snapshots from "components/landing/snapshots";
 import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
+import { VideoItem } from "components/videos";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
@@ -147,15 +148,11 @@ export default function Sage({ customize }) {
                       worry about messing up your own computer.{" "}
                     </li>
                   </ul>
-                  <iframe
-                    width="560"
-                    height="315"
-                    src="https://www.youtube.com/embed/b8e8qq-KWbA?si=620SEO8C1JBYXpJL"
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  ></iframe>
+                  <VideoItem
+                    id="b8e8qq-KWbA"
+                    title="Using SageMath online in CoCalc"
+                    width={560}
+                  />
                 </Paragraph>
               </>
             }

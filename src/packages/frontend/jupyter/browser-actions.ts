@@ -1217,6 +1217,22 @@ export class JupyterActions extends JupyterActions0 {
       });
       // clear error when changing the kernel
       this.set_error(null);
+      // Versioned kernels: an explicit kernel switch (selector, Change
+      // Kernel menu, or the Update dialog all funnel through here, while
+      // .ipynb import / remote-sync do not) resets a prior "Keep"
+      // dismissal, UNLESS we're switching *to* the dismissed kernel
+      // itself. So returning to a kernel you moved away from prompts
+      // again, while picking the kept kernel keeps it silent.
+      const cocalc = this.syncdb
+        .get_one({ type: "settings" })
+        ?.toJS()?.metadata?.cocalc;
+      if (
+        cocalc?.update_dismissed != null &&
+        cocalc.update_dismissed !== kernel
+      ) {
+        const { update_dismissed: _drop, ...rest } = cocalc;
+        this.set_global_metadata({ cocalc: rest });
+      }
     }
     if (this.store.get("show_kernel_selector") || kernel === "") {
       this.hide_select_kernel();
