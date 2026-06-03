@@ -12,11 +12,12 @@ funky (mismatched columns, `\multicolumn`, exotic colspec like `*{n}{…}`
 or `X`, etc.) → no descriptor, source stays raw. So by the time we get
 here we already have clean `alignments` + `rows` in the payload.
 
-Cells render as plain text (the raw LaTeX inside each cell). We do
-NOT recursively run the widget parser over cell content — that's a
-larger refactor and the v1 trade-off is to keep cells readable as
-source. The hover tooltip on the widget shows the full original
-source for inspection.
+Cell content is rendered through `renderInline`, the same recursive
+inline renderer used by text-style widgets, so inline math (`$…$`),
+`\textbf`, etc. inside a cell display as formatted content rather than
+raw LaTeX. Anything `renderInline` doesn't recognize falls back to its
+raw source text. The hover tooltip on the widget still shows the full
+original source for inspection.
 */
 
 import { COLORS } from "@cocalc/util/theme";
@@ -24,6 +25,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { TabularAlign, TabularRow } from "../parser";
 import { WidgetProps } from "../types";
 import { Widget } from "./common";
+import { renderInline } from "./render-inline";
 
 const TABLE_STYLE = {
   borderCollapse: "collapse",
@@ -141,7 +143,7 @@ export function TabularEnv(props: WidgetProps) {
                         textAlign: alignmentToCss(align),
                       }}
                     >
-                      {cell === "" ? " " : cell}
+                      {cell === "" ? " " : renderInline(cell)}
                     </td>
                   );
                 })}
