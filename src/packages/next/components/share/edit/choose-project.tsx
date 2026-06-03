@@ -5,7 +5,7 @@
 
 import { join } from "path";
 import { useEffect, useState } from "react";
-import { Alert, Button, Checkbox, Space } from "antd";
+import { Alert, Button, Checkbox, Progress, Space } from "antd";
 import useIsMounted from "lib/hooks/mounted";
 import { path_split, trunc } from "@cocalc/util/misc";
 import copyPublicPath from "lib/share/copy-public-path";
@@ -32,6 +32,14 @@ interface Props {
   onCopied;
 }
 
+// Asymptotic progress curve so the bar moves visibly during the first
+// minute but slows down for very long copies (where we genuinely don't
+// know how much is left). Reaches ~90% by 2 minutes.
+function copyProgressPercent(elapsed_s: number): number {
+  if (elapsed_s <= 0) return 5;
+  return Math.min(95, 100 * (1 - Math.exp(-elapsed_s / 60)));
+}
+
 export default function ChooseProject(props: Props) {
   const {
     id,
@@ -53,6 +61,10 @@ export default function ChooseProject(props: Props) {
     "before" | "starting" | "during" | "after"
   >("before");
   const [errorCopying, setErrorCopying] = useState<string>("");
+  // Updated each time copyPublicPath polls the backend; lets us show
+  // the user how long the copy has been running so they don't think
+  // it's hung.
+  const [copyElapsedS, setCopyElapsedS] = useState<number>(0);
   const [showListing, setShowListing] = useState<boolean>(false);
   const [hideSelect, setHideSelect] = useState<boolean>(false);
   const [hideCreate, setHideCreate] = useState<boolean>(false);
@@ -104,6 +116,9 @@ export default function ChooseProject(props: Props) {
           url,
           relativePath: everything ? "" : relativePath, // "" = so *everything* is copied
           target_project_id: project.project_id,
+          onProgress: ({ elapsed_s }) => {
+            if (isMounted.current) setCopyElapsedS(elapsed_s);
+          },
         });
       }
     } catch (err) {
@@ -207,8 +222,28 @@ export default function ChooseProject(props: Props) {
             {copying == "during" && (
               <>
                 <Loading style={{ fontSize: "24px" }}>
-                  Copying files to {project.title}...
+                  Copying files to {project.title}
+                  {copyElapsedS > 0 ? ` (${copyElapsedS}s)` : ""}...
                 </Loading>
+                <Progress
+                  percent={copyProgressPercent(copyElapsedS)}
+                  showInfo={false}
+                  status="active"
+                  style={{ maxWidth: "400px", margin: "10px auto 0" }}
+                />
+                {copyElapsedS >= 60 && (
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      color: "#666",
+                      fontSize: "0.9em",
+                    }}
+                  >
+                    Large shares can take a few minutes — the copy is
+                    running on our servers and you don't need to keep
+                    this page open.
+                  </div>
+                )}
               </>
             )}
             {copying == "after" && (

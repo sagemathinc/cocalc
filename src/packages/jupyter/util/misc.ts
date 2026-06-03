@@ -198,3 +198,116 @@ export function get_kernel_selection(
 
   return immutable.Map<string, string>(data);
 }
+
+// ---------------------------------------------------------------------------
+// Versioned kernels: detect that a newer version of the same "family" of
+// kernel is available.  See src/docs/jupyter.md "Versioned Kernels".
+// ---------------------------------------------------------------------------
+
+// A "dotted numeric version": one or more dot-separated non-negative integers,
+// e.g. "10", "10.6", "3.12", "4.3.1".  NOT semver (semver would reject "10").
+const DOTTED_VERSION_RE = /^\d+(\.\d+)*$/;
+
+export function isDottedVersion(v: unknown): v is string {
+  return typeof v === "string" && DOTTED_VERSION_RE.test(v);
+}
+
+// Compare two dotted numeric versions.  Returns 1 if a > b, -1 if a < b,
+// 0 if equal.  Comparison is segment-by-segment numeric; when one runs out
+// of segments the shorter one is "less" (so "3.12" < "3.12.1", "10" < "10.0.1").
+// Inputs are expected to satisfy DOTTED_VERSION_RE; anything non-conforming
+// is treated as lower than a conforming version (and two non-conforming
+// values compare equal) so callers never throw.
+export function compareDottedVersions(a: string, b: string): -1 | 0 | 1 {
+  const aOk = isDottedVersion(a);
+  const bOk = isDottedVersion(b);
+  if (!aOk || !bOk) {
+    if (aOk === bOk) return 0;
+    return aOk ? 1 : -1;
+  }
+  const av = a.split(".");
+  const bv = b.split(".");
+  for (let i = 0; i < Math.max(av.length, bv.length); i++) {
+    // missing segment counts as 0 only when the other side also ran out;
+    // a present segment always makes the longer version larger.
+    if (i >= av.length) return -1;
+    if (i >= bv.length) return 1;
+    const x = parseInt(av[i], 10);
+    const y = parseInt(bv[i], 10);
+    if (x > y) return 1;
+    if (x < y) return -1;
+  }
+  return 0;
+}
+
+export interface KernelUpdateInfo {
+  family: string;
+  currentVersion: string;
+  latestVersion: string;
+  latestKernelName: string;
+  latestDisplayName: string;
+}
+
+function kernelCocalc(spec: Kernel | undefined, key: string): any {
+  return spec?.getIn(["metadata", "cocalc", key]);
+}
+
+// Pure: given the currently selected kernel name and the list of available
+// kernel specs, return info about a strictly-newer kernel in the same
+// `metadata.cocalc.family`, or null if none / not applicable.  Participation
+// requires an explicit family + a contract-valid version; there is no
+// name-derived fallback.
+export function kernelUpdateInfo(
+  currentKernelName: string | null | undefined,
+  kernels: Kernels | undefined,
+): KernelUpdateInfo | null {
+  if (!currentKernelName || kernels == null) return null;
+  const target = currentKernelName.toLowerCase();
+  const current = kernels.find(
+    (k) => (k.get("name") ?? "").toLowerCase() === target,
+  );
+  if (current == null) return null;
+
+  const family = kernelCocalc(current, "family");
+  const currentVersion = kernelCocalc(current, "version");
+  if (
+    typeof family !== "string" ||
+    family === "" ||
+    !isDottedVersion(currentVersion)
+  ) {
+    return null;
+  }
+
+  let best: Kernel | undefined;
+  let bestVersion: string | undefined;
+  kernels.forEach((k) => {
+    if (kernelCocalc(k, "family") !== family) return;
+    if (kernelCocalc(k, "disabled") === true) return;
+    const priority = (kernelCocalc(k, "priority") ?? 0) as number;
+    if (priority < 0) return;
+    const v = kernelCocalc(k, "version");
+    if (!isDottedVersion(v)) return;
+    if (bestVersion == null || compareDottedVersions(v, bestVersion) === 1) {
+      best = k;
+      bestVersion = v;
+    }
+  });
+
+  if (
+    best == null ||
+    bestVersion == null ||
+    compareDottedVersions(bestVersion, currentVersion) !== 1
+  ) {
+    return null;
+  }
+
+  const latestKernelName = best.get("name") as string;
+  return {
+    family,
+    currentVersion,
+    latestVersion: bestVersion,
+    latestKernelName,
+    latestDisplayName:
+      (best.get("display_name") as string) || latestKernelName,
+  };
+}

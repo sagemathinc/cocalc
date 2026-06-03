@@ -569,15 +569,17 @@ export class ManageCommands {
     const children = noChildren
       ? undefined
       : this.getCommandChildren(cmd)?.map((x, i) =>
-          this.commandToMenuItem({
-            // If the child has a name and this is a top-level command (name is set),
-            // construct a compound key "parent/child" so the pin toggle works for
-            // submenu items.
-            name: x.name && name ? `${name}/${x.name}` : "",
-            cmd: x,
-            key: `${key}-${i}-${x.stayOpenOnClick ? STAY_OPEN_ON_CLICK : ""}`,
-            noChildren,
-          }),
+          x.type === "divider"
+            ? { type: "divider", key: `${key}-${i}-divider` }
+            : this.commandToMenuItem({
+                // If the child has a name and this is a top-level command (name is set),
+                // construct a compound key "parent/child" so the pin toggle works for
+                // submenu items.
+                name: x.name && name ? `${name}/${x.name}` : "",
+                cmd: x,
+                key: `${key}-${i}-${x.stayOpenOnClick ? STAY_OPEN_ON_CLICK : ""}`,
+                noChildren,
+              }),
         );
     if (button) {
       label = (
