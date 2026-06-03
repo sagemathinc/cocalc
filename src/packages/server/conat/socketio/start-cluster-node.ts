@@ -40,7 +40,7 @@ async function main() {
           opts.systemAccountPassword?.length ?? 0,
         ),
       },
-    ];
+    ] as const;
     console.log(...msg);
     logger.debug(...msg);
     // config can start before init message, but must be finished before calling init

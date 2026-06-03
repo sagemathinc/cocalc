@@ -410,9 +410,11 @@ export const EXTRAS: SettingsExtras = {
   },
   pii_retention: {
     name: "PII Retention",
-    desc: "How long to keep personally identifiable information, after which the server automatically deletes certain database entries that contain PII.",
+    desc: "How long to keep personally identifiable information, after which the server automatically deletes certain database entries that contain PII. Also drives the grace period before PII on deleted accounts (name, email_address_before_delete, etc.) is scrubbed by packages/database/postgres/delete-projects.ts::cleanup_deleted_account_pii.",
     default: "never",
-    // values must be understood by packages/hub/utils.ts pii_expire
+    // values must be understood by pii_retention_parse above (also consumed by
+    // packages/database/postgres/pii.ts::pii_expire for row-expiration columns
+    // and by cleanup_deleted_account_pii for scrubbing deleted-account PII)
     valid: [
       "never",
       "30 days",

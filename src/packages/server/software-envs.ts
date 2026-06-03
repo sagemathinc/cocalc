@@ -65,8 +65,7 @@ async function readConfig(purpose: Purpose): Promise<SoftwareEnvConfig | null> {
   // parse the content of softwareFn as json
   try {
     const software = JSON.parse((await readFile(softwareFn)).toString());
-    const dbg = (...msg) => L(...msg);
-    const sanitized = sanitizeSoftwareEnv({ software, registry, purpose }, dbg);
+    const sanitized = sanitizeSoftwareEnv({ software, registry, purpose }, L);
     return sanitized;
   } catch (err) {
     W(`WARNING: ${softwareFn} is not a valid JSON file -- ${err}`);

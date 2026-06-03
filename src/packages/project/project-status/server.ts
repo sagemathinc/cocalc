@@ -86,7 +86,7 @@ export class ProjectStatusServer extends EventEmitter {
   constructor(testing = false) {
     super();
     this.testing = testing;
-    this.dbg = (...msg) => logger.debug(...msg);
+    this.dbg = (...msg) => logger.debug(msg[0], ...msg.slice(1));
     this.project_info = get_ProjectInfoServer();
   }
 
