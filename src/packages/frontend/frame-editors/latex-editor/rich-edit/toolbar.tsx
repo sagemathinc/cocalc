@@ -70,14 +70,23 @@ const BTN_STYLE = {
 
 interface Props {
   id: string;
+  /** Owning frame-tree actions — holds this leaf's per-frame data
+   * (the Rich/Source mode). For an included-file pane this differs from
+   * `editor_actions`; see index.tsx. */
+  actions: any;
+  /** Actions for the file shown in this pane — drives the format
+   * buttons (they edit that file's buffer). Equals `actions` for the
+   * main file. */
   editor_actions: any;
 }
 
-export function RichEditToolbar({ id, editor_actions }: Props) {
+export function RichEditToolbar({ id, actions, editor_actions }: Props) {
   // Per-frame view mode. Default Rich (so the feature is visible
-  // immediately when the user opens a .tex file).
+  // immediately when the user opens a .tex file). Read from the owning
+  // frame tree (`actions`), not the file's editor_actions — see the
+  // note in index.tsx about included-file panes.
   const richMode: boolean =
-    editor_actions?._get_frame_data?.(id, "richEditMode", true) !== false;
+    actions?._get_frame_data?.(id, "richEditMode", true) !== false;
   const currentMode: ViewMode = richMode ? MODE_RICH : MODE_SOURCE;
 
   // First-run hint state — initialized once from localStorage.
@@ -92,7 +101,10 @@ export function RichEditToolbar({ id, editor_actions }: Props) {
   const setMode = (value: string | number) => {
     // Interacting with the toggle counts as "the user has seen it".
     dismissHint();
-    editor_actions?.set_frame_data?.({
+    // Persist on the owning frame tree (`actions`), so the choice sticks
+    // even for an included-file pane (whose editor_actions is a child
+    // tree that doesn't contain this leaf).
+    actions?.set_frame_data?.({
       id,
       richEditMode: value === MODE_RICH,
     });

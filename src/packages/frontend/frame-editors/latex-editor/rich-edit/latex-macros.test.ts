@@ -37,6 +37,25 @@ describe("extractMacros", () => {
     expect(m).toEqual({ "\\x": "b", "\\y": "c" });
   });
 
+  it("\\providecommand keeps an existing definition (LaTeX semantics)", () => {
+    // \newcommand defines \R; a later \providecommand{\R} is a no-op.
+    expect(
+      extractMacros(
+        "\\newcommand{\\R}{\\mathbb{R}}\n\\providecommand{\\R}{\\mathbb{Q}}",
+      ),
+    ).toEqual({ "\\R": "\\mathbb{R}" });
+    // But \providecommand DOES define when nothing defined it yet.
+    expect(extractMacros("\\providecommand{\\R}{\\mathbb{Q}}")).toEqual({
+      "\\R": "\\mathbb{Q}",
+    });
+    // And a later \renewcommand still overrides a \providecommand.
+    expect(
+      extractMacros(
+        "\\providecommand{\\R}{\\mathbb{Q}}\n\\renewcommand{\\R}{\\mathbb{R}}",
+      ),
+    ).toEqual({ "\\R": "\\mathbb{R}" });
+  });
+
   it("last-wins across mixed forms, in source order (not by scanner)", () => {
     // \def first, \renewcommand later → LaTeX uses the later one.
     expect(

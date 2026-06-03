@@ -357,6 +357,35 @@ function findMatchingBrace(text: string, openCh: number): number {
   return depth === 0 ? j - 1 : -1;
 }
 
+/**
+ * Starting at `i` (just past a command token), skip a run of that
+ * command's argument groups — brace-balanced `{…}` and optional `[…]`,
+ * allowing whitespace between them — and return the index just past the
+ * last one. Used to swallow the WHOLE of a skip-list definition command
+ * (e.g. `\newcommand{\R}{\mathbb{R}}`) so the custom-macro scanner
+ * doesn't descend into the body. On an unbalanced group it returns
+ * `text.length` (skip the rest of the line — it's malformed anyway).
+ */
+function skipArgGroups(text: string, i: number): number {
+  while (i < text.length) {
+    let j = i;
+    while (j < text.length && /\s/.test(text[j])) j++;
+    const c = text[j];
+    if (c === "{") {
+      const close = findMatchingBrace(text, j);
+      if (close === -1) return text.length;
+      i = close + 1;
+    } else if (c === "[") {
+      const close = text.indexOf("]", j + 1);
+      if (close === -1) return text.length;
+      i = close + 1;
+    } else {
+      break;
+    }
+  }
+  return i;
+}
+
 function scanSingleArgCommand(
   text: string,
   line: number,
@@ -511,7 +540,19 @@ function scanCustomMacro(
     const cmdStart = m.index;
     if (isEscaped(text, cmdStart)) continue;
     const cmdName = "\\" + m[1];
-    if (KNOWN_COMMANDS.has(cmdName) || CUSTOM_MACRO_SKIP.has(cmdName)) continue;
+    // KNOWN_COMMANDS are handled by their own scanners, which emit a
+    // covering descriptor that dropOverlaps uses to remove any inner
+    // custom-macro hit, so a plain token-skip is enough here.
+    if (KNOWN_COMMANDS.has(cmdName)) continue;
+    // Skip-list commands (\newcommand, \setlength, \definecolor, …)
+    // emit NO covering descriptor, so we must advance past their whole
+    // argument list — otherwise the scanner descends into the body and
+    // emits a stray chip for e.g. \mathbb{R} inside
+    // \newcommand{\R}{\mathbb{R}}.
+    if (CUSTOM_MACRO_SKIP.has(cmdName)) {
+      RE.lastIndex = skipArgGroups(text, cmdStart + cmdName.length);
+      continue;
+    }
     // `m[0]` ends with `{` (possibly with whitespace before it).
     // The `{` itself is the last char of the match.
     const braceOpen = cmdStart + m[0].length - 1;

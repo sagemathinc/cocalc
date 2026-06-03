@@ -157,6 +157,25 @@ describe("parseLines — representative cases per family", () => {
     expect(d).toBeDefined();
     expect(d.payload).toMatchObject({ cmdName: "\\mycmd", content: "body" });
   });
+
+  it("skip-list definitions don't leak custom-macro chips from their body", () => {
+    // \newcommand{\R}{\mathbb{R}} must be skipped WHOLE — the scanner
+    // must not descend into the body and emit a chip for \mathbb{R}.
+    const ds = parse1("\\newcommand{\\R}{\\mathbb{R}}");
+    expect(first(ds, "custom-macro")).toBeUndefined();
+  });
+
+  it("skip-list multi-arg command (\\definecolor) is fully skipped", () => {
+    const ds = parse1("\\definecolor{mycol}{rgb}{1,0,0}");
+    expect(first(ds, "custom-macro")).toBeUndefined();
+  });
+
+  it("a real custom macro AFTER a skip-list command still renders", () => {
+    const ds = parse1("\\setlength{\\itemsep}{0pt} \\mycmd{x}");
+    const d = first(ds, "custom-macro")!;
+    expect(d).toBeDefined();
+    expect(d.payload).toMatchObject({ cmdName: "\\mycmd", content: "x" });
+  });
 });
 
 describe("TASK 2 — isEscaped backslash parity", () => {

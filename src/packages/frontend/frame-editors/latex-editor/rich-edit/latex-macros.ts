@@ -36,7 +36,7 @@ cost to the prologue rather than the whole buffer. A document with no
 `\begin{document}` (a fragment / snippet) is scanned in full.
 */
 
-const NEWCOMMAND_RE = /\\(?:newcommand|renewcommand|providecommand)\*?\s*/g;
+const NEWCOMMAND_RE = /\\(newcommand|renewcommand|providecommand)\*?\s*/g;
 const DECLARE_OP_RE = /\\DeclareMathOperator(\*?)\s*/g;
 const DEF_RE = /\\def\s*\\([A-Za-z@]+)/g;
 const NAME_RE = /^\\([A-Za-z@]+)/;
@@ -50,6 +50,11 @@ interface MacroDef {
   body: string;
   /** Start offset in the scanned text — used to apply source order. */
   index: number;
+  /** `\providecommand`: only defines when the name is not already
+   * defined at that point in source order (LaTeX keeps the existing
+   * definition). Plain `\newcommand`/`\renewcommand`/`\def`/etc. are
+   * unconditional. */
+  provide?: boolean;
 }
 
 /** Read a `{…}` group starting at `text[i] === "{"`, brace-balanced,
@@ -113,6 +118,7 @@ function scanNewcommands(text: string, defs: MacroDef[]): void {
   let m: RegExpExecArray | null;
   while ((m = NEWCOMMAND_RE.exec(text)) !== null) {
     const start = m.index;
+    const provide = m[1] === "providecommand";
     let i = m.index + m[0].length;
     // Name: {\name} or bare \name.
     let name: string;
@@ -143,7 +149,7 @@ function scanNewcommands(text: string, defs: MacroDef[]): void {
     if (text[i] !== "{") continue;
     const body = readBraced(text, i);
     if (body == null) continue;
-    defs.push({ name, body: body.body, index: start });
+    defs.push({ name, body: body.body, index: start, provide });
     NEWCOMMAND_RE.lastIndex = body.end;
   }
 }
@@ -245,6 +251,12 @@ export function extractMacros(text: string): Record<string, string> {
   // \def\R, not the other way around because scanDefs ran last).
   defs.sort((a, b) => a.index - b.index);
   const out: Record<string, string> = {};
-  for (const d of defs) out[d.name] = d.body;
+  for (const d of defs) {
+    // \providecommand only defines when the name is not already defined
+    // at this point in source order — LaTeX keeps the existing
+    // definition. All other forms are unconditional last-wins.
+    if (d.provide && d.name in out) continue;
+    out[d.name] = d.body;
+  }
   return out;
 }

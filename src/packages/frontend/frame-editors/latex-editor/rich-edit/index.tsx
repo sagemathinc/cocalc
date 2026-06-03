@@ -67,9 +67,15 @@ export function LatexCodemirrorEditor(props: EditorComponentProps) {
   // Per-frame view mode. Default Rich. When the user toggles the
   // Segmented control, set_frame_data triggers a re-render of this
   // wrapper, which re-reads here and re-runs the effect below.
+  //
+  // Frame data lives on the OWNING frame tree (`props.actions`), keyed
+  // by this leaf's id. For an included-file source pane (`switch_to_file`
+  // reuses the leaf for `\input`-ed files) `props.editor_actions` is the
+  // CHILD file's actions, whose tree does NOT contain this leaf — so the
+  // mode must be read/written via `props.actions`, not editor_actions.
+  // (For the main file the two are the same object.)
   const richEditMode: boolean =
-    props.editor_actions?._get_frame_data?.(props.id, "richEditMode", true) !==
-    false;
+    props.actions?._get_frame_data?.(props.id, "richEditMode", true) !== false;
 
   // Attach the widget manager when "Rich" is selected.
   useEffect(() => {
@@ -107,12 +113,24 @@ export function LatexCodemirrorEditor(props: EditorComponentProps) {
     // via refs above; including them would re-fire this effect on
     // every parent render and wipe the marker manager's live
     // registry (validated in the Phase 2.0 spike).
+    //
+    // `props.path` IS a dep: when a source pane is switched to an
+    // included file (`switch_to_file`) the leaf id stays the same but a
+    // different CM mounts under the (now child) editor_actions. Without
+    // re-running, the manager would stay attached to the previous CM and
+    // the newly shown file would get no widgets until a mode toggle.
+    // `props.path` is a stable string, so this doesn't re-fire on
+    // ordinary re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [richEditMode, props.id]);
+  }, [richEditMode, props.id, props.path]);
 
   return (
     <div style={WRAPPER_STYLE} className="cc-latex-rich-edit-frame">
-      <RichEditToolbar id={props.id} editor_actions={props.editor_actions} />
+      <RichEditToolbar
+        id={props.id}
+        actions={props.actions}
+        editor_actions={props.editor_actions}
+      />
       <div style={CM_CONTAINER_STYLE}>
         <CodemirrorEditor {...(props as any)} />
       </div>
