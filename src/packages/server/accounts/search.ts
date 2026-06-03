@@ -14,7 +14,7 @@ import {
   is_valid_email_address as isValidEmailAddress,
   parse_user_search as parseUserSearch,
 } from "@cocalc/util/misc";
-import { toEpoch } from "@cocalc/database/postgres/util";
+import { toEpoch } from "@cocalc/database/postgres/utils/to-epoch";
 import { getLogger } from "@cocalc/backend/logger";
 import {
   USER_SEARCH_LIMIT,

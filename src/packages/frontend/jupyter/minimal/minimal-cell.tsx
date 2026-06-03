@@ -1028,4 +1028,3 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
     );
   },
 );
-

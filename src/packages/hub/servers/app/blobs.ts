@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { basename, extname } from "node:path";
 
-import { database } from "../database";
+import { getDatabase } from "../database";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { database_is_working } from "@cocalc/server/metrics/hub_register";
 import { callback2 } from "@cocalc/util/async-utils";
@@ -31,6 +31,7 @@ function shouldInlineByFilename(filename: string): boolean {
 }
 
 export default function init(router: Router) {
+  const database = getDatabase();
   // return uuid-indexed blobs (mainly used for graphics)
   router.get("/blobs/{*splat}", async (req, res) => {
     logger.debug(`${JSON.stringify(req.query)}, ${req.path}`);

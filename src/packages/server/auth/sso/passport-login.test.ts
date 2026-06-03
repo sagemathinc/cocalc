@@ -1,4 +1,4 @@
-import { getPassportCache } from "@cocalc/database/postgres/passport-store";
+import { getPassportCache } from "@cocalc/database/postgres/auth/passport-store";
 import isBanned from "@cocalc/server/accounts/is-banned";
 import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
 import { getAccountIdFromRememberMe } from "@cocalc/server/auth/get-account";
@@ -29,7 +29,7 @@ jest.mock("cookies", () => ({
     }
   },
 }));
-jest.mock("@cocalc/database/postgres/passport-store", () => ({
+jest.mock("@cocalc/database/postgres/auth/passport-store", () => ({
   __esModule: true,
   getPassportCache: jest.fn(),
 }));

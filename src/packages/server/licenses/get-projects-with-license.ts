@@ -9,7 +9,7 @@ Returns array of projects with a given license applied to them, including the fo
 */
 
 import getPool from "@cocalc/database/pool";
-import { toEpoch } from "@cocalc/database/postgres/util";
+import { toEpoch } from "@cocalc/database/postgres/utils/to-epoch";
 import { isValidUUID } from "@cocalc/util/misc";
 import { State } from "@cocalc/util/compute-states";
 
@@ -23,7 +23,7 @@ export interface Project {
 }
 
 export default async function getProjectsWithLicense(
-  license_id: string
+  license_id: string,
 ): Promise<Project[]> {
   if (!isValidUUID(license_id)) {
     // importand due to sql injection
@@ -40,7 +40,7 @@ export default async function getProjectsWithLicense(
     FROM projects
     WHERE site_license ? '${license_id}'
     ORDER BY last_edited DESC`,
-    []
+    [],
   );
   toEpoch(rows, ["last_edited"]);
   return rows;

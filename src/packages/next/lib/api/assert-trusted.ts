@@ -1,5 +1,5 @@
 import { db } from "@cocalc/database";
-import { is_admin } from "@cocalc/database/postgres/account-queries";
+import { is_admin } from "@cocalc/database/postgres/account/queries";
 import { getServerSettings } from "@cocalc/database/settings";
 import getMinBalance from "@cocalc/server/purchases/get-min-balance";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";

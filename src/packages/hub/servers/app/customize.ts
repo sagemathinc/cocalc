@@ -5,9 +5,10 @@
 
 import { send as sendManifest } from "@cocalc/hub/manifest";
 import { WebappConfiguration } from "@cocalc/hub/webapp-configuration";
-import { database } from "../database";
+import { getDatabase } from "../database";
 
 export default function init(router, isPersonal: boolean) {
+  const database = getDatabase();
   const webappConfig = new WebappConfiguration({ db: database });
 
   router.get("/customize", async (req, res) => {

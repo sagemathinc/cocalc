@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { callback2 } from "@cocalc/util/async-utils";
 import { database_is_working } from "@cocalc/server/metrics/hub_register";
-import { database } from "../database";
+import { getDatabase } from "../database";
 
 export default function init(router: Router) {
+  const database = getDatabase();
   // Return global status information about CoCalc
   router.get("/stats", async (_req, res) => {
     if (!database_is_working()) {

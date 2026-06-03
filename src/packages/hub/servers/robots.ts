@@ -1,4 +1,4 @@
-import { get_server_settings } from "@cocalc/database/postgres/server-settings";
+import { get_server_settings } from "@cocalc/database/postgres/settings/server-settings";
 
 export default function getHandler() {
   return async (_req, res) => {

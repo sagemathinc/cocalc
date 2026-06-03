@@ -19,8 +19,8 @@ const UglifyJS = require("uglify-js");
 
 import { is_valid_uuid_string, uuid } from "@cocalc/util/misc";
 
-import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
-import { get_server_settings } from "@cocalc/database/postgres/server-settings";
+import { pii_retention_to_future } from "@cocalc/database/postgres/account/pii";
+import { get_server_settings } from "@cocalc/database/postgres/settings/server-settings";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { ANALYTICS_COOKIE_NAME } from "@cocalc/util/consts";
 

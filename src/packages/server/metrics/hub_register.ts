@@ -1,15 +1,16 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Hub Registration
 
 import { getLogger } from "@cocalc/backend/logger";
-const logger = getLogger("hub_register");
-import * as misc from "@cocalc/util/misc";
-const { defaults, required } = misc;
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import * as misc from "@cocalc/util/misc";
+
+const logger = getLogger("hub_register");
+const { defaults, required } = misc;
 
 // Global variables
 let started = false;
@@ -27,28 +28,12 @@ function register_hub(cb) {
     cb?.("database not yet set");
     return;
   }
-  if (the_database._clients == null) {
+  if (!the_database.is_connected()) {
     database_is_working = false;
     logger.debug("register_hub -- not connected, so FAILED");
     cb?.("database not connected");
     return;
   }
-  if (the_database.is_standby) {
-    logger.debug("register_hub -- doing read query of site settings");
-    the_database.get_site_settings({
-      cb(err, _) {
-        if (err) {
-          logger.debug("register_hub -- FAILED read query");
-          database_is_working = false;
-        } else {
-          logger.debug("register_hub -- read query worked");
-          database_is_working = true;
-        }
-      },
-    });
-    return;
-  }
-
   logger.debug("register_hub -- doing db query");
   if (the_host == null || the_port == null || the_interval == null) {
     throw new Error(

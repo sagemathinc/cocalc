@@ -37,7 +37,7 @@ if (CUTOFF == null) {
 
 function move_blobs_to_gcloud(cb) {
   console.log(
-    `move_blobs_to_gcloud: copying up to ${MAX_BLOBS_PER_RUN} non-expiring blobs to bucket ${COCALC_BLOB_STORE} and deleting them from the database`
+    `move_blobs_to_gcloud: copying up to ${MAX_BLOBS_PER_RUN} non-expiring blobs to bucket ${COCALC_BLOB_STORE} and deleting them from the database`,
   );
   db.copy_all_blobs_to_gcloud({
     bucket: COCALC_BLOB_STORE,
@@ -58,7 +58,7 @@ function go() {
       throw Error(`error in move_blobs_to_gcloud -- ${err}`);
     }
     console.log(
-      `now waiting ${WAIT_BETWEEN_RUNS_S} seconds before doing another move_blobs_to_gcloud...`
+      `now waiting ${WAIT_BETWEEN_RUNS_S} seconds before doing another move_blobs_to_gcloud...`,
     );
     setTimeout(go, parseFloat(WAIT_BETWEEN_RUNS_S) * 1000);
   });
