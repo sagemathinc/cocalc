@@ -48,6 +48,16 @@ interface Opts {
   text?: string;
   project_id: string;
   locale?: Locale;
+  // Edit mode (rich-edit pencil): the existing formula to modify,
+  // INCLUDING its delimiters/environment (`$…$`, `$$…$$`, `\[…\]`,
+  // `\begin{equation}…`). When set, the dialog shows the formula as
+  // read-only context, offers an empty instruction box, and the prompt
+  // asks the model to apply the instruction while preserving the
+  // original delimiters. Cancelling resolves back to `existingFormula`.
+  existingFormula?: string;
+  // Surrounding document text (a few lines before/after the formula),
+  // passed to the model as explicit context in edit mode.
+  contextText?: string;
 }
 
 export async function ai_gen_formula({
@@ -55,6 +65,8 @@ export async function ai_gen_formula({
   text = "",
   project_id,
   locale,
+  existingFormula,
+  contextText,
 }: Opts): Promise<string> {
   return await show_react_modal((cb) => (
     <Localize>
@@ -63,6 +75,8 @@ export async function ai_gen_formula({
         text={text}
         project_id={project_id}
         locale={locale}
+        existingFormula={existingFormula}
+        contextText={contextText}
         cb={cb}
       />
     </Localize>
@@ -73,12 +87,24 @@ interface Props extends Opts {
   cb: (err?: string, result?: string) => void;
 }
 
-function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
+function AiGenFormula({
+  mode,
+  text = "",
+  project_id,
+  locale,
+  existingFormula,
+  contextText,
+  cb,
+}: Props) {
   const intl = useIntl();
   const { setLocale } = useLocalizationCtx();
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const [model, setModel] = useLanguageModelSetting(project_id);
-  const [input, setInput] = useState<string>(text);
+  // Edit mode: modify an existing formula. The instruction box starts
+  // empty (the user types what to change); in generate mode it's
+  // seeded with any pre-selected text.
+  const editMode = !!existingFormula;
+  const [input, setInput] = useState<string>(editMode ? "" : text);
   const [formula, setFormula] = useState<string>("");
   const [fullReply, setFullReply] = useState<string>("");
   const [generating, setGenerating] = useState<boolean>(false);
@@ -119,6 +145,19 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
     .hasLanguageModelEnabled(project_id, LLM_USAGE_TAG);
 
   function getSystemPrompt(): string {
+    if (editMode) {
+      // Editing an existing formula: apply the user's instruction and
+      // keep the same delimiters/environment so the result can replace
+      // the original in place.
+      return [
+        `You are editing an existing LaTeX formula in a *.tex file.`,
+        `Apply the user's requested change to the formula.`,
+        `Use the surrounding document context only to inform notation and style.`,
+        `Preserve the original delimiters/environment exactly (keep $…$, $$…$$, \\[…\\], \\(…\\), or \\begin{env}…\\end{env} as in the original).`,
+        `Assume the package "amsmath" is available.`,
+        `Return only the modified LaTeX formula, ready to replace the original. Do not add any explanations.`,
+      ].join(" ");
+    }
     const p1 = `Typeset the plain-text description of a mathematical formula as a LaTeX formula. The formula will be`;
     const p2 = `Return only the LaTeX formula, ready to be inserted into the document. Do not add any explanations.`;
     switch (mode) {
@@ -134,6 +173,21 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
 
   function getPrompt(): { input: string; history: Message[]; system: string } {
     const system = getSystemPrompt();
+    if (editMode) {
+      // No few-shot history; the existing formula + context + the
+      // instruction ARE the prompt. Context is repeated explicitly so
+      // the model has the formula's surroundings to reason about.
+      const parts = [`Existing formula:\n${existingFormula}`];
+      if (contextText) {
+        parts.push(
+          `Surrounding context (for reference only, do not include in the output):\n${contextText}`,
+        );
+      }
+      parts.push(
+        `Requested change: ${input.trim() || "improve / clean up the formula"}`,
+      );
+      return { input: parts.join("\n\n"), history: [], system };
+    }
     // 3-shot examples
     const history: Message[] = [
       { role: "user", content: "equation e^(i pi) = -1" },
@@ -198,6 +252,14 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
     if (!tex) {
       tex = formula;
     }
+    // Edit mode: the model is asked to preserve the original
+    // delimiters/environment, so keep its output verbatim (only the
+    // code-fence unwrapping above is applied).
+    if (editMode) {
+      tex = tex.trim();
+      setFormula(tex);
+      return tex;
+    }
     // if there are "\[" and "\]" in the formula, replace both by $$
     if (tex.includes("\\[") && tex.includes("\\]")) {
       tex = tex.replace(/\\\[|\\\]/g, "$$");
@@ -260,8 +322,9 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
   }
 
   // Start the query immediately, if the user had selected some text … and it's a free model
+  // (generate mode only — in edit mode we wait for an instruction).
   useEffect(() => {
-    if (text && isFreeModel(model, is_cocalc_com)) {
+    if (!editMode && text && isFreeModel(model, is_cocalc_com)) {
       doGenerate();
     }
   }, [text]);
@@ -271,10 +334,17 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
       <>
         <Title level={4}>
           <AIAvatar size={20} />{" "}
-          <FormattedMessage
-            id="codemirror.extensions.ai_formula.title"
-            defaultMessage="Generate LaTeX Formula"
-          />
+          {editMode ? (
+            <FormattedMessage
+              id="codemirror.extensions.ai_formula.edit_title"
+              defaultMessage="Edit LaTeX Formula"
+            />
+          ) : (
+            <FormattedMessage
+              id="codemirror.extensions.ai_formula.title"
+              defaultMessage="Generate LaTeX Formula"
+            />
+          )}
         </Title>
         {enabled ? (
           <>
@@ -321,15 +391,45 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
     return (
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
         <Paragraph style={{ marginBottom: 0 }}>
-          <FormattedMessage
-            id="codemirror.extensions.ai_formula.description"
-            defaultMessage="The {model} language model will generate a LaTeX formula based on your description. {help}"
-            values={{
-              model: <LLMModelName model={model} size={18} />,
-              help,
-            }}
-          />
+          {editMode ? (
+            <FormattedMessage
+              id="codemirror.extensions.ai_formula.edit_description"
+              defaultMessage="Describe how the {model} language model should change the formula below. {help}"
+              values={{
+                model: <LLMModelName model={model} size={18} />,
+                help,
+              }}
+            />
+          ) : (
+            <FormattedMessage
+              id="codemirror.extensions.ai_formula.description"
+              defaultMessage="The {model} language model will generate a LaTeX formula based on your description. {help}"
+              values={{
+                model: <LLMModelName model={model} size={18} />,
+                help,
+              }}
+            />
+          )}
         </Paragraph>
+        {editMode ? (
+          <Descriptions
+            size="small"
+            column={1}
+            bordered
+            items={[
+              {
+                key: "orig",
+                label: "Current formula",
+                children: <Paragraph code>{existingFormula}</Paragraph>,
+              },
+              {
+                key: "orig-preview",
+                label: "Preview",
+                children: <Markdown value={existingFormula ?? ""} />,
+              },
+            ]}
+          />
+        ) : undefined}
         <div style={{ textAlign: "right" }}>
           <LLMCostEstimation
             // limited to 200, since we only get a formula – which is not a lengthy text!
@@ -343,11 +443,19 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
           <Input
             allowClear
             disabled={generating}
-            placeholder={intl.formatMessage({
-              id: "codemirror.extensions.ai_formula.input_placeholder",
-              defaultMessage:
-                "Describe the formula in natural language and/or algebraic notation.",
-            })}
+            placeholder={
+              editMode
+                ? intl.formatMessage({
+                    id: "codemirror.extensions.ai_formula.edit_placeholder",
+                    defaultMessage:
+                      "Describe the change, e.g. “add a subscript n”, “solve for x”, “use \\sum instead”.",
+                  })
+                : intl.formatMessage({
+                    id: "codemirror.extensions.ai_formula.input_placeholder",
+                    defaultMessage:
+                      "Describe the formula in natural language and/or algebraic notation.",
+                  })
+            }
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onPressEnter={doGenerate}
@@ -381,7 +489,9 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
               {
                 key: "2",
                 label: "Preview",
-                children: <Markdown value={wrapFormula(formula)} />,
+                children: (
+                  <Markdown value={editMode ? formula : wrapFormula(formula)} />
+                ),
               },
               ...(fullReply
                 ? [
@@ -432,7 +542,9 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
         <Button
           type={formula ? "primary" : "default"}
           disabled={!formula}
-          onClick={() => cb(undefined, wrapFormula(formula))}
+          onClick={() =>
+            cb(undefined, editMode ? formula : wrapFormula(formula))
+          }
         >
           {intl.formatMessage({
             id: "codemirror.extensions.ai_formula.insert_formula_button",
@@ -458,7 +570,10 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
   }
 
   function onCancel() {
-    cb(undefined, text);
+    // In edit mode, resolve back to the original formula so the caller
+    // (rich-edit pencil) detects "no change" and leaves the buffer
+    // untouched.
+    cb(undefined, editMode ? existingFormula : text);
   }
 
   return (
