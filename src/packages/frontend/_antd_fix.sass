@@ -31,3 +31,12 @@ html
   padding: 0
   border: 0
 
+// antd Segmented renders each option as a <label>, which inherits
+// bootstrap's `label { margin-bottom: 5px }`. That extra space below
+// each item pushes the control's vertical alignment up (e.g. the LaTeX
+// rich-edit toolbar switch sat too high in its bar). Zero it out
+// globally so every Segmented sits centered. (Individual workarounds
+// like .minimal-status-segmented in _jupyter.sass predate this.)
+.ant-segmented-item
+  margin-bottom: 0 !important
+

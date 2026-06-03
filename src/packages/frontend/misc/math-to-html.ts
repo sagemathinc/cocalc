@@ -10,6 +10,12 @@ import KaTeXCompatHacks from "./katex-compat-hacks";
 export default function mathToHtml(
   math: string, // latex expression
   isInline: boolean,
+  // Per-document macros (e.g. parsed from a .tex preamble's
+  // \newcommand definitions). Merged on top of the built-in Sage
+  // macro set so document definitions win — and, since KaTeX checks
+  // the `macros` option before its own built-ins, they also override
+  // KaTeX built-ins like \R, matching what the real LaTeX compile does.
+  extraMacros: Record<string, string> | undefined = undefined,
   _ignore: Set<string> | undefined = undefined // used internally to avoid infinite recursion.
 ): { __html: string; err?: string } {
   if (!math.trim()) {
@@ -20,12 +26,21 @@ export default function mathToHtml(
   // Apply some hacks to deal with missing functionality in katex.
   math = KaTeXCompatHacks(math);
 
+  // Default (no per-document macros): pass the shared `macros` object
+  // unchanged, preserving the existing behavior where a \gdef/\newcommand
+  // in one formula persists to later ones (katex mutates it under
+  // globalGroup:true — see issue 5750). When per-document macros are
+  // supplied (rich-edit preview), merge them on top into a throwaway
+  // object so they win but nothing leaks back into the shared map.
+  const allMacros =
+    extraMacros != null ? { ...macros, ...extraMacros } : macros;
+
   let err: string | undefined = undefined;
   let html: string | undefined = undefined;
   try {
     html = katex.renderToString(math, {
       displayMode: !isInline,
-      macros,
+      macros: allMacros,
       globalGroup: true, // See https://github.com/sagemathinc/cocalc/issues/5750
     });
   } catch (error) {
@@ -46,13 +61,29 @@ export default function mathToHtml(
       const i = err.indexOf("redefine ");
       const j = err.lastIndexOf(";");
       const name = err.slice(i + "redefine ".length, j);
-      if (!_ignore?.has(name) && macros[name] != null) {
-        math = math.replace("\\newcommand{" + name, "\\renewcommand{" + name);
-        return mathToHtml(
-          math,
-          isInline,
-          _ignore != null ? _ignore.add(name) : new Set([name])
+      if (!_ignore?.has(name) && allMacros[name] != null) {
+        // Rewrite the inline `\newcommand` for THIS macro into a
+        // `\renewcommand`. Match both the braced form
+        // `\newcommand{\foo}` and the brace-less `\newcommand\foo`,
+        // plus an optional `*`, tolerating whitespace; `name` already
+        // includes the leading backslash. `(?![a-zA-Z])` stops `\foo`
+        // from also matching `\foobar`. We only recurse when the
+        // rewrite actually changed something — if the redefinition
+        // came from `extraMacros` (not an inline `\newcommand`), there
+        // is nothing to rewrite and retrying would not help.
+        const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const re = new RegExp(
+          "\\\\newcommand(\\*?\\s*\\{?\\s*)" + esc + "(?![a-zA-Z])"
         );
+        const rewritten = math.replace(re, "\\renewcommand$1" + name);
+        if (rewritten !== math) {
+          return mathToHtml(
+            rewritten,
+            isInline,
+            extraMacros,
+            _ignore != null ? _ignore.add(name) : new Set([name])
+          );
+        }
       }
     }
   }
