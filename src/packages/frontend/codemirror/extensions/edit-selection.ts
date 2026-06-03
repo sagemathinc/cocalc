@@ -411,13 +411,23 @@ CodeMirror.defineExtension(
               // and open the AI editor (instruction + context), rather
               // than seeding the generator's input box with it. The
               // result replaces the selection in place.
-              src = await ai_gen_formula({
+              const result = await ai_gen_formula({
                 mode,
                 project_id,
                 locale,
                 existingFormula: src,
                 contextText: surrounding_context(cm, from, to),
               });
+              // The dialog can be open for seconds. In a collaborative
+              // doc a remote patch may have shifted line/char positions
+              // in the meantime, so `from`/`to` could now point at
+              // different text. Only apply if the selected range still
+              // holds the original text; otherwise leave `src` unchanged
+              // (=== src0) so the no-op check below skips the replace
+              // rather than overwriting the wrong span.
+              if (cm.getRange(from, to) === src0) {
+                src = result;
+              }
             } else {
               // Nothing selected → generator mode.
               src = await ai_gen_formula({
