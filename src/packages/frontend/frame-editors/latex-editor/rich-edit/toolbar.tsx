@@ -7,7 +7,7 @@
 RichEditToolbar — top bar of the LaTeX CodeMirror frame.
 
 Layout (left → right):
-  [ Source | Rich ] │ Section▾  B  I  U  ⟨/⟩  Math▾  🔗  List▾  Size▾
+  [ Source | Rich ] │ Section▾ Math▾ List▾ │ B I U Size▾ │ 🔗 ⟨/⟩ ⊞table
 
 The bar never wraps: when the format controls don't fit (e.g. in a
 narrow pane created by splitting), they collapse into a single
@@ -36,6 +36,17 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
+
+import { FONT_SIZE_EM } from "./font-size";
+
+// Size menu: one entry per renderer-supported size (smallest → largest,
+// the declaration order of FONT_SIZE_EM). Derived from the same map the
+// widgets render with, so the menu and the rendering can't drift. Each
+// key maps to a `font_size_<name>` wrap command in editor-button-bar.ts.
+const SIZE_ITEMS = Object.keys(FONT_SIZE_EM).map((name) => ({
+  key: `font_size_${name}`,
+  label: `\\${name}`,
+}));
 
 // Whether the user has already seen the first-run popover that
 // explains Source / Rich. Backed by the account `tours` list so the
@@ -193,32 +204,22 @@ export function RichEditToolbar({ id, actions, editor_actions }: Props) {
     { key: "insertorderedlist", label: "Numbered list (enumerate)" },
   ];
 
-  // Curated subset of the LaTeX size ladder, wrapped as {\size …} (see
-  // editor-button-bar.ts). The renderer understands the full ladder, but
-  // offering a few keeps the menu manageable.
-  const sizeItems = [
-    { key: "font_size_footnotesize", label: "Footnotesize  (\\footnotesize)" },
-    { key: "font_size_small", label: "Small  (\\small)" },
-    { key: "font_size_large", label: "Large  (\\large)" },
-    { key: "font_size_Large", label: "Larger  (\\Large)" },
-    { key: "font_size_huge", label: "Huge  (\\huge)" },
-  ];
-
   // Everything to the right of the Segmented control, collapsed into one
   // menu for the compact (narrow) layout. Leaf keys are the same
   // format-action commands the expanded buttons dispatch.
   const formatMenuItems = [
     { key: "heading", label: "Heading", children: headingItems },
+    { key: "math", label: "Math", children: mathItems },
+    { key: "list", label: "List", children: listItems },
     { type: "divider" as const },
     { key: "bold", label: "Bold" },
     { key: "italic", label: "Italic" },
     { key: "underline", label: "Underline" },
-    { key: "format_code", label: "Verbatim" },
+    { key: "size", label: "Size", children: SIZE_ITEMS },
     { type: "divider" as const },
-    { key: "math", label: "Math", children: mathItems },
     { key: "link", label: "Insert link" },
-    { key: "list", label: "List", children: listItems },
-    { key: "size", label: "Size", children: sizeItems },
+    { key: "format_code", label: "Verbatim" },
+    { key: "table_3x3", label: "Table (3×3)" },
   ];
 
   return (
@@ -307,6 +308,32 @@ export function RichEditToolbar({ id, actions, editor_actions }: Props) {
               </Button>
             </Dropdown>
 
+            <Dropdown
+              menu={{
+                items: mathItems,
+                onClick: ({ key }) => dispatch(key),
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" style={BTN_STYLE}>
+                <Icon name="tex" /> Math
+              </Button>
+            </Dropdown>
+
+            <Dropdown
+              menu={{
+                items: listItems,
+                onClick: ({ key }) => dispatch(key),
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" style={BTN_STYLE}>
+                <Icon name="list" /> List
+              </Button>
+            </Dropdown>
+
+            <Divider type="vertical" style={{ margin: "0 4px", flexShrink: 0 }} />
+
             <Tooltip title="Bold (\textbf{…})" mouseEnterDelay={0.4}>
               <Button size="small" style={BTN_STYLE} onClick={fmt("bold")}>
                 <Icon name="bold" />
@@ -325,6 +352,26 @@ export function RichEditToolbar({ id, actions, editor_actions }: Props) {
               </Button>
             </Tooltip>
 
+            <Dropdown
+              menu={{
+                items: SIZE_ITEMS,
+                onClick: ({ key }) => dispatch(key),
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" style={BTN_STYLE}>
+                <Icon name="text-height" /> Size
+              </Button>
+            </Dropdown>
+
+            <Divider type="vertical" style={{ margin: "0 4px", flexShrink: 0 }} />
+
+            <Tooltip title="Insert link (\href{…}{…})" mouseEnterDelay={0.4}>
+              <Button size="small" style={BTN_STYLE} onClick={fmt("link")}>
+                <Icon name="link" />
+              </Button>
+            </Tooltip>
+
             <Tooltip
               title="Verbatim block (\begin{verbatim}…\end{verbatim})"
               mouseEnterDelay={0.4}
@@ -338,47 +385,18 @@ export function RichEditToolbar({ id, actions, editor_actions }: Props) {
               </Button>
             </Tooltip>
 
-            <Dropdown
-              menu={{
-                items: mathItems,
-                onClick: ({ key }) => dispatch(key),
-              }}
-              trigger={["click"]}
+            <Tooltip
+              title="Insert 3×3 table (tabular)"
+              mouseEnterDelay={0.4}
             >
-              <Button size="small" style={BTN_STYLE}>
-                <Icon name="tex" /> Math
-              </Button>
-            </Dropdown>
-
-            <Tooltip title="Insert link (\href{…}{…})" mouseEnterDelay={0.4}>
-              <Button size="small" style={BTN_STYLE} onClick={fmt("link")}>
-                <Icon name="link" />
+              <Button
+                size="small"
+                style={BTN_STYLE}
+                onClick={fmt("table_3x3")}
+              >
+                <Icon name="table" />
               </Button>
             </Tooltip>
-
-            <Dropdown
-              menu={{
-                items: listItems,
-                onClick: ({ key }) => dispatch(key),
-              }}
-              trigger={["click"]}
-            >
-              <Button size="small" style={BTN_STYLE}>
-                <Icon name="list" /> List
-              </Button>
-            </Dropdown>
-
-            <Dropdown
-              menu={{
-                items: sizeItems,
-                onClick: ({ key }) => dispatch(key),
-              }}
-              trigger={["click"]}
-            >
-              <Button size="small" style={BTN_STYLE}>
-                <Icon name="text-height" /> Size
-              </Button>
-            </Dropdown>
           </>
         )}
       </div>

@@ -37,7 +37,7 @@ files:
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│ [ Source | Rich ] │ Section▾  B  I  U  ⟨/⟩  ∑▾  🔗  ☷▾              │
+│ [ Source | Rich ] │ Section▾ Math▾ List▾ │ B I U Size▾ │ 🔗 ⟨/⟩ ⊞   │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -46,19 +46,23 @@ files:
   side of a split can differ) and per-user — stored in `local_view_state`
   (localStorage), never synced to collaborators via syncdb.
 - **Right of the Segmented control:** format-action buttons that operate
-  on the current selection / cursor regardless of view mode:
+  on the current selection / cursor regardless of view mode, grouped as
+  structure → inline style → insert:
   - **Section▾** — Section / Subsection / Subsubsection / Plain. Wraps
     the selected lines.
+  - **Math▾** — insert inline `$…$`, display `\[…\]`, or open the AI
+    formula dialog.
+  - **List▾** — insert itemize / enumerate / description skeleton.
   - **B / I / U** — wrap selection in `\textbf{…}` / `\textit{…}` /
     `\underline{…}`.
+  - **Size▾** — wrap the selection in a braced size group, the full
+    `{\tiny …}` … `{\Huge …}` ladder (menu derived from the same size
+    map the widgets render with, so the two can't drift).
+  - **🔗** — insert `\href{url}{text}` via a small dialog.
   - **⟨/⟩** — wrap selection in `\verb` or `verbatim` env (single vs.
     multi-line based on selection).
-  - **∑▾** — insert inline `$…$`, display `\[…\]`, or open the AI formula
-    dialog.
-  - **🔗** — insert `\href{url}{text}` via a small dialog.
-  - **☷▾** — insert itemize / enumerate / description skeleton.
-  - **Size▾** — wrap the selection in a braced size group
-    (`{\small …}` … `{\huge …}`).
+  - **⊞ Table** — insert a 3×3 `tabular`; the current selection becomes
+    the first cell.
 
   The bar never wraps. When the format controls don't fit (narrow pane
   from a split), they collapse into a single **Format▾** dropdown whose

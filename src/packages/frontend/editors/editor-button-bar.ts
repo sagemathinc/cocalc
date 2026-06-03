@@ -283,12 +283,18 @@ $$\
     // Font-size declarations, wrapped in a brace group so the size is
     // scoped to the selection: {\Large …}. (The bare-declaration form,
     // which runs to the end of the paragraph, is intentionally not
-    // offered.) The LaTeX rich-edit toolbar's "Size" menu uses these.
+    // offered.) The LaTeX rich-edit toolbar's "Size" menu uses these —
+    // the full \tiny…\Huge ladder, matching what the widgets render.
+    font_size_tiny: { wrap: { left: "{\\tiny ", right: "}" } },
+    font_size_scriptsize: { wrap: { left: "{\\scriptsize ", right: "}" } },
     font_size_footnotesize: { wrap: { left: "{\\footnotesize ", right: "}" } },
     font_size_small: { wrap: { left: "{\\small ", right: "}" } },
+    font_size_normalsize: { wrap: { left: "{\\normalsize ", right: "}" } },
     font_size_large: { wrap: { left: "{\\large ", right: "}" } },
     font_size_Large: { wrap: { left: "{\\Large ", right: "}" } },
+    font_size_LARGE: { wrap: { left: "{\\LARGE ", right: "}" } },
     font_size_huge: { wrap: { left: "{\\huge ", right: "}" } },
+    font_size_Huge: { wrap: { left: "{\\Huge ", right: "}" } },
     equation: {
       default: "x^2",
       wrap: {
@@ -374,6 +380,17 @@ $$\
       wrap: {
         left: "\n\\begin{center}\\begin{tabular}{|c|c|}\n\\hline\ncell1 & cell2 \\\\\ncell3 & cell4 \\\\\n\\hline",
         right: "\n\\end{tabular}\\end{center}\n",
+      },
+    },
+    // 3×3 tabular for the LaTeX rich-edit "Table" button. The current
+    // selection (if any) becomes the first cell; the rest start empty.
+    // A plain `tabular` (no float wrapper) so the rich-edit parser
+    // renders it as a table widget.
+    table_3x3: {
+      wrap: {
+        left: "\n\\begin{tabular}{|c|c|c|}\n\\hline\n",
+        right:
+          " &  &  \\\\\n\\hline\n &  &  \\\\\n\\hline\n &  &  \\\\\n\\hline\n\\end{tabular}\n",
       },
     },
     subscript: {
