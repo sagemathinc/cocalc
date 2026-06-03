@@ -141,15 +141,18 @@ export function ListItem(props: WidgetProps) {
   const index = (props.descriptor.payload?.index as number | undefined) ?? 1;
   const label = props.descriptor.payload?.label as string | null | undefined;
   const depth = (props.descriptor.payload?.depth as number | undefined) ?? 0;
+  const hasLabel = label != null && label !== "";
   let marker: string;
-  if (envName === "enumerate") {
+  if (hasLabel) {
+    // An optional label — `\item[(a)]`, `\item[$\star$]`, or the
+    // standard `description` form — REPLACES the default bullet/number
+    // in LaTeX (for itemize, enumerate and description alike). Suppress
+    // the default marker; the label span below renders in its place.
+    marker = "";
+  } else if (envName === "enumerate") {
     marker = enumerateMarker(index, depth);
-  } else if (envName === "description") {
-    // \item[Label] is the standard form for description. If the
-    // user wrote \item with no label, we still show a small bullet
-    // hint at the env's depth.
-    marker = label != null && label !== "" ? "" : itemizeMarker(depth);
   } else {
+    // itemize + description with no label: a depth-appropriate bullet.
     marker = itemizeMarker(depth);
   }
   return (

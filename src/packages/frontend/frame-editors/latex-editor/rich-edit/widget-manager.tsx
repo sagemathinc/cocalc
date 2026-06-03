@@ -253,7 +253,14 @@ export function attachWidgetManager(
     // resolves (it can take seconds), bail on null, and detect cancel
     // by checking whether the dialog returned the original text
     // unchanged (ai-formula.tsx resolves cancel that way).
-    const onAiEdit = AI_EDITABLE_TYPES.has(d.type)
+    //
+    // Suppress the pencil entirely in read-only / public frames: CM's
+    // `readOnly` blocks user typing but NOT programmatic
+    // `replaceRange`, so an AI edit would otherwise mutate a buffer the
+    // user isn't allowed to change.
+    const aiEditable =
+      AI_EDITABLE_TYPES.has(d.type) && !cm.getOption("readOnly");
+    const onAiEdit = aiEditable
       ? async () => {
           if (marker == null) return;
           const range = marker.find();
@@ -285,6 +292,9 @@ export function attachWidgetManager(
             // refuse to clobber.
             return;
           }
+          // Re-check read-only here too: the option could have been
+          // toggled while the (seconds-long) dialog was open.
+          if (cm.getOption("readOnly")) return;
           cm.replaceRange(result, range2.from, range2.to);
         }
       : undefined;

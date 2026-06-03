@@ -78,7 +78,13 @@ const ENV_SEARCH_MAX_LINES = 500;
 const ENV_SCAN_LOOKBACK = 200;
 const BEGIN_RE = /\\begin\{([^}]+)\}/g;
 const END_RE = /\\end\{([^}]+)\}/g;
-const ITEM_RE = /\\item(?:\[((?:[^\]\\]|\\.)*?)\])?/g;
+// `\item` is a control word, so it must NOT be followed by another
+// letter — otherwise `\itemsep`, `\itemindent`, `\itemize` (and the
+// like, e.g. inside `\setlength{\itemsep}{0pt}`) would match the
+// `\item` prefix, hide just that fragment, and be miscounted as list
+// items. The negative lookahead requires a real token boundary; the
+// optional `[label]` still follows for `\item[…]`.
+const ITEM_RE = /\\item(?![a-zA-Z])(?:\[((?:[^\]\\]|\\.)*?)\])?/g;
 
 const SINGLE_ARG_COMMANDS: ReadonlyArray<[string, WidgetType]> = [
   ["\\textit", "textit"],
@@ -1436,16 +1442,30 @@ function scanEnvBlocks(
             protectedRanges.push({ from: begin.beginLine + 1, to: line });
           }
         } else if (TABULAR_ENV_NAMES.has(begin.envName)) {
-          // Tabular: fail-open. Only emit a widget if the colspec
+          // Tabular: fail-open. Only treat it as a table if the colspec
           // parses, cell counts match, and there's no \multicolumn.
           // Otherwise we leave the source raw so the user can see /
           // edit the LaTeX directly — better than a half-broken table.
-          if (begin.beginLine >= fromLine && begin.beginLine < toLine) {
-            const from = { line: begin.beginLine, ch: begin.beginCh };
-            const to = { line, ch: ev.endCh };
-            const source = getRangeFromSource(src, from, to);
-            const data = parseTabular(source, begin.envName);
-            if (data != null) {
+          const from = { line: begin.beginLine, ch: begin.beginCh };
+          const to = { line, ch: ev.endCh };
+          const source = getRangeFromSource(src, from, to);
+          const data = parseTabular(source, begin.envName);
+          if (data != null) {
+            // Protect the body lines from the per-line scanners so
+            // inner \textbf / math don't render inside the table —
+            // done OUTSIDE the begin-visible check below so it still
+            // applies when \begin{tabular} is above the viewport and we
+            // scrolled into the middle of a supported table. (Mirrors
+            // the code-listing branch above.)
+            if (line > begin.beginLine + 1) {
+              protectedRanges.push({
+                from: begin.beginLine + 1,
+                to: line,
+              });
+            }
+            // The covering widget anchors at \begin, so only emit it
+            // when that line is visible.
+            if (begin.beginLine >= fromLine && begin.beginLine < toLine) {
               out.push({
                 type: "tabular-env",
                 from,
@@ -1457,22 +1477,11 @@ function scanEnvBlocks(
                   rows: data.rows,
                 },
               });
-              // Subsume inner widgets via dropOverlaps (the cover
-              // descriptor's range), AND protect the body lines so
-              // the begin-above-viewport case is also covered.
-              if (line > begin.beginLine + 1) {
-                protectedRanges.push({
-                  from: begin.beginLine + 1,
-                  to: line,
-                });
-              }
             }
-            // If `data == null` — no widget; raw source stays visible.
-            // Per-line scanners may still pick up `\textbf` etc. on
-            // visible cell lines, which is OK: the user sees the raw
-            // tabular structure with some inline widgets inside it,
-            // same as if we didn't support tabular at all.
           }
+          // If `data == null` — no widget, no protection; raw source +
+          // any inline widgets stay visible, same as an unsupported
+          // tabular.
         }
       } else {
         // \item: associate with nearest open list env.

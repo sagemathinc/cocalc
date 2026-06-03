@@ -104,6 +104,36 @@ describe("parseLines — representative cases per family", () => {
     expect(items[1].payload).toMatchObject({ index: 2 });
   });
 
+  it("\\itemsep / \\itemindent are NOT matched as list items", () => {
+    const ds = parse([
+      "\\begin{itemize}",
+      "  \\setlength{\\itemsep}{0pt}",
+      "  \\itemindent=1em",
+      "  \\item real one",
+      "  \\item real two",
+      "\\end{itemize}",
+    ]);
+    const items = ds.filter((d) => d.type === "list-item");
+    // Only the two genuine \item tokens — the \itemsep/\itemindent
+    // prefixes must not be miscounted (which would misnumber items).
+    expect(items.length).toBe(2);
+    expect(items[0].payload).toMatchObject({ index: 1 });
+    expect(items[1].payload).toMatchObject({ index: 2 });
+  });
+
+  it("\\item[label] keeps the label and the token boundary", () => {
+    const ds = parse([
+      "\\begin{itemize}",
+      "  \\item[$\\star$] starred",
+      "  \\item plain",
+      "\\end{itemize}",
+    ]);
+    const items = ds.filter((d) => d.type === "list-item");
+    expect(items.length).toBe(2);
+    expect(items[0].payload).toMatchObject({ label: "$\\star$" });
+    expect(items[1].payload).toMatchObject({ label: null });
+  });
+
   it("href two-arg command", () => {
     const ds = parse1("see \\href{https://x.org}{here}");
     const d = first(ds, "href")!;
