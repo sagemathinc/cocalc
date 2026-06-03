@@ -316,7 +316,12 @@ export function RichEditToolbar({ id, actions, editor_actions }: Props) {
               trigger={["click"]}
             >
               <Button size="small" style={BTN_STYLE}>
-                <Icon name="tex" /> Math
+                {/* A little formula reads clearer than the "tex" glyph,
+                    which looked like the word "TeX". */}
+                <span style={{ fontFamily: "serif" }}>
+                  &radic;<span style={{ fontStyle: "italic" }}>x</span>
+                </span>{" "}
+                Math
               </Button>
             </Dropdown>
 
