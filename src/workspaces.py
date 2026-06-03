@@ -253,12 +253,27 @@ def install(args) -> None:
     try:
         if v != allp:
             shutil.copy(ws, tmp)
-            s = open(ws, 'r').read() + '\n'
-            for package in allp:
-                if package not in v:
-                    s += '  - "!%s"\n' % package.split('/')[-1]
-
-            open(ws, 'w').write(s)
+            # Insert the "!package" exclusions *inside* the "packages:" list,
+            # right after the "packages:" line.  We must NOT append them at the
+            # end of the file: pnpm-workspace.yaml now also contains mapping
+            # sections (overrides, allowBuilds, ...) after the packages list,
+            # and appending sequence items after a mapping is invalid YAML.
+            excludes = [
+                '  - "!%s"' % package.split('/')[-1] for package in allp
+                if package not in v
+            ]
+            lines = open(ws, 'r').read().split('\n')
+            out = []
+            inserted = False
+            for line in lines:
+                out.append(line)
+                if not inserted and line.strip() == 'packages:':
+                    out.extend(excludes)
+                    inserted = True
+            if not inserted:
+                # Fallback (no "packages:" key found): old append behavior.
+                out = ['packages:'] + excludes + lines
+            open(ws, 'w').write('\n'.join(out))
 
         print("install packages")
         # much faster special case

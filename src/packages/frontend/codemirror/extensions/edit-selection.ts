@@ -23,6 +23,38 @@ editor on top of codemirror, e.g., to provide features like "make the selected
 text be in italics" or "comment out the selected text".
 */
 
+// A few lines of text before/after the selection, passed to the AI
+// formula editor as context (so the model can match surrounding
+// notation/style). Mirrors the rich-edit pencil's context helper.
+const AI_CONTEXT_LINES = 4;
+const AI_CONTEXT_MAX_CHARS = 800;
+
+function surrounding_context(
+  cm: any,
+  from: CodeMirror.Position,
+  to: CodeMirror.Position,
+): string {
+  const lineCount = cm.lineCount();
+  const beforeLines: string[] = [];
+  for (let l = Math.max(0, from.line - AI_CONTEXT_LINES); l < from.line; l++) {
+    beforeLines.push(cm.getLine(l) ?? "");
+  }
+  let before = beforeLines.join("\n");
+  if (before.length > AI_CONTEXT_MAX_CHARS) {
+    before = before.slice(before.length - AI_CONTEXT_MAX_CHARS);
+  }
+  const afterLines: string[] = [];
+  const afterEnd = Math.min(lineCount - 1, to.line + AI_CONTEXT_LINES);
+  for (let l = to.line + 1; l <= afterEnd; l++) {
+    afterLines.push(cm.getLine(l) ?? "");
+  }
+  let after = afterLines.join("\n");
+  if (after.length > AI_CONTEXT_MAX_CHARS) {
+    after = after.slice(0, AI_CONTEXT_MAX_CHARS);
+  }
+  return [before, "[FORMULA]", after].join("\n").trim();
+}
+
 // The plugin is async; awaiting it can take a while, since it might have to
 // wait for user to respond to dialog boxes.
 CodeMirror.defineExtension(
@@ -374,12 +406,37 @@ CodeMirror.defineExtension(
             const account_store = redux.getStore("account");
             const locale = getLocale(account_store.get("other_settings"));
 
-            src = await ai_gen_formula({
-              mode,
-              text: src,
-              project_id,
-              locale,
-            });
+            if (src.trim()) {
+              // Something is selected → treat it as an existing formula
+              // and open the AI editor (instruction + context), rather
+              // than seeding the generator's input box with it. The
+              // result replaces the selection in place.
+              const result = await ai_gen_formula({
+                mode,
+                project_id,
+                locale,
+                existingFormula: src,
+                contextText: surrounding_context(cm, from, to),
+              });
+              // The dialog can be open for seconds. In a collaborative
+              // doc a remote patch may have shifted line/char positions
+              // in the meantime, so `from`/`to` could now point at
+              // different text. Only apply if the selected range still
+              // holds the original text; otherwise leave `src` unchanged
+              // (=== src0) so the no-op check below skips the replace
+              // rather than overwriting the wrong span.
+              if (cm.getRange(from, to) === src0) {
+                src = result;
+              }
+            } else {
+              // Nothing selected → generator mode.
+              src = await ai_gen_formula({
+                mode,
+                text: src,
+                project_id,
+                locale,
+              });
+            }
           }
           done = true;
           break;

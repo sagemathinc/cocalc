@@ -13,6 +13,7 @@ const TOUR_NAMES = {
   explorer: "File Explorer",
   "frame-terminal": "Linux Terminal",
   "flyout-fullpage": "Fullpage Flyout",
+  "latex-rich-edit": "LaTeX Rich Preview",
 } as const;
 
 export type TourName = keyof typeof TOUR_NAMES;
