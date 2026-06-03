@@ -279,6 +279,10 @@ export function attachWidgetManager(
             // dialog dismissed via error / X — bail silently
             return;
           }
+          // The dialog can be open for seconds; the manager may have
+          // been disposed in the meantime (file switch / unmount /
+          // mode toggle). Don't mutate a buffer we no longer own.
+          if (disposed) return;
           // Cancel returns the original text unchanged.
           if (result === originalSource) return;
           // Re-check marker after dialog (may have been edited or

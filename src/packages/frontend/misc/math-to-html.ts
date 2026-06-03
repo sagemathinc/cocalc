@@ -62,13 +62,28 @@ export default function mathToHtml(
       const j = err.lastIndexOf(";");
       const name = err.slice(i + "redefine ".length, j);
       if (!_ignore?.has(name) && allMacros[name] != null) {
-        math = math.replace("\\newcommand{" + name, "\\renewcommand{" + name);
-        return mathToHtml(
-          math,
-          isInline,
-          extraMacros,
-          _ignore != null ? _ignore.add(name) : new Set([name])
+        // Rewrite the inline `\newcommand` for THIS macro into a
+        // `\renewcommand`. Match both the braced form
+        // `\newcommand{\foo}` and the brace-less `\newcommand\foo`,
+        // plus an optional `*`, tolerating whitespace; `name` already
+        // includes the leading backslash. `(?![a-zA-Z])` stops `\foo`
+        // from also matching `\foobar`. We only recurse when the
+        // rewrite actually changed something — if the redefinition
+        // came from `extraMacros` (not an inline `\newcommand`), there
+        // is nothing to rewrite and retrying would not help.
+        const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const re = new RegExp(
+          "\\\\newcommand(\\*?\\s*\\{?\\s*)" + esc + "(?![a-zA-Z])"
         );
+        const rewritten = math.replace(re, "\\renewcommand$1" + name);
+        if (rewritten !== math) {
+          return mathToHtml(
+            rewritten,
+            isInline,
+            extraMacros,
+            _ignore != null ? _ignore.add(name) : new Set([name])
+          );
+        }
       }
     }
   }

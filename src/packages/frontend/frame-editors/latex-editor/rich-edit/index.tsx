@@ -82,6 +82,7 @@ export function LatexCodemirrorEditor(props: EditorComponentProps) {
     if (!richEditMode) return;
     let dispose: (() => void) | null = null;
     let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const tryAttach = () => {
       if (cancelled) return;
       // CodemirrorEditor stores the live cm instance on
@@ -101,12 +102,13 @@ export function LatexCodemirrorEditor(props: EditorComponentProps) {
       if (cm) {
         dispose = attachWidgetManager(cm, frameContextRef.current);
       } else {
-        setTimeout(tryAttach, 100);
+        retryTimer = setTimeout(tryAttach, 100);
       }
     };
     tryAttach();
     return () => {
       cancelled = true;
+      if (retryTimer != null) clearTimeout(retryTimer);
       dispose?.();
     };
     // Deliberately exclude frameContext + editor_actions: captured

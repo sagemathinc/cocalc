@@ -1376,6 +1376,23 @@ function scanEnvBlocks(
     }
   }
 
+  // Unterminated raw-text envs. A verbatim / lstlisting / minted whose
+  // matching `\end{…}` lies beyond `maxSearchLine` never gets popped,
+  // so the `end`-event branch that pushes its `protectedRange` never
+  // runs. Its body is opaque code, so any visible lines below the
+  // `\begin` must still be shielded from the per-line scanners —
+  // otherwise raw code emits bogus inline widgets. Protect from
+  // beginLine+1 through the end of what we scanned (half-open, so
+  // `maxSearchLine + 1`).
+  for (const open of stack) {
+    if (isRawTextEnv(open.envName) && maxSearchLine > open.beginLine + 1) {
+      protectedRanges.push({
+        from: open.beginLine + 1,
+        to: maxSearchLine + 1,
+      });
+    }
+  }
+
   function processEvent(ev: Event, line: number): void {
     {
       if (ev.kind === "begin") {

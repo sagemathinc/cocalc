@@ -285,6 +285,19 @@ describe("TASK 3 — opaque verbatim/listing/minted bodies", () => {
     // textbf after the verbatim is unaffected.
     expect(first(ds, "textbf")).toBeDefined();
   });
+
+  it("unterminated verbatim still protects its body from per-line scanners", () => {
+    // No closing \end{verbatim}: the env never pops, so the end-event
+    // branch that would push its protectedRange never runs. The body
+    // must still be shielded so raw code doesn't emit bogus widgets.
+    const ds = parse([
+      "\\begin{verbatim}",
+      "$x^2$",
+      "\\textbf{raw}",
+    ]);
+    expect(first(ds, "math-inline")).toBeUndefined();
+    expect(first(ds, "textbf")).toBeUndefined();
+  });
 });
 
 describe("TASK 4 — dropOverlaps widest-wins", () => {
