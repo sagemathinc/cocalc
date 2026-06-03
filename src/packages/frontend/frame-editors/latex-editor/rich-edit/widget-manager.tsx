@@ -55,6 +55,19 @@ interface LiveMark {
   root: Root;
   source: string;
   type: WidgetType;
+  /** Serialized payload last rendered into `root`. The reconcile key
+   * deliberately excludes the payload (so a marker survives sibling
+   * edits that renumber/reindent it), so we track it here to detect
+   * when a survivor must be re-rendered with a fresh descriptor. */
+  payloadKey: string;
+  /** Re-render this mark's React root with a new descriptor, reusing the
+   * existing host, root, and activation closures. */
+  rerender: (d: WidgetDescriptor) => void;
+}
+
+/** Stable serialization of a descriptor's payload for change detection. */
+function payloadKeyOf(d: WidgetDescriptor): string {
+  return d.payload == null ? "" : JSON.stringify(d.payload);
 }
 
 function keyOf(
@@ -278,14 +291,19 @@ export function attachWidgetManager(
 
     const root = createRoot(host);
     // createRoot mounts live outside the editor's <FrameContext.Provider> —
-    // wrap so any context-dependent hooks see the right value.
-    root.render(
-      <FrameContext.Provider value={frameContext}>
-        <MathMacrosContext.Provider value={currentMacros}>
-          {renderWidget(d, onActivate, onAiEdit)}
-        </MathMacrosContext.Provider>
-      </FrameContext.Provider>,
-    );
+    // wrap so any context-dependent hooks see the right value. Shared by
+    // the initial mount and survivor re-renders (renumbered list items
+    // etc.) so both go through the same provider wrapping.
+    const renderWith = (desc: WidgetDescriptor) => {
+      root.render(
+        <FrameContext.Provider value={frameContext}>
+          <MathMacrosContext.Provider value={currentMacros}>
+            {renderWidget(desc, onActivate, onAiEdit)}
+          </MathMacrosContext.Provider>
+        </FrameContext.Provider>,
+      );
+    };
+    renderWith(d);
 
     marker = cm.markText(d.from, d.to, {
       replacedWith: host,
@@ -300,7 +318,15 @@ export function attachWidgetManager(
       atomic: false,
     });
 
-    return { marker, host, root, source: d.source, type: d.type };
+    return {
+      marker,
+      host,
+      root,
+      source: d.source,
+      type: d.type,
+      payloadKey: payloadKeyOf(d),
+      rerender: renderWith,
+    };
   };
 
   // ---- Parse cache --------------------------------------------------
@@ -376,6 +402,17 @@ export function attachWidgetManager(
       if (currentText !== m.source) {
         disposeMark(m);
         continue;
+      }
+      // The key matched on (position, type, source) but excludes the
+      // payload, so a survivor can still carry a stale render when only
+      // the payload changed — e.g. inserting an \item renumbers the
+      // following chips, or switching itemize→enumerate changes their
+      // markers, without touching their range/source. Re-render in that
+      // case (cheap: skipped when the payload is unchanged).
+      const freshPayloadKey = payloadKeyOf(d);
+      if (freshPayloadKey !== m.payloadKey) {
+        m.rerender(d);
+        m.payloadKey = freshPayloadKey;
       }
       survivors.push(m);
       consumed.add(key);

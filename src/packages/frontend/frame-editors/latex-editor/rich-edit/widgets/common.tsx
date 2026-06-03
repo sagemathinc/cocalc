@@ -55,7 +55,7 @@ export function Widget({
       }
       placement="top"
       mouseEnterDelay={0.3}
-      overlayStyle={{ maxWidth: 400 }}
+      styles={{ root: { maxWidth: 400 } }}
     >
       <span
         onMouseEnter={() => setHover(true)}

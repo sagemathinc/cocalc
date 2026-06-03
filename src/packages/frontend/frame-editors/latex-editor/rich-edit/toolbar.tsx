@@ -174,7 +174,13 @@ export function RichEditToolbar({ id, editor_actions }: Props) {
           <span style={{ display: "inline-flex", alignItems: "center" }}>
             <Segmented
               size="small"
-              options={[MODE_SOURCE, MODE_RICH]}
+              // `title: ""` suppresses antd's per-item native browser
+              // tooltip (it defaults to the label) — we already show the
+              // richer explanation via the wrapping <Tooltip> above.
+              options={[
+                { label: MODE_SOURCE, value: MODE_SOURCE, title: "" },
+                { label: MODE_RICH, value: MODE_RICH, title: "" },
+              ]}
               value={currentMode}
               onChange={setMode}
             />

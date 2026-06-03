@@ -37,6 +37,17 @@ describe("extractMacros", () => {
     expect(m).toEqual({ "\\x": "b", "\\y": "c" });
   });
 
+  it("last-wins across mixed forms, in source order (not by scanner)", () => {
+    // \def first, \renewcommand later → LaTeX uses the later one.
+    expect(
+      extractMacros("\\def\\R{\\mathbb{Z}}\n\\renewcommand{\\R}{\\mathbb{R}}"),
+    ).toEqual({ "\\R": "\\mathbb{R}" });
+    // Reverse the order → the \def now wins because it comes later.
+    expect(
+      extractMacros("\\renewcommand{\\R}{\\mathbb{R}}\n\\def\\R{\\mathbb{Z}}"),
+    ).toEqual({ "\\R": "\\mathbb{Z}" });
+  });
+
   it("\\DeclareMathOperator (plain and starred)", () => {
     expect(extractMacros("\\DeclareMathOperator{\\Hom}{Hom}")).toEqual({
       "\\Hom": "\\operatorname{Hom}",
@@ -83,6 +94,32 @@ describe("extractMacros", () => {
       "\\end{document}",
     ].join("\n");
     expect(extractMacros(doc)).toEqual({ "\\R": "\\mathbb{R}" });
+  });
+
+  it("only scans the preamble — macros after \\begin{document} are ignored", () => {
+    const doc = [
+      "\\newcommand{\\R}{\\mathbb{R}}",
+      "\\begin{document}",
+      "\\newcommand{\\Q}{\\mathbb{Q}}", // in body — must be skipped
+      "\\end{document}",
+    ].join("\n");
+    expect(extractMacros(doc)).toEqual({ "\\R": "\\mathbb{R}" });
+  });
+
+  it("a commented-out \\begin{document} does not cut the preamble short", () => {
+    const doc = [
+      "% \\begin{document}",
+      "\\newcommand{\\R}{\\mathbb{R}}",
+      "\\begin{document}",
+      "\\end{document}",
+    ].join("\n");
+    expect(extractMacros(doc)).toEqual({ "\\R": "\\mathbb{R}" });
+  });
+
+  it("scans the full text when there is no \\begin{document} (fragment)", () => {
+    expect(extractMacros("\\newcommand{\\R}{\\mathbb{R}}")).toEqual({
+      "\\R": "\\mathbb{R}",
+    });
   });
 });
 

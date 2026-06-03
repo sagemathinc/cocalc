@@ -101,10 +101,12 @@ formula (not on the pencil) behaves like every other widget.
 User-defined preamble macros are fed to KaTeX so the in-buffer preview
 matches the real compile:
 
-- `latex-macros.ts::extractMacros(text)` scans the buffer for
+- `latex-macros.ts::extractMacros(text)` scans the **preamble** (text
+  before `\begin{document}`; the whole text if there is none) for
   `\newcommand` / `\renewcommand` / `\providecommand`, `\def\name…`, and
   `\DeclareMathOperator`, producing a KaTeX-compatible macro map
-  (e.g. `\R → \mathbb{R}`).
+  (e.g. `\R → \mathbb{R}`). Preamble-only scanning bounds the per-edit
+  cost to the prologue rather than the full (possibly large) buffer.
 - The widget manager re-scans on change, diffs the map by
   `JSON.stringify`, and on change disposes **all** live marks so every
   formula re-renders with the new macros. The map is delivered to

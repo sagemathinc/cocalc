@@ -29,12 +29,28 @@ anything whose body braces don't balance.
 This is a best-effort lexical scan, not a TeX parser: it strips `%`
 comments (honoring `\%`) but does not understand `\verb`/verbatim
 bodies. Defining macros inside verbatim is pathological and ignored.
+
+Only the preamble (text before `\begin{document}`) is scanned, since
+that is where user macros live in practice and it bounds the per-edit
+cost to the prologue rather than the whole buffer. A document with no
+`\begin{document}` (a fragment / snippet) is scanned in full.
 */
 
 const NEWCOMMAND_RE = /\\(?:newcommand|renewcommand|providecommand)\*?\s*/g;
 const DECLARE_OP_RE = /\\DeclareMathOperator(\*?)\s*/g;
 const DEF_RE = /\\def\s*\\([A-Za-z@]+)/g;
 const NAME_RE = /^\\([A-Za-z@]+)/;
+
+/** One parsed macro definition, tagged with its source position so the
+ * forms can be merged back in document order (last-wins, per LaTeX). */
+interface MacroDef {
+  /** Macro name including the leading backslash, e.g. `\\R`. */
+  name: string;
+  /** KaTeX-ready expansion body. */
+  body: string;
+  /** Start offset in the scanned text — used to apply source order. */
+  index: number;
+}
 
 /** Read a `{…}` group starting at `text[i] === "{"`, brace-balanced,
  * honoring `\{` / `\}` escapes. Returns the inner body and the index
@@ -92,10 +108,11 @@ function stripComments(text: string): string {
     .join("\n");
 }
 
-function scanNewcommands(text: string, out: Record<string, string>): void {
+function scanNewcommands(text: string, defs: MacroDef[]): void {
   NEWCOMMAND_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = NEWCOMMAND_RE.exec(text)) !== null) {
+    const start = m.index;
     let i = m.index + m[0].length;
     // Name: {\name} or bare \name.
     let name: string;
@@ -126,15 +143,16 @@ function scanNewcommands(text: string, out: Record<string, string>): void {
     if (text[i] !== "{") continue;
     const body = readBraced(text, i);
     if (body == null) continue;
-    out[name] = body.body;
+    defs.push({ name, body: body.body, index: start });
     NEWCOMMAND_RE.lastIndex = body.end;
   }
 }
 
-function scanDeclareOps(text: string, out: Record<string, string>): void {
+function scanDeclareOps(text: string, defs: MacroDef[]): void {
   DECLARE_OP_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = DECLARE_OP_RE.exec(text)) !== null) {
+    const start = m.index;
     const star = m[1] === "*";
     let i = m.index + m[0].length;
     let name: string;
@@ -156,15 +174,20 @@ function scanDeclareOps(text: string, out: Record<string, string>): void {
     if (text[i] !== "{") continue;
     const op = readBraced(text, i);
     if (op == null) continue;
-    out[name] = `\\operatorname${star ? "*" : ""}{${op.body}}`;
+    defs.push({
+      name,
+      body: `\\operatorname${star ? "*" : ""}{${op.body}}`,
+      index: start,
+    });
     DECLARE_OP_RE.lastIndex = op.end;
   }
 }
 
-function scanDefs(text: string, out: Record<string, string>): void {
+function scanDefs(text: string, defs: MacroDef[]): void {
   DEF_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = DEF_RE.exec(text)) !== null) {
+    const start = m.index;
     const name = "\\" + m[1];
     let i = m.index + m[0].length;
     // Parameter text up to the body brace: accept only simple #1#2…
@@ -178,21 +201,50 @@ function scanDefs(text: string, out: Record<string, string>): void {
     if (params.trim() !== "" && !/^(#\d)+$/.test(params.trim())) continue;
     const body = readBraced(text, i);
     if (body == null) continue;
-    out[name] = body.body;
+    defs.push({ name, body: body.body, index: start });
     DEF_RE.lastIndex = body.end;
   }
 }
 
+// Real LaTeX honors macro definitions wherever they appear, but in
+// practice ~all user macros live in the preamble. Scanning only the
+// preamble bounds the cost to the (small, ~constant) prologue instead
+// of the whole buffer — the body can be megabytes and is re-scanned on
+// every edit. The `\begin{document}` match runs on comment-stripped
+// text so a commented-out marker doesn't cut the preamble short.
+const BEGIN_DOCUMENT_RE = /\\begin\s*\{document\}/;
+
 /**
- * Parse all macro definitions from a document's full text into a
- * KaTeX-compatible macro map. Later definitions override earlier ones
- * (matching LaTeX's last-wins for \renewcommand / \def).
+ * Restrict `stripped` (already comment-stripped) text to the preamble —
+ * everything before `\begin{document}`. Fail-open: if there is no
+ * `\begin{document}` (a fragment, an `\input`-ed file, or a snippet),
+ * return the whole text so macros are still found.
+ */
+function preambleOf(stripped: string): string {
+  const m = BEGIN_DOCUMENT_RE.exec(stripped);
+  return m == null ? stripped : stripped.slice(0, m.index);
+}
+
+/**
+ * Parse all macro definitions from a document into a KaTeX-compatible
+ * macro map. Later definitions override earlier ones (matching LaTeX's
+ * last-wins for \renewcommand / \def). Only the preamble is scanned
+ * (see `preambleOf`); documents with no `\begin{document}` are scanned
+ * in full.
  */
 export function extractMacros(text: string): Record<string, string> {
+  const preamble = preambleOf(stripComments(text));
+  const defs: MacroDef[] = [];
+  scanNewcommands(preamble, defs);
+  scanDeclareOps(preamble, defs);
+  scanDefs(preamble, defs);
+  // The scanners run one form at a time, so their relative order in the
+  // source is lost. Re-sort by document position and apply ascending so
+  // the LAST definition of a name wins regardless of form — matching
+  // LaTeX (e.g. a later \renewcommand{\R} must override an earlier
+  // \def\R, not the other way around because scanDefs ran last).
+  defs.sort((a, b) => a.index - b.index);
   const out: Record<string, string> = {};
-  const stripped = stripComments(text);
-  scanNewcommands(stripped, out);
-  scanDeclareOps(stripped, out);
-  scanDefs(stripped, out);
+  for (const d of defs) out[d.name] = d.body;
   return out;
 }
