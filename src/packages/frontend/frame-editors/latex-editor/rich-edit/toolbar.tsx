@@ -7,7 +7,13 @@
 RichEditToolbar — top bar of the LaTeX CodeMirror frame.
 
 Layout (left → right):
-  [ Source | Rich ] │ Section▾  B  I  U  ⟨/⟩  Math▾  🔗  List▾
+  [ Source | Rich ] │ Section▾  B  I  U  ⟨/⟩  Math▾  🔗  List▾  Size▾
+
+The bar never wraps: when the format controls don't fit (e.g. in a
+narrow pane created by splitting), they collapse into a single
+"Format" dropdown whose submenus mirror the individual controls. This
+is driven by a ResizeObserver comparing the bar's natural content width
+to its available width.
 
 The Segmented control switches the per-frame view mode between
 "Source" (raw LaTeX) and "Rich" (rendered widgets). State is
@@ -25,7 +31,7 @@ See `src/docs/latex-rich-edit-design.md`.
 */
 
 import { Button, Divider, Dropdown, Popover, Segmented, Tooltip } from "antd";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -54,10 +60,24 @@ type ViewMode = typeof MODE_SOURCE | typeof MODE_RICH;
 const BAR_STYLE = {
   display: "flex",
   alignItems: "center",
-  flexWrap: "wrap",
+  // Never wrap: extra frames make the editor narrow, and a wrapping
+  // toolbar would eat into the editable content. Instead the format
+  // controls collapse into a single "Format" dropdown (see `compact`).
+  flexWrap: "nowrap",
+  overflow: "hidden",
   padding: "4px 8px",
   borderBottom: `1px solid ${COLORS.GRAY_LL}`,
   background: COLORS.GRAY_LLL,
+  flexShrink: 0,
+  gap: 2,
+} as const;
+
+// Each area holds a group of controls and must NOT shrink, so the bar's
+// scrollWidth reflects the true natural width — that's what the overflow
+// measurement compares against clientWidth.
+const AREA_STYLE = {
+  display: "inline-flex",
+  alignItems: "center",
   flexShrink: 0,
   gap: 2,
 } as const;
@@ -88,6 +108,34 @@ export function RichEditToolbar({ id, actions, editor_actions }: Props) {
   const richMode: boolean =
     actions?._get_frame_data?.(id, "richEditMode", true) !== false;
   const currentMode: ViewMode = richMode ? MODE_RICH : MODE_SOURCE;
+
+  // Responsive layout: when the format controls don't fit, collapse
+  // them into a single "Format" dropdown instead of wrapping the bar.
+  // We compare the bar's natural content width (scrollWidth, with all
+  // areas flex-shrink:0) against its available width (clientWidth).
+  const barRef = useRef<HTMLDivElement>(null);
+  const fullWidthRef = useRef(0);
+  const [compact, setCompact] = useState(false);
+  useLayoutEffect(() => {
+    const el = barRef.current;
+    if (el == null) return;
+    const measure = () => {
+      const avail = el.clientWidth;
+      if (!compact) {
+        // Expanded: remember the natural width; collapse if it overflows.
+        fullWidthRef.current = el.scrollWidth;
+        if (el.scrollWidth > avail + 1) setCompact(true);
+      } else if (fullWidthRef.current > 0 && avail >= fullWidthRef.current) {
+        // Compact: only expand again once the full set provably fits —
+        // the dead zone between the two thresholds prevents oscillation.
+        setCompact(false);
+      }
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [compact]);
 
   // First-run hint state — initialized once from localStorage.
   const [showHint, setShowHint] = useState<boolean>(() => !hasSeenHint());
@@ -145,131 +193,195 @@ export function RichEditToolbar({ id, actions, editor_actions }: Props) {
     { key: "insertorderedlist", label: "Numbered list (enumerate)" },
   ];
 
+  // Curated subset of the LaTeX size ladder, wrapped as {\size …} (see
+  // editor-button-bar.ts). The renderer understands the full ladder, but
+  // offering a few keeps the menu manageable.
+  const sizeItems = [
+    { key: "font_size_footnotesize", label: "Footnotesize  (\\footnotesize)" },
+    { key: "font_size_small", label: "Small  (\\small)" },
+    { key: "font_size_large", label: "Large  (\\large)" },
+    { key: "font_size_Large", label: "Larger  (\\Large)" },
+    { key: "font_size_huge", label: "Huge  (\\huge)" },
+  ];
+
+  // Everything to the right of the Segmented control, collapsed into one
+  // menu for the compact (narrow) layout. Leaf keys are the same
+  // format-action commands the expanded buttons dispatch.
+  const formatMenuItems = [
+    { key: "heading", label: "Heading", children: headingItems },
+    { type: "divider" as const },
+    { key: "bold", label: "Bold" },
+    { key: "italic", label: "Italic" },
+    { key: "underline", label: "Underline" },
+    { key: "format_code", label: "Verbatim" },
+    { type: "divider" as const },
+    { key: "math", label: "Math", children: mathItems },
+    { key: "link", label: "Insert link" },
+    { key: "list", label: "List", children: listItems },
+    { key: "size", label: "Size", children: sizeItems },
+  ];
+
   return (
-    <div style={BAR_STYLE} className="cc-latex-rich-edit-toolbar">
-      <Popover
-        open={showHint}
-        onOpenChange={(open) => {
-          if (!open) dismissHint();
-        }}
-        // Block hover-triggered re-opens once dismissed.
-        trigger={[]}
-        placement="bottomLeft"
-        title="LaTeX rich preview"
-        content={
-          <div style={{ maxWidth: 320, fontSize: "0.92em" }}>
-            <p style={{ marginTop: 0, marginBottom: 8 }}>
-              <b>Rich</b> renders sections, formulas, lists, links, etc. inline
-              as widgets. The raw LaTeX stays in the buffer — click any widget
-              to dissolve back to source, hover to peek.
-            </p>
-            <p style={{ marginBottom: 12 }}>
-              Toggle to <b>Source</b> for the unrendered view.
-            </p>
-            <div style={{ textAlign: "right" }}>
-              <Button size="small" type="primary" onClick={dismissHint}>
-                Got it
-              </Button>
+    <div style={BAR_STYLE} ref={barRef} className="cc-latex-rich-edit-toolbar">
+      <div style={AREA_STYLE}>
+        <Popover
+          open={showHint}
+          onOpenChange={(open) => {
+            if (!open) dismissHint();
+          }}
+          // Block hover-triggered re-opens once dismissed.
+          trigger={[]}
+          placement="bottomLeft"
+          title="LaTeX rich preview"
+          content={
+            <div style={{ maxWidth: 320, fontSize: "0.92em" }}>
+              <p style={{ marginTop: 0, marginBottom: 8 }}>
+                <b>Rich</b> renders sections, formulas, lists, links, etc.
+                inline as widgets. The raw LaTeX stays in the buffer — click any
+                widget to dissolve back to source, hover to peek.
+              </p>
+              <p style={{ marginBottom: 12 }}>
+                Toggle to <b>Source</b> for the unrendered view.
+              </p>
+              <div style={{ textAlign: "right" }}>
+                <Button size="small" type="primary" onClick={dismissHint}>
+                  Got it
+                </Button>
+              </div>
             </div>
-          </div>
-        }
-      >
-        <Tooltip
-          title={
-            currentMode === MODE_RICH
-              ? "Rich view — sections, formulas, etc. shown as rendered widgets. Click Source to return to raw LaTeX."
-              : "Source view — raw LaTeX. Click Rich to render sections, formulas, etc. inline."
           }
-          placement="bottom"
-          mouseEnterDelay={0.2}
         >
-          <span style={{ display: "inline-flex", alignItems: "center" }}>
-            <Segmented
-              size="small"
-              // `title: ""` suppresses antd's per-item native browser
-              // tooltip (it defaults to the label) — we already show the
-              // richer explanation via the wrapping <Tooltip> above.
-              options={[
-                { label: MODE_SOURCE, value: MODE_SOURCE, title: "" },
-                { label: MODE_RICH, value: MODE_RICH, title: "" },
-              ]}
-              value={currentMode}
-              onChange={setMode}
-            />
-          </span>
-        </Tooltip>
-      </Popover>
+          <Tooltip
+            title={
+              currentMode === MODE_RICH
+                ? "Rich view — sections, formulas, etc. shown as rendered widgets. Click Source to return to raw LaTeX."
+                : "Source view — raw LaTeX. Click Rich to render sections, formulas, etc. inline."
+            }
+            placement="bottom"
+            mouseEnterDelay={0.2}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center" }}>
+              <Segmented
+                size="small"
+                // `title: ""` suppresses antd's per-item native browser
+                // tooltip (it defaults to the label) — we already show the
+                // richer explanation via the wrapping <Tooltip> above.
+                options={[
+                  { label: MODE_SOURCE, value: MODE_SOURCE, title: "" },
+                  { label: MODE_RICH, value: MODE_RICH, title: "" },
+                ]}
+                value={currentMode}
+                onChange={setMode}
+              />
+            </span>
+          </Tooltip>
+        </Popover>
+      </div>
 
-      <Divider type="vertical" style={{ margin: "0 4px" }} />
+      <Divider type="vertical" style={{ margin: "0 4px", flexShrink: 0 }} />
 
-      <Dropdown
-        menu={{
-          items: headingItems,
-          onClick: ({ key }) => dispatch(key),
-        }}
-        trigger={["click"]}
-      >
-        <Button size="small" style={BTN_STYLE}>
-          <Icon name="header" /> Section
-        </Button>
-      </Dropdown>
+      <div style={AREA_STYLE}>
+        {compact ? (
+          <Dropdown
+            menu={{
+              items: formatMenuItems,
+              onClick: ({ key }) => dispatch(key),
+            }}
+            trigger={["click"]}
+          >
+            <Button size="small" style={BTN_STYLE}>
+              <Icon name="edit" /> Format
+            </Button>
+          </Dropdown>
+        ) : (
+          <>
+            <Dropdown
+              menu={{
+                items: headingItems,
+                onClick: ({ key }) => dispatch(key),
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" style={BTN_STYLE}>
+                <Icon name="header" /> Section
+              </Button>
+            </Dropdown>
 
-      <Tooltip title="Bold (\textbf{…})" mouseEnterDelay={0.4}>
-        <Button size="small" style={BTN_STYLE} onClick={fmt("bold")}>
-          <Icon name="bold" />
-        </Button>
-      </Tooltip>
+            <Tooltip title="Bold (\textbf{…})" mouseEnterDelay={0.4}>
+              <Button size="small" style={BTN_STYLE} onClick={fmt("bold")}>
+                <Icon name="bold" />
+              </Button>
+            </Tooltip>
 
-      <Tooltip title="Italic (\textit{…})" mouseEnterDelay={0.4}>
-        <Button size="small" style={BTN_STYLE} onClick={fmt("italic")}>
-          <Icon name="italic" />
-        </Button>
-      </Tooltip>
+            <Tooltip title="Italic (\textit{…})" mouseEnterDelay={0.4}>
+              <Button size="small" style={BTN_STYLE} onClick={fmt("italic")}>
+                <Icon name="italic" />
+              </Button>
+            </Tooltip>
 
-      <Tooltip title="Underline (\underline{…})" mouseEnterDelay={0.4}>
-        <Button size="small" style={BTN_STYLE} onClick={fmt("underline")}>
-          <Icon name="underline" />
-        </Button>
-      </Tooltip>
+            <Tooltip title="Underline (\underline{…})" mouseEnterDelay={0.4}>
+              <Button size="small" style={BTN_STYLE} onClick={fmt("underline")}>
+                <Icon name="underline" />
+              </Button>
+            </Tooltip>
 
-      <Tooltip
-        title="Verbatim block (\begin{verbatim}…\end{verbatim})"
-        mouseEnterDelay={0.4}
-      >
-        <Button size="small" style={BTN_STYLE} onClick={fmt("format_code")}>
-          <Icon name="code" />
-        </Button>
-      </Tooltip>
+            <Tooltip
+              title="Verbatim block (\begin{verbatim}…\end{verbatim})"
+              mouseEnterDelay={0.4}
+            >
+              <Button
+                size="small"
+                style={BTN_STYLE}
+                onClick={fmt("format_code")}
+              >
+                <Icon name="code" />
+              </Button>
+            </Tooltip>
 
-      <Dropdown
-        menu={{
-          items: mathItems,
-          onClick: ({ key }) => dispatch(key),
-        }}
-        trigger={["click"]}
-      >
-        <Button size="small" style={BTN_STYLE}>
-          <Icon name="tex" /> Math
-        </Button>
-      </Dropdown>
+            <Dropdown
+              menu={{
+                items: mathItems,
+                onClick: ({ key }) => dispatch(key),
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" style={BTN_STYLE}>
+                <Icon name="tex" /> Math
+              </Button>
+            </Dropdown>
 
-      <Tooltip title="Insert link (\href{…}{…})" mouseEnterDelay={0.4}>
-        <Button size="small" style={BTN_STYLE} onClick={fmt("link")}>
-          <Icon name="link" />
-        </Button>
-      </Tooltip>
+            <Tooltip title="Insert link (\href{…}{…})" mouseEnterDelay={0.4}>
+              <Button size="small" style={BTN_STYLE} onClick={fmt("link")}>
+                <Icon name="link" />
+              </Button>
+            </Tooltip>
 
-      <Dropdown
-        menu={{
-          items: listItems,
-          onClick: ({ key }) => dispatch(key),
-        }}
-        trigger={["click"]}
-      >
-        <Button size="small" style={BTN_STYLE}>
-          <Icon name="list" /> List
-        </Button>
-      </Dropdown>
+            <Dropdown
+              menu={{
+                items: listItems,
+                onClick: ({ key }) => dispatch(key),
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" style={BTN_STYLE}>
+                <Icon name="list" /> List
+              </Button>
+            </Dropdown>
+
+            <Dropdown
+              menu={{
+                items: sizeItems,
+                onClick: ({ key }) => dispatch(key),
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" style={BTN_STYLE}>
+                <Icon name="text-height" /> Size
+              </Button>
+            </Dropdown>
+          </>
+        )}
+      </div>
     </div>
   );
 }

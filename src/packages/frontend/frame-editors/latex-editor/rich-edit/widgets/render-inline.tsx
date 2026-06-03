@@ -35,6 +35,7 @@ import {
 import mathToHtml from "@cocalc/frontend/misc/math-to-html";
 import { COLORS } from "@cocalc/util/theme";
 
+import { FONT_SIZE_EM } from "../font-size";
 import { MathMacrosContext } from "../math-macros-context";
 import { LineSource, parseLines } from "../parser";
 import { WidgetDescriptor, WidgetType } from "../types";
@@ -113,6 +114,15 @@ function renderDescriptor(d: WidgetDescriptor, key: number): ReactNode {
           {renderInline(contentOf(d))}
         </mark>
       );
+    case "font-size": {
+      const sizeName = (d.payload?.sizeName as string | undefined) ?? "";
+      const em = FONT_SIZE_EM[sizeName] ?? 1;
+      return (
+        <span key={key} style={{ fontSize: `${em}em` }}>
+          {renderInline(contentOf(d))}
+        </span>
+      );
+    }
     case "math-inline":
       return (
         <InlineMath

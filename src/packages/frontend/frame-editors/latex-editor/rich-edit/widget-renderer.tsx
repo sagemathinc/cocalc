@@ -28,6 +28,7 @@ import {
   Title,
 } from "./widgets/document";
 import { CustomMacro } from "./widgets/custom-macro";
+import { FontSize } from "./widgets/font-size";
 import { LatexGlyph, TexGlyph } from "./widgets/glyph";
 import { Includegraphics } from "./widgets/includegraphics";
 import { Href, Url } from "./widgets/link";
@@ -84,6 +85,7 @@ const WIDGETS: Record<WidgetType, ComponentType<WidgetProps>> = {
   textcolor: Textcolor,
   textsuperscript: Textsuperscript,
   textsubscript: Textsubscript,
+  "font-size": FontSize,
   // sectioning
   part: Part,
   chapter: Chapter,

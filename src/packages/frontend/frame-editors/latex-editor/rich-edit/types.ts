@@ -34,6 +34,8 @@ export type WidgetType =
   | "textcolor"
   | "textsuperscript"
   | "textsubscript"
+  // Font size — braced declaration form only: `{\Large …}`
+  | "font-size"
   // Sectioning (Phase 3)
   | "part"
   | "chapter"

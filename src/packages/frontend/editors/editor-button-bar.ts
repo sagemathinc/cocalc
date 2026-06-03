@@ -280,6 +280,15 @@ $$\
         right: "}",
       },
     },
+    // Font-size declarations, wrapped in a brace group so the size is
+    // scoped to the selection: {\Large …}. (The bare-declaration form,
+    // which runs to the end of the paragraph, is intentionally not
+    // offered.) The LaTeX rich-edit toolbar's "Size" menu uses these.
+    font_size_footnotesize: { wrap: { left: "{\\footnotesize ", right: "}" } },
+    font_size_small: { wrap: { left: "{\\small ", right: "}" } },
+    font_size_large: { wrap: { left: "{\\large ", right: "}" } },
+    font_size_Large: { wrap: { left: "{\\Large ", right: "}" } },
+    font_size_huge: { wrap: { left: "{\\huge ", right: "}" } },
     equation: {
       default: "x^2",
       wrap: {

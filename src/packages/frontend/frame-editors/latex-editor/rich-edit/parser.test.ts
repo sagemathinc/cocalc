@@ -151,6 +151,38 @@ describe("parseLines — representative cases per family", () => {
     expect(d.payload).toMatchObject({ content: "x_y", delim: "|" });
   });
 
+  it("braced font-size group {\\Large …}", () => {
+    const ds = parse1("a {\\Large big} b");
+    const d = first(ds, "font-size")!;
+    expect(d).toBeDefined();
+    expect(d.source).toBe("{\\Large big}");
+    expect(d.payload).toMatchObject({ sizeName: "Large", content: "big" });
+  });
+
+  it("font-size keeps nested constructs as content (widest-wins)", () => {
+    const ds = parse1("{\\small \\textbf{x}}");
+    const fs = first(ds, "font-size")!;
+    expect(fs).toBeDefined();
+    expect(fs.payload).toMatchObject({
+      sizeName: "small",
+      content: "\\textbf{x}",
+    });
+    // The inner textbf is subsumed by the wider font-size cover.
+    expect(first(ds, "textbf")).toBeUndefined();
+  });
+
+  it("{\\Largex …} is not a size group (token boundary)", () => {
+    expect(first(parse1("{\\Largex y}"), "font-size")).toBeUndefined();
+  });
+
+  it("\\section{\\Large T} does not emit a stray font-size widget", () => {
+    // The `{` is the section's argument brace; the section descriptor is
+    // wider, so dropOverlaps removes the font-size false positive.
+    const ds = parse1("\\section{\\Large Title}");
+    expect(first(ds, "section")).toBeDefined();
+    expect(first(ds, "font-size")).toBeUndefined();
+  });
+
   it("custom-macro fallback for unknown \\cmd{…}", () => {
     const ds = parse1("\\mycmd{body}");
     const d = first(ds, "custom-macro")!;

@@ -57,6 +57,14 @@ files:
     dialog.
   - **🔗** — insert `\href{url}{text}` via a small dialog.
   - **☷▾** — insert itemize / enumerate / description skeleton.
+  - **Size▾** — wrap the selection in a braced size group
+    (`{\small …}` … `{\huge …}`).
+
+  The bar never wraps. When the format controls don't fit (narrow pane
+  from a split), they collapse into a single **Format▾** dropdown whose
+  submenus mirror the individual controls — driven by a `ResizeObserver`
+  comparing the bar's natural content width to its available width (with
+  a dead-zone so it doesn't oscillate at the threshold).
 
 ### Widget behavior (when Rich is selected)
 
@@ -129,6 +137,7 @@ matches the real compile:
 | Sectioning        | `\part` … `\subparagraph` (+ starred)                                                                                  |
 | Text style        | `\textit` `\textbf` `\emph` `\underline` `\texttt` `\textsc` `\textsf` `\textrm` `\textsuperscript` `\textsubscript`    |
 | Color             | `\textcolor{c}{text}`                                                                                                  |
+| Font size         | braced form only: `{\Large …}` (full `\tiny`…`\Huge` ladder → em scale); bare declarations stay raw                    |
 | Inline math       | `$…$`, `\(…\)`                                                                                                          |
 | Display math      | `\[…\]`, `$$…$$` (single-line) — rendered as a centered block on its own line                                          |
 | Math envs         | `equation` `align` `gather` `multline` (+ starred; auto-numbering stripped in preview so KaTeX doesn't show fake tags) |
@@ -300,11 +309,13 @@ rich-edit/
 ├── widget-renderer.tsx    Dispatch via Record<WidgetType, Component>
 ├── latex-macros.ts        extractMacros(text) → KaTeX macro map
 ├── math-macros-context.ts MathMacrosContext (per-document macros)
+├── font-size.ts           {\size …} name → em map (shared by parser + widget)
 └── widgets/
     ├── common.tsx         Widget base + EmptyPlaceholder + hover Tooltip
     ├── render-inline.tsx  Recursive presentational renderer (nested constructs)
     ├── text-style.tsx     \textit \textbf \emph \underline \texttt \textsc
     │                       \textsf \textrm \textcolor \text{super,sub}script
+    ├── font-size.tsx      {\Large …} braced font-size groups
     ├── section.tsx        \part … \subparagraph (+ starred)
     ├── link.tsx           \href + \url
     ├── verbatim.tsx       \verb (inline) + verbatim/Verbatim env

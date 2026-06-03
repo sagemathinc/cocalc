@@ -35,6 +35,7 @@ Out of scope (gaps in src/docs/latex-rich-edit-design.md):
 
 import * as CodeMirror from "codemirror";
 
+import { FONT_SIZE_NAMES } from "./font-size";
 import { WidgetDescriptor, WidgetType } from "./types";
 
 /**
@@ -526,6 +527,52 @@ function scanZeroArgCommand(
  *    via `protectedRanges`. So inside-math/inside-code don't need
  *    to be in the skip list.
  */
+/**
+ * Braced font-size groups: `{\Large …}`, `{\small …}`, etc. — the
+ * self-delimited form only. We match a `{` (not escaped) optionally
+ * followed by whitespace, then a size command whose name is in
+ * `FONT_SIZE_NAMES` and is a complete token (the next char is not a
+ * letter, so `\Largex` doesn't match `\Large`). The body is everything
+ * after the size declaration up to the matching `}`.
+ *
+ * Bare declarations (`\Large` with no braces) are intentionally NOT
+ * handled — see font-size.ts. False positives where the `{` is actually
+ * another command's argument brace (e.g. `\section{\Large T}`) are
+ * removed by dropOverlaps, since that command's covering descriptor is
+ * wider.
+ */
+function scanFontSizeGroup(
+  text: string,
+  line: number,
+  out: WidgetDescriptor[],
+): void {
+  const RE = /\{\s*\\([A-Za-z]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = RE.exec(text)) !== null) {
+    const braceOpen = m.index;
+    if (isEscaped(text, braceOpen)) continue;
+    const sizeName = m[1];
+    if (!FONT_SIZE_NAMES.has(sizeName)) continue;
+    const afterName = m.index + m[0].length;
+    // Require a token boundary after the size command name.
+    if (/[A-Za-z]/.test(text[afterName] ?? "")) continue;
+    const close = findMatchingBrace(text, braceOpen);
+    if (close === -1) continue;
+    // Body = content after the size declaration (and the single
+    // gobbled space LaTeX drops after a control word) up to the `}`.
+    let cs = afterName;
+    while (cs < close && /\s/.test(text[cs])) cs++;
+    out.push({
+      type: "font-size",
+      from: { line, ch: braceOpen },
+      to: { line, ch: close + 1 },
+      source: text.slice(braceOpen, close + 1),
+      payload: { sizeName, content: text.slice(cs, close) },
+    });
+    RE.lastIndex = close + 1;
+  }
+}
+
 function scanCustomMacro(
   text: string,
   line: number,
@@ -1596,6 +1643,7 @@ export function parseLines(
     scanVerb(text, line, out);
     scanInlineDollarMath(text, line, out);
     scanParenMath(text, line, out);
+    scanFontSizeGroup(text, line, out);
     // Custom-macro fallback runs LAST among per-line scanners so
     // that known commands always win the first match.
     scanCustomMacro(text, line, out);
