@@ -35,6 +35,7 @@ interface WidgetBaseProps extends WidgetProps {
 export function Widget({
   descriptor,
   onActivate,
+  onAiEdit,
   children,
   style,
   display,
@@ -43,15 +44,30 @@ export function Widget({
   return (
     <Tooltip
       title={
-        <code
-          style={{
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            fontSize: "0.9em",
-          }}
-        >
-          {descriptor.source}
-        </code>
+        <div>
+          <code
+            style={{
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              fontSize: "0.9em",
+            }}
+          >
+            {descriptor.source}
+          </code>
+          {onAiEdit != null && (
+            <>
+              <div
+                style={{
+                  borderTop: "1px solid rgba(255, 255, 255, 0.25)",
+                  margin: "5px 0",
+                }}
+              />
+              <div style={{ fontSize: "0.85em", opacity: 0.85 }}>
+                Shift+click to edit with AI
+              </div>
+            </>
+          )}
+        </div>
       }
       placement="top"
       mouseEnterDelay={0.3}
@@ -66,7 +82,13 @@ export function Widget({
           // comment) and our explicit dissolve runs.
           e.stopPropagation();
           e.preventDefault();
-          onActivate();
+          // Shift+click on an AI-editable widget (math) opens the AI
+          // formula editor; a plain click dissolves to raw source.
+          if (e.shiftKey && onAiEdit != null) {
+            void onAiEdit();
+          } else {
+            onActivate();
+          }
         }}
         style={{
           display: display ?? "inline",
