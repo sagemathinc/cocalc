@@ -235,26 +235,14 @@ export function attachWidgetManager(
       cm.focus();
     };
 
-    // Keyboard activation: the host is focusable (role=button,
-    // tabindex=0), so Enter/Space must dissolve it to raw source —
-    // mirroring the mouse-down path in the Widget component. The AI
-    // pencil's own keydown handler stops propagation, so focusing it
-    // and pressing Enter edits instead of dissolving.
-    host.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        onActivate();
-      }
-    });
-
-    // Math widgets get an AI-edit closure (pencil button → AI dialog
-    // → replace source). The accept path is race-safe: we look up
-    // the current marker range via `marker.find()` AFTER the dialog
-    // resolves (it can take seconds), bail on null, and detect cancel
-    // by checking whether the dialog returned the original text
+    // Math widgets get an AI-edit closure (shift+click / shift+Enter →
+    // AI dialog → replace source). The accept path is race-safe: we
+    // look up the current marker range via `marker.find()` AFTER the
+    // dialog resolves (it can take seconds), bail on null, and detect
+    // cancel by checking whether the dialog returned the original text
     // unchanged (ai-formula.tsx resolves cancel that way).
     //
-    // Suppress the pencil entirely in read-only / public frames: CM's
+    // Disable AI edit entirely in read-only / public frames: CM's
     // `readOnly` blocks user typing but NOT programmatic
     // `replaceRange`, so an AI edit would otherwise mutate a buffer the
     // user isn't allowed to change.
@@ -302,6 +290,22 @@ export function attachWidgetManager(
           cm.replaceRange(result, range2.from, range2.to);
         }
       : undefined;
+
+    // Keyboard activation: the host is focusable (role=button,
+    // tabindex=0). Enter/Space dissolves it to raw source — mirroring
+    // the plain-click path in the Widget component. Shift+Enter on an
+    // AI-editable widget (math) opens the AI formula editor instead,
+    // mirroring shift+click.
+    host.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (e.shiftKey && onAiEdit != null) {
+          void onAiEdit();
+        } else {
+          onActivate();
+        }
+      }
+    });
 
     const root = createRoot(host);
     // createRoot mounts live outside the editor's <FrameContext.Provider> —

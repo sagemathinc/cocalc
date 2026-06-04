@@ -142,7 +142,7 @@ const WIDGETS: Record<WidgetType, ComponentType<WidgetProps>> = {
 };
 
 /**
- * Widget types that get the trailing AI-edit pencil. Only math
+ * Widget types that support shift+click AI editing. Only math
  * widgets today; future widgets that want AI editing can be added
  * here. Used by the widget-manager to decide whether to set up the
  * onAiEdit closure.
