@@ -1,1 +1,9 @@
 exclude-newer = "3 days"
+
+# Security floors for transitive dependencies (Dependabot alerts).
+# idna: CVE-2024-3651 fix bypass, patched in 3.15.
+# pymdown-extensions: sibling-prefix path traversal, patched in 10.21.3.
+constraint-dependencies = [
+    "idna>=3.15",
+    "pymdown-extensions>=10.21.3",
+]
