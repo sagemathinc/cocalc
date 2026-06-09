@@ -14,10 +14,10 @@ import {
 import { Usage, AlertLevel } from "@cocalc/jupyter/types";
 
 export const ALERT_COLS: { [key in AlertLevel]: string } = {
-  none: COLORS.BS_GREEN,
+  none: "var(--cocalc-success, #5CB85C)",
   low: COLORS.ANTD_YELL_M,
-  mid: COLORS.ANTD_ORANGE,
-  high: COLORS.ANTD_RED_WARN,
+  mid: "var(--cocalc-warning, #ffbb96)",
+  high: "var(--cocalc-error, #f5222d)",
 } as const;
 
 export function compute_usage(opts): Usage {

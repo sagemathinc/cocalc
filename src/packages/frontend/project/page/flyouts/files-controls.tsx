@@ -22,7 +22,6 @@ import {
 } from "@cocalc/frontend/project/explorer/types";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import { human_readable_size, path_split, plural } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { PANEL_STYLE_BOTTOM, PANEL_STYLE_TOP } from "./consts";
 import { useSingleFile } from "./utils";
 
@@ -96,7 +95,7 @@ export function FilesSelectedControls({
     }
 
     return (
-      <div style={{ color: COLORS.GRAY_M }}>
+      <div style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
         <Icon name="files" /> {nFiles} {plural(nFiles, "file")}, {nDirs}{" "}
         {plural(nDirs, "folder")}
       </div>

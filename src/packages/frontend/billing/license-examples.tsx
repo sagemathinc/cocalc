@@ -9,7 +9,6 @@ import {
   MIN_QUOTE,
 } from "@cocalc/util/licenses/purchase/consts";
 import { Cost, User } from "@cocalc/util/licenses/purchase/types";
-import { COLORS } from "@cocalc/util/theme";
 import { Col, Row, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { React } from "../app-framework";
 import { Icon, IconName, Gap } from "../components";
@@ -44,11 +43,11 @@ export const LicenseExamples: React.FC<Props> = ({
       value == Number.POSITIVE_INFINITY ? <span>&#8734;</span> : value;
     return (
       <div key={value_str} style={{ marginBottom: "5px", marginLeft: "10px" }}>
-        <span style={{ fontWeight: "bold", color: "#444" }}>
+        <span style={{ fontWeight: "bold", color: "var(--cocalc-text-primary, #444)" }}>
           {value_str} {unit}
         </span>
         <Gap />
-        <span style={{ color: COLORS.GRAY }}>{resource}</span>
+        <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>{resource}</span>
       </div>
     );
   }
@@ -63,11 +62,11 @@ export const LicenseExamples: React.FC<Props> = ({
   ) {
     const smallpx = `${small}px`;
     const largepx = `${large}px`;
-    const e = emph ? { fontWeight: "bold" as "bold" } : { color: COLORS.GRAY };
+    const e = emph ? { fontWeight: "bold" as "bold" } : { color: "var(--cocalc-text-secondary, #808080)" };
     const style = { ...{ whiteSpace: "nowrap" as "nowrap" }, ...e };
     if (!online && usd < MIN_QUOTE) {
       return (
-        <span style={{ fontSize: largepx, color: COLORS.GRAY_L }}>N/A</span>
+        <span style={{ fontSize: largepx, color: "var(--cocalc-text-tertiary, #c0c0c0)" }}>N/A</span>
       );
     } else {
       return (

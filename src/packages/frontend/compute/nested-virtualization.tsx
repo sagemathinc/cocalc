@@ -13,7 +13,7 @@ export default function NestedVirtualization({
 
   return (
     <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <div>
           <b>
             <Switch

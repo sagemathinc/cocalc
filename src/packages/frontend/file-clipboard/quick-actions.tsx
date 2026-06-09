@@ -54,7 +54,7 @@ const BTN_STYLE_SMALL: React.CSSProperties = {
   padding: "0 4px",
   height: "20px",
   fontSize: "12px",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
   transition: "none",
 };
 
@@ -62,13 +62,13 @@ const BTN_STYLE_MIDDLE: React.CSSProperties = {
   padding: "0 6px",
   height: "24px",
   fontSize: "14px",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
   transition: "none",
 };
 
 const INDICATOR_STYLE: React.CSSProperties = {
   background: COLORS.BLUE_LLL,
-  color: COLORS.GRAY_DD,
+  color: "var(--cocalc-text-primary-strong, #434343)",
   borderRadius: 3,
 };
 
@@ -94,6 +94,8 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = React.memo(
     const intl = useIntl();
     const { tail: name } = path_split(path);
     const btnStyle = btnSize === "middle" ? BTN_STYLE_MIDDLE : BTN_STYLE_SMALL;
+    const rowBackground =
+      style?.background ?? style?.backgroundColor ?? "inherit";
 
     // Which icon is the active clipboard indicator (null = none)
     const activeIcon: IconName | null =
@@ -113,9 +115,7 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = React.memo(
           addRangeToClipboard(project_id, path, "cut", listingPaths ?? []);
         } else {
           addToCut(project_id, path);
-          redux
-            .getProjectActions(project_id)
-            ?.set_most_recent_file_click(path);
+          redux.getProjectActions(project_id)?.set_most_recent_file_click(path);
         }
       },
       [project_id, path, isInClipboard, clipboardMode, listingPaths],
@@ -131,9 +131,7 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = React.memo(
           addRangeToClipboard(project_id, path, "copy", listingPaths ?? []);
         } else {
           addToCopy(project_id, path);
-          redux
-            .getProjectActions(project_id)
-            ?.set_most_recent_file_click(path);
+          redux.getProjectActions(project_id)?.set_most_recent_file_click(path);
         }
       },
       [project_id, path, isInClipboard, clipboardMode, listingPaths],
@@ -171,9 +169,7 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = React.memo(
             });
             if (!ok) return; // blocked (sandbox, project not running, etc.)
             // Cleanup: remove from clipboard, close tabs, refresh listing
-            removeFiles(
-              pathsArray.map((p) => ({ project_id, path: p })),
-            );
+            removeFiles(pathsArray.map((p) => ({ project_id, path: p })));
             for (const p of pathsArray) {
               actions.close_tab(p);
             }
@@ -217,7 +213,7 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = React.memo(
       right: 0,
       top: "50%",
       transform: "translateY(-50%)",
-      background: isInClipboard ? "transparent" : "inherit",
+      background: isInClipboard ? "transparent" : rowBackground,
       paddingLeft: 4,
       ...(isInClipboard ? { visibility: "visible" as const } : style),
     };
@@ -238,7 +234,7 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = React.memo(
       right: 0,
       top: "50%",
       transform: "translateY(-50%)",
-      background: isInClipboard ? "transparent" : COLORS.BLUE_LLLL,
+      background: isInClipboard ? "transparent" : rowBackground,
       borderRadius: 3,
       zIndex: 1,
     };
@@ -296,7 +292,7 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = React.memo(
             style={
               activeIcon != null
                 ? { ...btnStyle, ...HIDDEN }
-                : { ...btnStyle, color: COLORS.ANTD_RED }
+                : { ...btnStyle, color: "var(--cocalc-error, #dc3545)" }
             }
             onClick={handleDelete}
             title={intl.formatMessage(labels.delete)}

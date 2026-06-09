@@ -48,7 +48,7 @@ export const ShowToggle: React.FC<Props> = React.memo(
       // no support for toggling (e.g., history view)
       return null;
     }
-    const color = count > 0 || show ? "#666" : "#999";
+    const color = count > 0 || show ? "var(--cocalc-text-secondary, #666)" : "var(--cocalc-text-tertiary, #999)";
     return (
       <div onClick={toggle_state} style={{ margin: "5px 0 0 15px" }}>
         <Checkbox

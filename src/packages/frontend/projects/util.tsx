@@ -34,7 +34,6 @@ import {
   trunc_middle,
   unreachable,
 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import {
   NAMED_SERVER_NAMES,
   NamedServerName,
@@ -288,9 +287,12 @@ export function useRecentFiles(
         dedupe.push(fn);
         return true;
       })
-      .filter((entry: EventRecordMap) =>
-        getOpenEventFilename(entry, "")!.toLowerCase().includes(searchLower),
-      )
+      .filter((entry: EventRecordMap) => {
+        const filename = getOpenEventFilename(entry, undefined);
+        return filename == null
+          ? false
+          : filename.toLowerCase().includes(searchLower);
+      })
       .filter((entry: EventRecordMap) => {
         if (directory_listings == null) return true;
         const filename = getOpenEventFilename(entry, undefined);
@@ -365,7 +367,9 @@ export function useFilesMenuItems(
           key: "empty",
           label:
             typeof emptyLabel === "string" ? (
-              <span style={{ color: COLORS.GRAY }}>{emptyLabel}</span>
+              <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
+                {emptyLabel}
+              </span>
             ) : (
               emptyLabel
             ),

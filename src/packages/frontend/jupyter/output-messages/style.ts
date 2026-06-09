@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -17,12 +17,12 @@ export const OUT_STYLE: CSSProperties = {
 export const STDOUT_STYLE: CSSProperties = OUT_STYLE;
 
 export const STDERR_STYLE: CSSProperties = merge(
-  { backgroundColor: "#fdd" },
+  { backgroundColor: "var(--cocalc-bg-elevated, #fdd)" },
   STDOUT_STYLE,
 );
 
 export const TRACEBACK_STYLE: CSSProperties = merge(
-  { backgroundColor: "#f9f2f4" },
+  { backgroundColor: "var(--cocalc-bg-elevated, #f9f2f4)" },
   OUT_STYLE,
 );
 
@@ -30,7 +30,6 @@ export const OUTPUT_STYLE: CSSProperties = {
   flex: 1,
   overflowX: "auto",
   lineHeight: "normal",
-  backgroundColor: "#fff",
   border: 0,
   marginBottom: 0,
   marginLeft: "1px",

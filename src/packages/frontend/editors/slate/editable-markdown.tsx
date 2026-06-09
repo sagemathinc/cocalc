@@ -960,7 +960,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
                 position: "relative", // CRITICAL!!! Without this, editor will sometimes scroll the entire frame off the screen.  Do NOT delete position:'relative'.  5+ hours of work to figure this out!  Note that this isn't needed when using windowing above.
                 minWidth: "80%",
                 padding: "70px",
-                background: "white",
+                background: "var(--cocalc-bg-base, white)",
                 overflow:
                   height == "auto"
                     ? "hidden" /* for height='auto' we never want a scrollbar  */
@@ -993,7 +993,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         className={noVfill || height === "auto" ? undefined : "smc-vfill"}
         style={{
           overflow: noVfill || height === "auto" ? undefined : "auto",
-          backgroundColor: "white",
+          backgroundColor: "var(--cocalc-bg-base, white)",
           ...style,
           height,
           minHeight: height == "auto" ? "50px" : undefined,

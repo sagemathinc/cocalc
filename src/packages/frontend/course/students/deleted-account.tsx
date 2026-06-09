@@ -10,7 +10,7 @@ export default function DeletedAccount({
 }) {
   const [open, setOpen] = useState<boolean>(false);
   return (
-    <span style={{ color: "#666" }}>
+    <span style={{ color: "var(--cocalc-text-secondary, #666)" }}>
       <Modal
         centered
         title={

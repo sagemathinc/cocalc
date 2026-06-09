@@ -230,8 +230,8 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
       ref={peekDropRef}
       data-folder-drop-path={dirPath}
       style={{
-        borderLeft: `5px solid ${COLORS.ANTD_LINK_BLUE}`,
-        background: COLORS.BLUE_LLLL,
+        borderLeft: `5px solid var(--cocalc-primary, ${COLORS.ANTD_LINK_BLUE})`,
+        background: `var(--cocalc-bg-hover, ${COLORS.BLUE_LLLL})`,
         padding: "8px 8px 8px 12px",
         position: "relative",
         // When virtualized, VirtuosoGrid handles its own scrolling.
@@ -261,7 +261,7 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
         }
       >
         {isLarge && (
-          <span style={{ fontSize: 11, color: COLORS.GRAY_M }}>
+          <span style={{ fontSize: 11, color: "var(--cocalc-text-primary, #5f5f5f)" }}>
             {entries.length.toLocaleString()} items
           </span>
         )}
@@ -272,7 +272,7 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
             e.stopPropagation();
             onClose();
           }}
-          style={{ color: COLORS.GRAY_M }}
+          style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}
         >
           <Icon name="times" />
         </Button>
@@ -285,14 +285,14 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
       )}
 
       {error && (
-        <div style={{ color: COLORS.ANTD_RED, fontSize: 12 }}>
+        <div style={{ color: "var(--cocalc-error, #dc3545)", fontSize: 12 }}>
           Error loading directory: {error}
         </div>
       )}
 
       {!loading && !error && entries.length === 0 && (
         <div
-          style={{ color: COLORS.GRAY_M, fontSize: 12, fontStyle: "italic" }}
+          style={{ color: "var(--cocalc-text-primary, #5f5f5f)", fontSize: 12, fontStyle: "italic" }}
         >
           Empty directory
         </div>
@@ -393,13 +393,13 @@ function PeekItem({
             cursor: "pointer",
             width: PEEK_ITEM_WIDTH,
             fontSize: 12,
-            color: entry.isdir ? COLORS.ANTD_LINK_BLUE : COLORS.GRAY_D,
+            color: entry.isdir ? `var(--cocalc-link, ${COLORS.ANTD_LINK_BLUE})` : COLORS.GRAY_D,
             background: "transparent",
             opacity:
               isDragging && !disableActions ? 0.4 : entry.mask ? 0.65 : 1,
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = COLORS.GRAY_LLL;
+            (e.currentTarget as HTMLElement).style.background = "var(--cocalc-bg-hover, #f5f5f5)";
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -446,7 +446,7 @@ function PeekFileName({ name, isdir }: { name: string; isdir?: boolean }) {
     >
       {parts.name}
       {parts.ext ? (
-        <span style={{ color: COLORS.FILE_DIMMED }}>.{parts.ext}</span>
+        <span style={{ color: "var(--cocalc-text-tertiary, #959595)" }}>.{parts.ext}</span>
       ) : null}
     </span>
   );

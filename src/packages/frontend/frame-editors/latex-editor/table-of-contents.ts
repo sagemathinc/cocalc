@@ -81,7 +81,7 @@ export function parseTableOfContents(
         value: bookmarkText,
         id: `${id}b`,
         icon: "bookmark",
-        iconColor: COLORS.ANTD_LINK_BLUE,
+        iconColor: `var(--cocalc-link, ${COLORS.ANTD_LINK_BLUE})`,
       });
     }
 
@@ -99,7 +99,7 @@ export function parseTableOfContents(
         value: label,
         id: `${id}c`,
         icon: "comment",
-        iconColor: COLORS.ANTD_LINK_BLUE,
+        iconColor: `var(--cocalc-link, ${COLORS.ANTD_LINK_BLUE})`,
         extra,
       });
     }

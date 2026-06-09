@@ -53,7 +53,7 @@ export function StudentHandoutInfo({
     <div>
       <Row
         style={{
-          borderTop: "1px solid #aaa",
+          borderTop: "1px solid var(--cocalc-text-tertiary, #aaa)",
           paddingTop: "5px",
           paddingBottom: "5px",
         }}

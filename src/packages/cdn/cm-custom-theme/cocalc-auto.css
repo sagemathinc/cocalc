@@ -1,0 +1,144 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2026 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ *
+ *  CoCalc Auto theme for CodeMirror
+ *  Adapts to the active UI theme via CSS variables.
+ */
+
+.cm-s-cocalc-auto.CodeMirror {
+  background: var(--cocalc-bg-base, #ffffff);
+  color: var(--cocalc-syntax-variable, #303030);
+}
+
+.cm-s-cocalc-auto div.CodeMirror-selected {
+  background: var(--cocalc-bg-selected, #e6f4ff);
+}
+
+.cm-s-cocalc-auto .CodeMirror-line::selection,
+.cm-s-cocalc-auto .CodeMirror-line > span::selection,
+.cm-s-cocalc-auto .CodeMirror-line > span > span::selection {
+  background: var(--cocalc-bg-selected, #e6f4ff);
+}
+
+.cm-s-cocalc-auto .CodeMirror-line::-moz-selection,
+.cm-s-cocalc-auto .CodeMirror-line > span::-moz-selection,
+.cm-s-cocalc-auto .CodeMirror-line > span > span::-moz-selection {
+  background: var(--cocalc-bg-selected, #e6f4ff);
+}
+
+.cm-s-cocalc-auto .CodeMirror-gutters {
+  background: var(--cocalc-bg-elevated, #f6f9ff);
+  border-right: 1px solid var(--cocalc-border-light, #eeeeee);
+}
+
+.cm-s-cocalc-auto .CodeMirror-guttermarker {
+  color: var(--cocalc-error, #f5222d);
+}
+
+.cm-s-cocalc-auto .CodeMirror-guttermarker-subtle {
+  color: var(--cocalc-text-tertiary, #808080);
+}
+
+.cm-s-cocalc-auto .CodeMirror-linenumber {
+  color: var(--cocalc-text-tertiary, #808080);
+}
+
+.cm-s-cocalc-auto .CodeMirror-cursor {
+  border-left: 1px solid var(--cocalc-text-primary, #303030);
+}
+
+.cm-s-cocalc-auto span.cm-comment {
+  color: var(--cocalc-syntax-comment, #909090);
+  font-style: italic;
+}
+
+.cm-s-cocalc-auto span.cm-atom {
+  color: var(--cocalc-syntax-number, #c18401);
+}
+
+.cm-s-cocalc-auto span.cm-number {
+  color: var(--cocalc-syntax-number, #c18401);
+}
+
+.cm-s-cocalc-auto span.cm-property,
+.cm-s-cocalc-auto span.cm-attribute {
+  color: var(--cocalc-syntax-variable, #303030);
+}
+
+.cm-s-cocalc-auto span.cm-keyword {
+  color: var(--cocalc-syntax-keyword, #3a63a3);
+}
+
+.cm-s-cocalc-auto span.cm-string {
+  color: var(--cocalc-syntax-string, #c9760c);
+}
+
+.cm-s-cocalc-auto span.cm-variable {
+  color: var(--cocalc-syntax-variable, #303030);
+}
+
+.cm-s-cocalc-auto span.cm-variable-2 {
+  color: var(--cocalc-syntax-function, #4474c0);
+}
+
+.cm-s-cocalc-auto span.cm-def {
+  color: var(--cocalc-syntax-function, #4474c0);
+}
+
+.cm-s-cocalc-auto span.cm-bracket {
+  color: var(--cocalc-syntax-operator, #505050);
+}
+
+.cm-s-cocalc-auto span.cm-tag {
+  color: var(--cocalc-syntax-type, #8e5bb0);
+}
+
+.cm-s-cocalc-auto span.cm-link {
+  color: var(--cocalc-link, #1677ff);
+}
+
+.cm-s-cocalc-auto span.cm-error {
+  background: var(--cocalc-error, #f5222d);
+  color: var(--cocalc-bg-base, #ffffff);
+}
+
+.cm-s-cocalc-auto .CodeMirror-activeline-background {
+  background: var(--cocalc-bg-hover, #f0f5ff);
+}
+
+.cm-s-cocalc-auto .CodeMirror-matchingbracket {
+  color: var(--cocalc-bg-base, #ffffff) !important;
+  background-color: var(--cocalc-syntax-function, #4474c0) !important;
+}
+
+.cm-s-cocalc-auto .CodeMirror-nonmatchingbracket {
+  color: var(--cocalc-bg-base, #ffffff) !important;
+  background-color: var(--cocalc-error, #f5222d) !important;
+}
+
+/* Type annotations, class names */
+.cm-s-cocalc-auto span.cm-type {
+  color: var(--cocalc-syntax-type, #8e5bb0);
+}
+
+.cm-s-cocalc-auto span.cm-builtin {
+  color: var(--cocalc-syntax-function, #4474c0);
+}
+
+.cm-s-cocalc-auto span.cm-qualifier {
+  color: var(--cocalc-syntax-type, #8e5bb0);
+}
+
+.cm-s-cocalc-auto span.cm-operator {
+  color: var(--cocalc-syntax-operator, #505050);
+}
+
+.cm-s-cocalc-auto span.cm-meta {
+  color: var(--cocalc-syntax-comment, #909090);
+}
+
+.cm-s-cocalc-auto span.cm-header {
+  color: var(--cocalc-syntax-keyword, #3a63a3);
+  font-weight: bold;
+}

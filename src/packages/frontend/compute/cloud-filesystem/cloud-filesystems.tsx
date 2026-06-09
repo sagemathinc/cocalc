@@ -118,7 +118,7 @@ export default function CloudFilesystems({ project_id, noTitle }: Props) {
           <div
             style={{
               fontSize: "20px",
-              color: "#888",
+              color: "var(--cocalc-text-tertiary, #888)",
               display: "flex",
               justifyContent: "center",
               flexDirection: "column",
@@ -161,7 +161,7 @@ export default function CloudFilesystems({ project_id, noTitle }: Props) {
         style={{
           margin: "15px auto 30px auto",
           fontSize: "11pt",
-          color: "#666",
+          color: "var(--cocalc-text-secondary, #666)",
         }}
       >
         <A href="https://doc.cocalc.com/cloud_file_system.html">

@@ -204,7 +204,7 @@ export const SELECTED_COLOR = "#1990ff";
 /* This focused color is "Jupyter notebook classic" focused cell green. */
 export const CODE_FOCUSED_COLOR = "#66bb6a";
 export const CODE_FOCUSED_BACKGROUND = "#cfe8fc";
-export const DARK_GREY_BORDER = "#cfcfcf";
+export const DARK_GREY_BORDER = "var(--cocalc-border, #cfcfcf)";
 
 export function string_to_style(style: string): any {
   const obj: any = {};

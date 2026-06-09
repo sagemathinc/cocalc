@@ -67,6 +67,7 @@ export type LSFlyout = {
   servers?: string[]; // expanded server panels
   starred?: FlyoutActiveStarred;
   showStarred?: boolean;
+  showActive?: boolean; // whether the active files panel is shown as a separate flyout
   activeTabSort?: FlyoutActiveTabSort;
   logFilter?: FlyoutLogFilter[];
   /** Flyout's independent browsing directory. */
@@ -93,6 +94,7 @@ export function storeFlyoutState(
     servers?: string[]; // expanded server panels
     starred?: FlyoutActiveStarred;
     showStarred?: boolean;
+    showActive?: boolean;
     width?: number | null;
     activeTabSort?: FlyoutActiveTabSort;
     logFilter?: FlyoutLogFilter[];
@@ -171,6 +173,10 @@ export function storeFlyoutState(
     if (isFlyoutActiveTabSort(state.activeTabSort)) {
       current.activeTabSort = state.activeTabSort;
     }
+
+    if (typeof state.showActive === "boolean") {
+      current.showActive = state.showActive;
+    }
   }
 
   LS.set(key, current);
@@ -242,6 +248,10 @@ export function getFlyoutActiveTabSort(
 ): FlyoutActiveTabSort {
   const activeTabSort = LS.get<LSFlyout>(lsKey(project_id))?.activeTabSort;
   return isFlyoutActiveTabSort(activeTabSort) ? activeTabSort : "custom";
+}
+
+export function getFlyoutShowActive(project_id: string): boolean {
+  return LS.get<LSFlyout>(lsKey(project_id))?.showActive ?? false;
 }
 
 export function getFlyoutDirectory(project_id: string): string {

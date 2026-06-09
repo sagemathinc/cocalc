@@ -23,7 +23,6 @@ import {
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { server_seconds_ago } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { useProjectContext } from "./context";
 import { DOC_TRIAL } from "./project-banner";
@@ -31,7 +30,7 @@ import { DOC_TRIAL } from "./project-banner";
 const STYLE: CSSProperties = {
   fontSize: "40px",
   textAlign: "center",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
 } as const;
 
 export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
@@ -222,7 +221,7 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
             <span
               style={{
                 fontSize: "20pt",
-                color: COLORS.GRAY_D,
+                color: "var(--cocalc-text-primary-strong, #434343)",
               }}
             >
               <ProjectState state={state} show_desc={allowed} />

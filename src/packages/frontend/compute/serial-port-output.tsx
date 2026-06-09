@@ -45,7 +45,7 @@ export default function SerialPortOutput({
         <Button
           size={"small"}
           type="text"
-          style={{ color: "#666", ...style }}
+          style={{ color: "var(--cocalc-text-secondary, #666)", ...style }}
           onClick={() => setShow(!show)}
         >
           <Icon name="laptop" />

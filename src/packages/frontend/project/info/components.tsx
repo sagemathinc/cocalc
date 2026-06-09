@@ -143,7 +143,7 @@ export const AboutContent: React.FC<AboutContentProps> = ({
                 icon={<Icon name="times" />}
                 size="small"
                 type="text"
-                style={{ color: COLORS.GRAY_M }}
+                style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}
               />
             </Tooltip>
           ) : (
@@ -164,12 +164,12 @@ export const ProcState: React.FC<{ state: State }> = React.memo(({ state }) => {
   function render_state(): [number, string, CSS | undefined] | undefined {
     switch (state) {
       case "S":
-        return [9416, "Sleeping (not using CPU)", { color: COLORS.GRAY_L }];
+        return [9416, "Sleeping (not using CPU)", { color: "var(--cocalc-text-tertiary, #c0c0c0)" }];
       case "R":
         return [
           9415,
           "Running  (actively uses CPU)",
-          { color: COLORS.ANTD_GREEN_D, fontWeight: "bold" },
+          { color: "var(--cocalc-success, #237804)", fontWeight: "bold" },
         ];
       case "D":
         return [9401, "Waiting on data from disk/network", undefined];
@@ -210,7 +210,7 @@ export const LabelQuestionmark: React.FC<{
   return (
     <span style={s}>
       {text}{" "}
-      <span style={{ color: COLORS.GRAY }}>
+      <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
         <QuestionCircleOutlined />
       </span>
     </span>

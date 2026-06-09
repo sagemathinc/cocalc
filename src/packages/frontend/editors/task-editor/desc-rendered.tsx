@@ -38,7 +38,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
     function render_content() {
       let value = desc;
       if (!value.trim()) {
-        return <span style={{ color: "#666" }}>Description...</span>;
+        return <span style={{ color: "var(--cocalc-text-secondary, #666)" }}>Description...</span>;
       }
       let show_more_link: boolean;
       if (hideBody) {

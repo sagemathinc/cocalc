@@ -143,7 +143,7 @@ export function HandoutsPanel({
     return (
       <Handout
         frame_id={frame_id}
-        backgroundColor={index % 2 === 0 ? "#eee" : undefined}
+        backgroundColor={index % 2 === 0 ? "var(--cocalc-bg-hover, #eee)" : undefined}
         key={handout_id}
         handout={get_handout(handout_id)}
         project_id={project_id}

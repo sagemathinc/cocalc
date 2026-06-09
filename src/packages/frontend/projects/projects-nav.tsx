@@ -5,7 +5,7 @@
 
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
-import { CSSProperties, useEffect, useMemo } from "react";
+import { cloneElement, CSSProperties, useEffect, useMemo } from "react";
 
 import {
   CSS,
@@ -87,7 +87,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
 
   const icon =
     any_alerts && project_state === "running" ? (
-      <Icon name={"exclamation-triangle"} style={{ color: COLORS.BS_RED }} />
+      <Icon name={"exclamation-triangle"} style={{ color: "var(--cocalc-error, #dc3545)" }} />
     ) : (
       <Icon name={COMPUTE_STATES[project_state]?.icon ?? "bullhorn"} />
     );
@@ -147,7 +147,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
           value={project?.get("description") ?? ""}
         />
         <hr />
-        <div style={{ color: COLORS.GRAY }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
           Hint: Shift+click any project or file tab to open it in new window.
         </div>
       </div>
@@ -157,7 +157,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   function renderNoInternet() {
     if (!showNoInternet) return;
     const noInternet = (
-      <Icon name="global" style={{ color: COLORS.ANTD_RED_WARN }} />
+      <Icon name="global" style={{ color: "var(--cocalc-error, #f5222d)" }} />
     );
     if (other_settings.get("hide_project_popovers")) {
       return <Tooltip title={noInternetInfo("tooltip")}>{noInternet}</Tooltip>;
@@ -304,23 +304,27 @@ export function ProjectsNav(props: ProjectsNavProps) {
           const isActive = project_id === activeTopTab;
 
           const wrapperStyle: CSS = {
-            border: isActive
-              ? `2px solid ${"#d3d3d3"}`
-              : `2px solid  ${"transparent"}`,
-            borderRadius: "8px",
+            borderRadius: "8px 8px 0 0",
           };
 
-          // Kept for reference, this allows to tweak the node props directly
-          // const styledNode = cloneElement(node, {
-          //   style: {
-          //     ...node.props.style,
-          //     backgroundColor: wrapperStyle.backgroundColor,
-          //   },
-          // });
+          const nodeStyle: CSSProperties = {
+            ...(node.props.style ?? {}),
+            backgroundColor: isActive
+              ? `var(--cocalc-top-bar-active, ${COLORS.TOP_BAR.HOVER})`
+              : `var(--cocalc-top-bar-bg, ${COLORS.TOP_BAR.BG})`,
+            borderColor: isActive
+              ? `var(--cocalc-border-light, ${COLORS.GRAY_LL})`
+              : "transparent",
+            borderRadius: "8px 8px 0 0",
+            color: isActive
+              ? `var(--cocalc-top-bar-text-active, ${COLORS.TOP_BAR.TEXT_ACTIVE})`
+              : `var(--cocalc-text-primary, ${COLORS.GRAY_D})`,
+          };
+          const styledNode = cloneElement(node, { style: nodeStyle });
 
           return (
             <SortableTab key={node.key} id={node.key} style={wrapperStyle}>
-              {node}
+              {styledNode}
             </SortableTab>
           );
         }}

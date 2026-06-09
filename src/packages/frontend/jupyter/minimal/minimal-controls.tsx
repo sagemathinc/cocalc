@@ -8,7 +8,7 @@ import React from "react";
 
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
+
 
 export type MinimalLayout = "centered" | "wide";
 
@@ -28,8 +28,8 @@ export const MinimalControls: React.FC<MinimalControlsProps> = React.memo(
           alignItems: "center",
           gap: "8px",
           padding: "2px 8px",
-          borderBottom: `1px solid ${COLORS.GRAY_LL}`,
-          backgroundColor: COLORS.GRAY_LLL,
+          borderBottom: `1px solid var(--cocalc-border-light, #e0e0e0)`,
+          backgroundColor: `var(--cocalc-bg-elevated, #f5f5f5)`,
           flexShrink: 0,
         }}
       >

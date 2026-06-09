@@ -24,7 +24,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { COLORS } from "@cocalc/util/theme";
 import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
 import {
   FlyoutActiveMode,
@@ -122,7 +121,7 @@ export function ActiveTop(props: Readonly<ActiveTopProps>) {
         >
           <Icon
             name={showStarred ? "star-filled" : "star"}
-            style={{ color: COLORS.STAR }}
+            style={{ color: "var(--cocalc-star, #FFD700)" }}
           />
           {renderLabelText("Starred")}
         </Button>

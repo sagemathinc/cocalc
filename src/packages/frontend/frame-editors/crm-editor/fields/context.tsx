@@ -168,7 +168,7 @@ function ClickToEdit({
         onClick={() => setEdit(true)}
       >
         {empty || children == null || children.length == 0 ? (
-          <span style={{ color: "#888" }}>{fieldToLabel(field)}...</span>
+          <span style={{ color: "var(--cocalc-text-tertiary, #888)" }}>{fieldToLabel(field)}...</span>
         ) : (
           children
         )}

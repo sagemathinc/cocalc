@@ -22,8 +22,8 @@ import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../activity-bar-tabs";
 import { ActiveHeader } from "./active-header";
-import { useFlyoutNavigation } from "./use-flyout-navigation";
 import { FLYOUT_PADDING } from "./consts";
+import { useFlyoutNavigation } from "./use-flyout-navigation";
 import { LogHeader } from "./log-header";
 
 const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
@@ -263,7 +263,6 @@ export function FlyoutHeader(_: Readonly<Props>) {
         paddingLeft: "10px",
         paddingTop: "10px",
         fontSize: "1.2em",
-        marginRight: FLYOUT_PADDING,
       }}
     >
       {renderTitle()}

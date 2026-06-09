@@ -66,7 +66,7 @@ render({ type: "color", editable: true }, ({ field, obj, spec }) => {
           {color ? (
             <Color color={color} />
           ) : (
-            <span style={{ color: "#999" }}>Color...</span>
+            <span style={{ color: "var(--cocalc-text-tertiary, #999)" }}>Color...</span>
           )}
         </span>
       </Popover>

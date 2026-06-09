@@ -41,7 +41,7 @@ export default function Configuration({
             textAlign: "center",
             maxWidth: "600px",
             margin: "15px auto",
-            borderBottom: "1px solid #aaa",
+            borderBottom: "1px solid var(--cocalc-text-tertiary, #aaa)",
             marginBottom: "15px",
             paddingBottom: "15px",
           }}

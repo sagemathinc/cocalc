@@ -35,7 +35,7 @@ export default function Output({
       {output != null && (
         <div
           style={{
-            color: "#444",
+            color: "var(--cocalc-text-primary, #444)",
             maxHeight: "50vh",
             overflowY: "auto",
             ...style,

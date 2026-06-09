@@ -15,7 +15,7 @@ export default function LimitMenu({
     <Popover
       placement="bottom"
       content={
-        <Space direction="vertical" style={{ color: "#666" }}>
+        <Space direction="vertical" style={{ color: "var(--cocalc-text-secondary, #666)" }}>
           <Limit limit={limit} setLimit={setLimit} />
           <Height
             setRecordHeight={setRecordHeight}

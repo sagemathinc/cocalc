@@ -129,7 +129,7 @@ function SearchResults({
               {first_name} {last_name} {email_address} (account_id ={" "}
               {account_id})
             </Button>
-            <div style={{ margin: "5px", color: "#666" }}>
+            <div style={{ margin: "5px", color: "var(--cocalc-text-secondary, #666)" }}>
               NOTE: The new owner will always be added as a manager, but no
               managers are automatically removed.
             </div>

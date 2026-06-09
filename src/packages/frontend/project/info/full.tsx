@@ -16,7 +16,6 @@ import { CSS, ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { A, Loading, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import { field_cmp, seconds2hms } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
@@ -516,7 +515,7 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
   function render_general_status() {
     return (
       <Col md={12}>
-        <div ref={generalStatusRef} style={{ color: COLORS.GRAY }}>
+        <div ref={generalStatusRef} style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
           Timestamp:{" "}
           {info?.timestamp != null ? (
             <code>{new Date(info.timestamp).toISOString()}</code>

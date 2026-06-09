@@ -81,12 +81,12 @@ function Preview({ color, radius, aspectRatio, width }) {
             width: `${width}px`,
             height: `${width / (ar != 0 ? ar : 1)}px`,
             borderRadius: width > 100 ? "3px" : undefined,
-            boxShadow: width > 100 ? "1px 3px 5px #ccc" : undefined,
+            boxShadow: width > 100 ? "1px 3px 5px var(--cocalc-border, #ccc)" : undefined,
             margin: "auto",
           }}
         ></div>
       }
-      <div style={{ fontSize: width > 50 ? "14px" : "11px", color: "#666" }}>
+      <div style={{ fontSize: width > 50 ? "14px" : "11px", color: "var(--cocalc-text-secondary, #666)" }}>
         {aspectRatio}
       </div>
     </div>

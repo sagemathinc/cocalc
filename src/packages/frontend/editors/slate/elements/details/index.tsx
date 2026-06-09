@@ -12,7 +12,7 @@ import { dict } from "@cocalc/util/misc";
 export const STYLE = {
   cursor: "pointer",
   background: "#f6f6f6",
-  color: "black",
+  color: "var(--cocalc-text-primary, black)",
   padding: "0.5rem 1rem",
   borderRadius: "5px",
 } as CSSProperties;

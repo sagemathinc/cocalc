@@ -15,7 +15,6 @@ import {
   Text,
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   project_id: string;
@@ -71,7 +70,7 @@ export const SagewsControl: React.FC<Props> = (props: Props) => {
           server. In case you customized your <Text code>$HOME/bin/sage</Text>,
           you have to do this, in order to to pick up the new version of Sage.
         </Paragraph>
-        <Paragraph style={{ color: COLORS.GRAY_D }}>
+        <Paragraph style={{ color: "var(--cocalc-text-primary-strong, #434343)" }}>
           Existing worksheet sessions are unaffected. This means you have to
           restart your worksheet as well to use the new version of Sage.
         </Paragraph>

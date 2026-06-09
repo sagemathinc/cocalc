@@ -34,7 +34,7 @@ const HelpStyle: React.CSSProperties = {
 };
 
 export const outputMinitermStyle: React.CSSProperties = {
-  background: COLORS.WHITE,
+  background: "var(--cocalc-bg-base, #fff)",
   position: "absolute",
   zIndex: 10,
   boxShadow: `-4px 4px 7px ${COLORS.GRAY_L}`,
@@ -298,9 +298,9 @@ export const SearchBar = React.memo((props: Props) => {
               }}
               href=""
               style={{
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
                 fontSize: "14pt",
-                background: COLORS.WHITE,
+                background: "var(--cocalc-bg-base, #fff)",
                 pointerEvents: "auto",
                 padding: "0 5px",
               }}
@@ -488,7 +488,7 @@ export const SearchBar = React.memo((props: Props) => {
       {render_help_info()}
       <div style={{ ...outputMinitermStyle, width: "100%", left: 0 }}>
         {render_output(error, {
-          color: COLORS.FG_RED,
+          color: "var(--cocalc-error, #dc3545)",
           margin: 0,
         })}
         {render_output(stdout, { margin: 0 })}

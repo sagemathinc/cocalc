@@ -809,6 +809,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  public setFlyoutShowActive(show: boolean): void {
+    this.setState({ flyout_active: show });
+    storeFlyoutState(this.project_id, "active", { showActive: show });
+  }
+
   public setFlyoutLogMode(mode: FlyoutLogMode): void {
     this.setState({ flyout_log_mode: mode });
     storeFlyoutState(this.project_id, "log", { mode });

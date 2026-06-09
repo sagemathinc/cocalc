@@ -132,7 +132,7 @@ export function ThreadCount({
         }
       }}
     >
-      <Badge style={style} count={count} color={"#aaa"} />
+      <Badge style={style} count={count} color={"var(--cocalc-text-tertiary, #aaa)"} />
     </Tooltip>
   );
 }

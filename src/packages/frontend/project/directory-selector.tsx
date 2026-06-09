@@ -210,7 +210,7 @@ export default function DirectorySelector({
       }
       style={{
         width: "20em",
-        backgroundColor: "white",
+        backgroundColor: "var(--cocalc-bg-base, white)",
         ...style,
       }}
       styles={{
@@ -556,7 +556,7 @@ function CreateDirectory({
   };
 
   return (
-    <div style={{ color: "#666" }} key={"...-create-dir"}>
+    <div style={{ color: "var(--cocalc-text-secondary, #666)" }} key={"...-create-dir"}>
       <Modal
         title={
           <>

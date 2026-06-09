@@ -41,11 +41,11 @@ export function render_project_quota(name: string, value: number): Rendered {
   return (
     <div key={name} style={{ marginBottom: "5px", marginLeft: "10px" }}>
       <Tip title={data.display} tip={data.desc}>
-        <span style={{ fontWeight: "bold", color: "#666" }}>
+        <span style={{ fontWeight: "bold", color: "var(--cocalc-text-secondary, #666)" }}>
           {round1(amount)} {plural(amount, unit)}
         </span>
         <Gap />
-        <span style={{ color: "#999" }}>{data.display}</span>
+        <span style={{ color: "var(--cocalc-text-tertiary, #999)" }}>{data.display}</span>
       </Tip>
     </div>
   );

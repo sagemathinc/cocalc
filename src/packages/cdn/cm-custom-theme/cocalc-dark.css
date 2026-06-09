@@ -7,29 +7,29 @@
  */
 
 .cm-s-cocalc-dark.CodeMirror {
-  background: #434343;
+  background: #1e2130;
   color: #c0d4f0;
 }
 
 .cm-s-cocalc-dark div.CodeMirror-selected {
-  background: #5a5a5a;
+  background: #2e3248;
 }
 
 .cm-s-cocalc-dark .CodeMirror-line::selection,
 .cm-s-cocalc-dark .CodeMirror-line > span::selection,
 .cm-s-cocalc-dark .CodeMirror-line > span > span::selection {
-  background: #5a5a5a;
+  background: #2e3248;
 }
 
 .cm-s-cocalc-dark .CodeMirror-line::-moz-selection,
 .cm-s-cocalc-dark .CodeMirror-line > span::-moz-selection,
 .cm-s-cocalc-dark .CodeMirror-line > span > span::-moz-selection {
-  background: #5a5a5a;
+  background: #2e3248;
 }
 
 .cm-s-cocalc-dark .CodeMirror-gutters {
-  background: #3a3a3a;
-  border-right: 1px solid #505050;
+  background: #161828;
+  border-right: 1px solid #2a2d40;
 }
 
 .cm-s-cocalc-dark .CodeMirror-guttermarker {
@@ -104,15 +104,15 @@
 }
 
 .cm-s-cocalc-dark .CodeMirror-activeline-background {
-  background: #4a4a4a;
+  background: #262a3e;
 }
 
 .cm-s-cocalc-dark .CodeMirror-matchingbracket {
-  color: #434343 !important;
+  color: #1e2130 !important;
   background-color: #80afff !important;
 }
 
 .cm-s-cocalc-dark .CodeMirror-nonmatchingbracket {
-  color: #434343 !important;
+  color: #1e2130 !important;
   background-color: #ff9966 !important;
 }

@@ -6,6 +6,37 @@
 import { redux } from "@cocalc/frontend/app-framework";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
+import { filename_extension } from "@cocalc/util/misc";
+import type { OpenFile } from "./types";
+
+export function getOpenFilePath(
+  filename: OpenFile["filename"] | unknown,
+): string | undefined {
+  // Delegates to `normalizeLogFilename` so plain string, plain object
+  // `{path, …}`, and Immutable Map shapes (newer clients downgraded to
+  // an older client via fromJS) are all handled identically.
+  const path = normalizeLogFilename(filename);
+  return path != null && path.length > 0 ? path : undefined;
+}
+
+export function getOpenFileExt(
+  filename: OpenFile["filename"] | unknown,
+): string {
+  // Fast path: a pre-computed `.ext` from the newer client shape, on
+  // either a plain object OR an Immutable Map.
+  if (typeof filename === "object" && filename != null) {
+    const asMap = filename as { get?: (k: string) => unknown };
+    const ext =
+      typeof asMap.get === "function"
+        ? asMap.get("ext")
+        : (filename as { ext?: unknown }).ext;
+    if (typeof ext === "string" && ext.length > 0) {
+      return ext.replace(/^\./, "").toLowerCase();
+    }
+  }
+  const path = getOpenFilePath(filename);
+  return path == null ? "" : filename_extension(path).toLowerCase();
+}
 
 /**
  * Coerce a project_log `event.filename` value to a string, accepting both

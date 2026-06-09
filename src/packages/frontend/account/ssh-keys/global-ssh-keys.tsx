@@ -7,7 +7,6 @@ import { FormattedMessage } from "react-intl";
 
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { A, Paragraph, Text } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 
 import SSHKeyList from "./ssh-key-list";
 
@@ -31,7 +30,7 @@ export default function GlobalSSHKeys() {
         }
         ssh_keys={ssh_keys}
       >
-        <Paragraph style={{ color: COLORS.GRAY_M }}>
+        <Paragraph style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           <FormattedMessage
             id="account.global-ssh-keys.info"
             defaultMessage={`The global SSH keys listed here allow you to connect from your computer via SSH

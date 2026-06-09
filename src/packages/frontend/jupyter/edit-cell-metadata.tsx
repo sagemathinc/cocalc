@@ -50,7 +50,7 @@ export function EditCellMetadata({
         </Button>
       }
     >
-      <span color="#666">
+      <span style={{ color: "var(--cocalc-text-secondary, #666)" }}>
         Manually edit the JSON below to manipulate the custom metadata for this
         cell. The JSON is saved as long as it is valid; otherwise, you'll see a
         big red error message.
@@ -58,7 +58,7 @@ export function EditCellMetadata({
       <div
         style={{
           fontSize: font_size,
-          border: "1px solid #ccc",
+          border: "1px solid var(--cocalc-border, #ccc)",
           margin: "5px",
           borderRadius: "3px",
         }}
@@ -77,7 +77,7 @@ export function EditCellMetadata({
           redo={actions.redo}
         />
       </div>
-      <span color="#888">
+      <span color="var(--cocalc-text-tertiary, #888)">
         NOTE: The metadata fields "collapsed", "scrolled", "slideshow", and
         "tags" are not visible above, and should only be edited through their
         own toolbar, the UI or via 'View &rarr; Show Notebook as Raw'.

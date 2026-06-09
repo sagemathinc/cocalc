@@ -75,7 +75,7 @@ render({ type: "text", editable: true }, ({ field, obj, spec }: Props) => {
   } else {
     return (
       <ClickToEdit empty={!value?.trim()}>
-        <Icon name="pencil" style={{ marginRight: "8px", color:"#666" }} />
+        <Icon name="pencil" style={{ marginRight: "8px", color:"var(--cocalc-text-secondary, #666)" }} />
         <Static field={field} obj={obj} spec={spec} value={value} />
       </ClickToEdit>
     );

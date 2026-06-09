@@ -361,7 +361,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     return <span>to up to {info.run_limit} simultaneous running projects</span>;
   }
 
-  function render_what_license_provides_overall(): React.JSX.Element | undefined {
+  function render_what_license_provides_overall():
+    | React.JSX.Element
+    | undefined {
     if (info == null) return;
     if (info.quota != null) {
       return render_quota(info.quota);
@@ -375,9 +377,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
         <DisplayUpgrades
           upgrades={scale_by_display_factors(fromJS(info.upgrades))}
           style={{
-            border: "1px solid #ddd",
+            border: "1px solid var(--cocalc-border-light)",
             padding: "0 15px",
-            backgroundColor: "white",
+            backgroundColor: "var(--cocalc-bg-base)",
             margin: "5px 15px",
           }}
         />
@@ -503,9 +505,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
             <DisplayUpgrades
               upgrades={scale_by_display_factors(upgrades)}
               style={{
-                border: "1px solid #ddd",
+                border: "1px solid var(--cocalc-border-light)",
                 padding: "0 15px",
-                backgroundColor: "white",
+                backgroundColor: "var(--cocalc-bg-base)",
                 margin: "5px 15px",
               }}
             />
@@ -674,8 +676,8 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       <div
         style={{
           whiteSpace: "pre-wrap",
-          border: "1px solid lightgrey",
-          background: "white",
+          border: "1px solid var(--cocalc-border-light)",
+          background: "var(--cocalc-bg-base)",
           padding: "4px 11px",
           display: "inline-block",
           margin: "5px 0",
@@ -741,8 +743,8 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       <li
         style={{
           whiteSpace: "pre-wrap",
-          border: "1px solid lightgrey",
-          background: "white",
+          border: "1px solid var(--cocalc-border-light)",
+          background: "var(--cocalc-bg-base)",
           padding: "4px 11px",
         }}
         onClick={
@@ -805,8 +807,8 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     return (
       <div
         style={{
-          background: "white",
-          border: "1px solid grey",
+          background: "var(--cocalc-bg-base)",
+          border: "1px solid var(--cocalc-border)",
           padding: "5px",
           margin: "15px",
         }}

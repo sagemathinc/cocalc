@@ -19,6 +19,7 @@ import {
   getThemeName,
   theme_desc,
 } from "@cocalc/frontend/frame-editors/terminal-editor/theme-data";
+import { useColorTheme } from "../app/theme-context";
 import { labels } from "@cocalc/frontend/i18n";
 import { DEFAULT_TERMINAL_COLOR_SCHEME } from "@cocalc/util/db-schema/accounts";
 import { set_account_table } from "./util";
@@ -31,9 +32,12 @@ declare global {
 
 export function TerminalSettings() {
   const intl = useIntl();
+  const theme = useColorTheme();
 
   const terminal = useTypedRedux("account", "terminal");
-  const color_scheme = getThemeName(terminal?.get("color_scheme"));
+  const raw_scheme = terminal?.get("color_scheme") ?? DEFAULT_TERMINAL_COLOR_SCHEME;
+  // Keep "cocalc" (auto light/dark) as-is for the selector; only resolve unknown values
+  const color_scheme = raw_scheme in theme_desc ? raw_scheme : getThemeName(raw_scheme);
 
   if (terminal == null) {
     return <Loading />;
@@ -57,6 +61,19 @@ export function TerminalSettings() {
         </>
       }
     >
+      <div
+        style={{
+          fontSize: 12,
+          color: "var(--cocalc-text-tertiary, #888)",
+          marginBottom: 8,
+        }}
+      >
+        {intl.formatMessage({
+          id: "account.terminal-settings.explanation",
+          defaultMessage:
+            "The 'CoCalc (auto light/dark)' option automatically switches between CoCalc Light and CoCalc Dark to match your color theme and dark mode setting.",
+        })}
+      </div>
       <LabeledRow label={label}>
         <Button
           disabled={color_scheme === DEFAULT_TERMINAL_COLOR_SCHEME}
@@ -73,18 +90,24 @@ export function TerminalSettings() {
           showSearch={true}
         />
       </LabeledRow>
-      <TerminalPreview color_scheme={color_scheme} />
+      <TerminalPreview color_scheme={color_scheme} isDark={!!theme.isDark} />
     </Panel>
   );
 }
 
-function TerminalPreview({ color_scheme }: { color_scheme: string }) {
-  const html = example(getThemeName(color_scheme));
+function TerminalPreview({
+  color_scheme,
+  isDark,
+}: {
+  color_scheme: string;
+  isDark: boolean;
+}) {
+  const html = example(color_scheme || "default", isDark);
   return (
     <div
       style={{
         marginTop: "10px",
-        border: "1px solid #ccc",
+        border: "1px solid var(--cocalc-border, #ccc)",
         borderRadius: "4px",
         overflow: "hidden",
       }}

@@ -34,7 +34,7 @@ export function DescVisible({
       return;
     }
     return (
-      <span style={{ color: "#666", marginLeft: "10px" }}>
+      <span style={{ color: "var(--cocalc-text-secondary, #666)", marginLeft: "10px" }}>
         Including{" "}
         <b>
           <i>{v.join(" and ")}</i>
@@ -49,11 +49,11 @@ export function DescVisible({
   }
   return (
     <div style={{ marginTop: "12.5px", fontWeight: 500 }}>
-      <span style={{ color: "#666" }}>
+      <span style={{ color: "var(--cocalc-text-secondary, #666)" }}>
         {num_visible} matching {plural(num_visible, "task")}.
       </span>
       {search_desc && (
-        <span style={{ color: "#666", marginLeft: "10px" }}>
+        <span style={{ color: "var(--cocalc-text-secondary, #666)", marginLeft: "10px" }}>
           Tasks that match{" "}
           <b>
             <i>{search_desc}</i>

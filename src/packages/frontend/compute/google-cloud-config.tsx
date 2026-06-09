@@ -395,7 +395,7 @@ export default function GoogleCloudConfiguration({
           setConfig={setConfig}
           configuration={configuration}
           state={state}
-          style={{ marginTop: "10px", color: "#666" }}
+          style={{ marginTop: "10px", color: "var(--cocalc-text-secondary, #666)" }}
         />
       ),
     },
@@ -587,7 +587,7 @@ function Region({ priceData, setConfig, configuration, disabled }) {
   return (
     <div>
       {configuration.machineType ? (
-        <div style={{ color: "#666", marginBottom: "5px" }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
           <b>
             <Icon name="global" /> Region
           </b>
@@ -617,7 +617,7 @@ function Region({ priceData, setConfig, configuration, disabled }) {
         >
           Sort by price
         </Checkbox>
-        <div style={{ color: "#666", marginTop: "5px" }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #666)", marginTop: "5px" }}>
           Price above is total price in this region for the machine, disk and
           GPU.
         </div>
@@ -773,7 +773,7 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
 
   return (
     <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <b>
           <Icon name="sliders" /> Provisioning
         </b>
@@ -800,7 +800,7 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
           {prices != null ? `${currency(prices.standard)}/hour` : undefined}{" "}
         </Radio.Button>
       </Radio.Group>
-      <div style={{ color: "#666", marginTop: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginTop: "5px" }}>
         Standard VM's run until you stop them, whereas spot VM's are up to 91%
         off, but will automatically stop when there is a surge in demand. Spot
         instances might also not be available in a given region, so you may have
@@ -914,7 +914,7 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
   return (
     <div>
       {configuration.machineType ? (
-        <div style={{ color: "#666", marginBottom: "5px" }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
           <b>
             <Icon name="aim" /> Zone
           </b>{" "}
@@ -1019,7 +1019,7 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
               {cost ? (
                 <CostPerHour cost={cost} />
               ) : (
-                <span style={{ color: "#666" }}>(region/zone changes)</span>
+                <span style={{ color: "var(--cocalc-text-secondary, #666)" }}>(region/zone changes)</span>
               )}
             </div>
             <div style={{ flex: 2 }}>
@@ -1048,7 +1048,7 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
 
   return (
     <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <Tooltip
           title={
             (state ?? "deprovisioned") != "deprovisioned"
@@ -1104,7 +1104,7 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
           Sort by price
         </Checkbox>
       </div>
-      <div style={{ color: "#666", marginTop: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginTop: "5px" }}>
         Prices and availability depend on the region and provisioning type, so
         adjust those below to find the best overall value. Price above is just
         for the machine, and not the disk or GPU. Search for <code>cpu:4⌴</code>{" "}
@@ -1129,13 +1129,13 @@ function Image(props) {
   const { state = "deprovisioned" } = props;
   return (
     <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <b>
           <Icon name="disk-round" /> Image
         </b>
       </div>
       {state == "deprovisioned" && (
-        <div style={{ color: "#666", marginBottom: "5px" }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
           Select compute server image. You will be able to use sudo as root with
           no password, and can install anything into the Ubuntu Linux image,
           including commercial software.
@@ -1143,11 +1143,11 @@ function Image(props) {
       )}
       <SelectImage {...props} />
       {state != "deprovisioned" && (
-        <div style={{ color: "#666", marginTop: "5px" }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #666)", marginTop: "5px" }}>
           You can only edit the image when server is deprovisioned.
         </div>
       )}
-      <div style={{ color: "#666", marginTop: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginTop: "5px" }}>
         <ImageDescription configuration={props.configuration} />
       </div>
     </div>
@@ -1193,7 +1193,7 @@ function GPU({
 }) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
-    <div style={{ color: "#666", marginBottom: "5px" }}>
+    <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
       <b>
         <Icon style={{ float: "right", fontSize: "50px" }} name="gpu" />
         <Icon name="cube" /> NVIDIA GPU{" "}
@@ -1310,7 +1310,7 @@ function GPU({
           }}
         />
         {acceleratorCount && acceleratorType && (
-          <div style={{ color: "#666", marginTop: "10px" }}>
+          <div style={{ color: "var(--cocalc-text-secondary, #666)", marginTop: "10px" }}>
             You have selected {acceleratorCount} dedicated{" "}
             <b>{displayAcceleratorType(acceleratorType)}</b>{" "}
             {plural(acceleratorCount, "GPU")}, with a total of{" "}
@@ -1376,7 +1376,7 @@ function GPU({
 }
 /*
 {acceleratorType?.includes("a100") && configuration.spot ? (
-        <div style={{ marginTop: "5px", color: "#666" }}>
+        <div style={{ marginTop: "5px", color: "var(--cocalc-text-secondary, #666)" }}>
           <b>WARNING:</b> A100 spot instances are rarely available. Consider
           standard provisioning instead.
         </div>
@@ -1762,7 +1762,7 @@ function Network({ setConfig, configuration, loading, priceData }) {
 
   return (
     <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <b>
           <Icon name="network" /> Network
         </b>
@@ -1785,7 +1785,7 @@ function Network({ setConfig, configuration, loading, priceData }) {
       </Checkbox>
       <div style={{ marginTop: "5px" }}>
         <Typography.Paragraph
-          style={{ color: "#666" }}
+          style={{ color: "var(--cocalc-text-secondary, #666)" }}
           ellipsis={{
             expandable: true,
             rows: 2,
@@ -1860,7 +1860,7 @@ function Admin({ id, configuration, loading, template }) {
   }
   return (
     <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <b>
           <Icon name="users" /> Admin
         </b>

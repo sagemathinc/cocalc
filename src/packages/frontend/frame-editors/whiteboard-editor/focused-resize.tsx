@@ -16,7 +16,7 @@ import { SELECTED_PADDING, SELECTED_BORDER_WIDTH } from "./elements/style";
 const BORDER = SELECTED_PADDING + SELECTED_BORDER_WIDTH;
 
 const baseHandleSize = 20;
-const handleColor = "#888";
+const handleColor = "var(--cocalc-text-tertiary, #888)";
 const handleSize = `${baseHandleSize}px`;
 const handleOffset = -baseHandleSize / 2;
 
@@ -57,7 +57,7 @@ export default function DragHandle({
     pointerEvents: "all", // because we sometimes turn off pointer events for containing div
     cursor: dragHandleCursors[`${top}-${left}`],
     position: "absolute",
-    background: "white",
+    background: "var(--cocalc-bg-base, white)",
     color: handleColor,
     fontSize: handleSize,
     zIndex: MAX_ELEMENTS + 15,

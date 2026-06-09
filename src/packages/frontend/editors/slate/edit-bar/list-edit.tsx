@@ -34,7 +34,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       }
     >
       <span
-        style={{ fontWeight: 400, color: "#666" }}
+        style={{ fontWeight: 400, color: "var(--cocalc-text-secondary, #666)" }}
         title={"Uncheck for space between list items"}
       >
         {" "}
@@ -49,8 +49,8 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       size="small"
       title={"Convert to bulleted list"}
       style={{
-        backgroundColor: listProperties.start == null ? "#ccc" : undefined,
-        color: "#666",
+        backgroundColor: listProperties.start == null ? "var(--cocalc-bg-hover, #ccc)" : undefined,
+        color: "var(--cocalc-text-secondary, #666)",
       }}
       onClick={() => {
         if (listProperties.start == null) {
@@ -72,8 +72,8 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       size="small"
       title={"Convert to numbered list"}
       style={{
-        backgroundColor: listProperties.start != null ? "#ccc" : undefined,
-        color: "#666",
+        backgroundColor: listProperties.start != null ? "var(--cocalc-bg-hover, #ccc)" : undefined,
+        color: "var(--cocalc-text-secondary, #666)",
       }}
       onClick={() => {
         if (listProperties.start == null) {
@@ -119,7 +119,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       key="move-up"
       size="small"
       title="Move list item up"
-      style={{ color: "#666" }}
+      style={{ color: "var(--cocalc-text-secondary, #666)" }}
       onClick={() => {
         moveListItemUp(editor);
         ReactEditor.focus(editor, false, true);
@@ -134,7 +134,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       key="move-down"
       size="small"
       title="Move list item down"
-      style={{ color: "#666" }}
+      style={{ color: "var(--cocalc-text-secondary, #666)" }}
       onClick={() => {
         moveListItemDown(editor);
         ReactEditor.focus(editor, false, true);
@@ -149,7 +149,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       key="indent"
       size="small"
       title="Indent list item (tab)"
-      style={{ color: "#666" }}
+      style={{ color: "var(--cocalc-text-secondary, #666)" }}
       onClick={() => {
         indentListItem(editor);
         ReactEditor.focus(editor);
@@ -164,7 +164,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       key="outdent"
       size="small"
       title="Inindent list item (shift+tab)"
-      style={{ color: "#666" }}
+      style={{ color: "var(--cocalc-text-secondary, #666)" }}
       onClick={() => {
         unindentListItem(editor);
         ReactEditor.focus(editor);

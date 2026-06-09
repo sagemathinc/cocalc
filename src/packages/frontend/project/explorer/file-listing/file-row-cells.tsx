@@ -32,7 +32,7 @@ import type { FileEntry } from "./types";
 export const CELL_STYLE: React.CSSProperties = {
   padding: "6px 8px",
   borderBottom: "none",
-  background: COLORS.WHITE,
+  background: "var(--cocalc-bg-base, #fff)",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -44,6 +44,8 @@ export interface FileRowCellsProps {
   record: FileEntry;
   fp: string;
   isChecked: boolean;
+  isSelected: boolean;
+  isOpen: boolean;
   isStarred: boolean;
   isExpanded: boolean;
   isNarrow: boolean;
@@ -72,6 +74,8 @@ export const FileRowCells = React.memo(function FileRowCells({
   record,
   fp,
   isChecked,
+  isSelected,
+  isOpen,
   isStarred,
   isExpanded,
   isNarrow,
@@ -91,6 +95,10 @@ export const FileRowCells = React.memo(function FileRowCells({
   listingPaths,
   computeServerId,
 }: FileRowCellsProps) {
+  const quickActionBackground =
+    isChecked || isSelected
+      ? `var(--cocalc-bg-hover, ${COLORS.BLUE_LLL})`
+      : `var(--cocalc-bg-hover, ${isOpen ? COLORS.GRAY_LLL : COLORS.BLUE_LLLL})`;
   const [quickActionsMounted, setQuickActionsMounted] = React.useState(
     isChecked || isInClipboard,
   );
@@ -171,7 +179,7 @@ export const FileRowCells = React.memo(function FileRowCells({
         }
       >
         {record.is_public ? (
-          <Icon name="share-square" style={{ color: COLORS.TAB }} />
+          <Icon name="share-square" style={{ color: `var(--cocalc-text-secondary, ${COLORS.TAB})` }} />
         ) : null}
       </td>
       <td
@@ -193,7 +201,7 @@ export const FileRowCells = React.memo(function FileRowCells({
             className="cc-explorer-hover-icon"
             compute_server_id={computeServerId}
             style={{
-              background: isChecked ? COLORS.BLUE_LLL : COLORS.BLUE_LLLL,
+              background: quickActionBackground,
             }}
           />
         )}
@@ -221,7 +229,7 @@ export const FileRowCells = React.memo(function FileRowCells({
                   handleDownloadClick(e, record);
                 }}
                 style={{
-                  color: COLORS.TAB,
+                  color: `var(--cocalc-text-secondary, ${COLORS.TAB})`,
                   whiteSpace: "nowrap",
                   padding: "0 4px",
                   height: "auto",
@@ -230,14 +238,22 @@ export const FileRowCells = React.memo(function FileRowCells({
                 <Icon
                   name="cloud-download"
                   className="cc-explorer-hover-icon"
-                  style={{ color: COLORS.TAB, marginRight: 4 }}
+                  style={{
+                    color: `var(--cocalc-text-secondary, ${COLORS.TAB})`,
+                    marginRight: 4,
+                  }}
                 />
                 {record.isdir
                   ? `${record.size} ${misc.plural(record.size, "item")}`
                   : misc.human_readable_size(record.size)}
               </Button>
             ) : (
-              <span style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}>
+              <span
+                style={{
+                  color: `var(--cocalc-text-secondary, ${COLORS.TAB})`,
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {record.isdir
                   ? record.size != null
                     ? `${record.size} ${misc.plural(record.size, "item")}`
@@ -263,7 +279,7 @@ export const FileRowCells = React.memo(function FileRowCells({
                   e.stopPropagation();
                   openContextMenu(record, e.clientX, e.clientY);
                 }}
-                style={{ color: COLORS.TAB }}
+                style={{ color: `var(--cocalc-text-secondary, ${COLORS.TAB})` }}
               >
                 <Icon name="ellipsis" rotate="90" />
               </Button>

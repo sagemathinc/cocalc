@@ -36,7 +36,6 @@ import { Parallel } from "./parallel";
 import StudentPay from "./student-pay";
 import { StudentProjectSoftwareEnvironment } from "./student-project-software-environment";
 import { StudentProjectUpgrades } from "./upgrades";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   name: string;
@@ -224,7 +223,7 @@ export function TitleAndDescription({ actions, settings, name }) {
         />
       </LabeledRow>
       <hr />
-      <span style={{ color: COLORS.GRAY_M }}>
+      <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
         <FormattedMessage
           id="course.configuration.title_and_description.info"
           defaultMessage={`Set the course title and description here.
@@ -277,7 +276,7 @@ export function EmailInvitation({ actions, redux, project_id, name }) {
     >
       <div
         style={{
-          border: "1px solid lightgrey",
+          border: "1px solid var(--cocalc-border-light, lightgray)",
           padding: "10px",
           borderRadius: "5px",
         }}
@@ -295,7 +294,7 @@ export function EmailInvitation({ actions, redux, project_id, name }) {
         />
       </div>
       <hr />
-      <span style={{ color: COLORS.GRAY_M }}>
+      <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
         <FormattedMessage
           id="course.configuration.email_invitation.info"
           defaultMessage={`If you add a student to this course using their email address,

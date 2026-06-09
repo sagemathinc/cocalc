@@ -28,7 +28,6 @@ import { CancelText } from "@cocalc/frontend/i18n/components";
 import { User } from "@cocalc/frontend/users";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
 import { plural, unreachable } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
@@ -60,7 +59,7 @@ const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
 const MARKDOWN_STYLE = undefined;
 
-const BORDER = "2px solid #ccc";
+const BORDER = "2px solid var(--cocalc-border, #ccc)";
 
 const SHOW_EDIT_BUTTON_MS = 15000;
 
@@ -336,7 +335,7 @@ export default function Message({
       return (
         <div
           style={{
-            color: COLORS.GRAY_M,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
             fontSize: "14px" /* matches Reply button */,
           }}
         >
@@ -351,7 +350,7 @@ export default function Message({
       );
     }
     return (
-      <div style={{ color: COLORS.GRAY_M }}>
+      <div style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
         {text}
         {is_editing ? (
           <span style={{ margin: "10px 10px 0 10px", display: "inline-block" }}>
@@ -594,7 +593,7 @@ export default function Message({
           <Icon
             name="thumbs-up"
             style={{
-              color: showOtherFeedback ? "darkblue" : undefined,
+              color: showOtherFeedback ? "var(--cocalc-link, darkblue)" : undefined,
             }}
           />
         </Button>
@@ -682,7 +681,7 @@ export default function Message({
           ) : undefined}
           {generating === true && actions ? (
             <Button
-              style={{ color: COLORS.GRAY_M }}
+              style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}
               onClick={() => {
                 actions?.languageModelStopGenerating(new Date(date));
               }}
@@ -965,7 +964,7 @@ export default function Message({
               setReplying(true);
               setAutoFocusReply(true);
             }}
-            style={{ color: COLORS.GRAY_M }}
+            style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}
           >
             <Icon name="reply" /> Reply
             {isLLMThread ? ` to ${modelToName(isLLMThread)}` : ""}
@@ -990,7 +989,7 @@ export default function Message({
           >
             <Button
               type="text"
-              style={{ color: COLORS.GRAY_M }}
+              style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}
               onClick={() =>
                 actions?.toggleFoldThread(
                   new Date(getThreadRootDate({ date, messages })),
@@ -1028,7 +1027,7 @@ export default function Message({
             }
             type="link"
             block
-            style={{ color: "darkblue", textAlign: "center" }}
+            style={{ color: "var(--cocalc-link, darkblue)", textAlign: "center" }}
             icon={<Icon name="expand-arrows" />}
           >
             {label}
@@ -1046,13 +1045,13 @@ export default function Message({
       const style: CSS =
         mode === "standalone"
           ? {
-              color: COLORS.GRAY_M,
+              color: "var(--cocalc-text-primary, #5f5f5f)",
               marginTop: MARGIN_TOP_VIEWER,
               marginLeft: "5px",
               marginRight: "5px",
             }
           : {
-              color: COLORS.GRAY_M,
+              color: "var(--cocalc-text-primary, #5f5f5f)",
               marginTop: "5px",
               width: "100%",
               textAlign: "center",

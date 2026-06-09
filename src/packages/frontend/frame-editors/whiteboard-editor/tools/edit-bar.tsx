@@ -89,7 +89,7 @@ export default function EditBar(opts: Props) {
 
 export const BUTTON_STYLE: CSS = {
   fontSize: "22px",
-  color: "#666",
+  color: "var(--cocalc-text-secondary, #666)",
   height: "42px",
   padding: "4px 5px",
 } as const;
@@ -121,7 +121,7 @@ function DuplicateButton({ elements }: ButtonProps) {
   return (
     <Tooltip title="Duplicate selected">
       <Button
-        style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
+        style={{ ...BUTTON_STYLE, borderLeft: "1px solid var(--cocalc-border, #ccc)" }}
         onClick={() => {
           actions.duplicateElements(elements, id);
         }}
@@ -154,7 +154,7 @@ function ColorButton(props: ButtonProps) {
           color={color}
           onChange={setColor}
           style={{
-            background: "white",
+            background: "var(--cocalc-bg-base, white)",
             padding: "10px",
             border: "1px solid grey",
             boxShadow: "0 0 5px grey",
@@ -183,7 +183,7 @@ function GroupButton(props: ButtonProps) {
       title={`${grouped ? "Ungroup" : "Group"} ${elements.length} objects`}
     >
       <Button
-        style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
+        style={{ ...BUTTON_STYLE, borderLeft: "1px solid var(--cocalc-border, #ccc)" }}
         onClick={() => {
           const ids = elements.map((element) => element.id);
           if (grouped) {
@@ -215,7 +215,7 @@ function FontSize(props: ButtonProps) {
         style={{
           width: "64px",
           fontSize: "20px",
-          color: "#666",
+          color: "var(--cocalc-text-secondary, #666)",
         }}
         min={minFontSize}
         max={maxFontSize}
@@ -245,7 +245,7 @@ function Radius(props: ButtonProps) {
         style={{
           width: "70px",
           fontSize: "20px",
-          color: "#666",
+          color: "var(--cocalc-text-secondary, #666)",
         }}
         min={0}
         max={maxRadius}
@@ -281,7 +281,7 @@ function Opacity(props: ButtonProps) {
         style={{
           width: "70px",
           fontSize: "20px",
-          color: "#666",
+          color: "var(--cocalc-text-secondary, #666)",
         }}
         min={0}
         max={1}
@@ -518,7 +518,7 @@ function OtherOperations(opts) {
         name="ellipsis"
         style={{
           padding: "12px 10px 0",
-          borderLeft: "1px solid #ccc",
+          borderLeft: "1px solid var(--cocalc-border, #ccc)",
           cursor: "pointer",
         }}
       />

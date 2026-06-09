@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -73,10 +73,10 @@ const FILTER_RECENT_NONE = {
 } as const;
 
 const PREVIEW_STYLE: React.CSSProperties = {
-  background: "#f5f5f5",
+  background: `var(--cocalc-bg-hover, ${COLORS.GRAY_LLL})`,
   fontSize: "14px",
   borderRadius: "10px 10px 10px 10px",
-  boxShadow: "#666 3px 3px 3px",
+  boxShadow: "var(--cocalc-text-secondary, #666) 3px 3px 3px",
   paddingBottom: "20px",
   maxHeight: "40vh",
   overflowY: "auto",
@@ -92,12 +92,12 @@ const GRID_STYLE: React.CSSProperties = {
 
 const CHAT_LAYOUT_STYLE: React.CSSProperties = {
   height: "100%",
-  background: "white",
+  background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
 } as const;
 
 const CHAT_LOG_STYLE: React.CSSProperties = {
   padding: "0",
-  background: "white",
+  background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
   flex: 1,
   minHeight: 0,
   position: "relative",
@@ -106,8 +106,8 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
 const THREAD_SIDEBAR_WIDTH = 260;
 
 const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
-  background: "#fafafa",
-  borderRight: "1px solid #eee",
+  background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLLL})`,
+  borderRight: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_LL})`,
   padding: "15px 0",
   display: "flex",
   flexDirection: "column",
@@ -116,7 +116,7 @@ const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
 
 const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
   padding: "0 20px 15px",
-  color: "#666",
+  color: "var(--cocalc-text-primary, #5f5f5f)",
 } as const;
 
 const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
@@ -128,12 +128,17 @@ const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
   pointerEvents: "none",
 } as const;
 
+const UNREAD_BADGE_STYLE: React.CSSProperties = {
+  backgroundColor: `var(--cocalc-error, ${COLORS.ANTD_RED})`,
+  color: `var(--cocalc-text-on-primary, ${COLORS.WHITE})`,
+} as const;
+
 const THREAD_SECTION_HEADER_STYLE: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   padding: "0 20px 6px",
-  color: COLORS.GRAY_D,
+  color: "var(--cocalc-text-primary-strong, #434343)",
 } as const;
 
 export type ThreadMeta = ThreadListItem & {
@@ -518,7 +523,11 @@ export function ChatPanel({
       },
       {
         key: "delete",
-        label: <span style={{ color: COLORS.ANTD_RED }}>Delete chat</span>,
+        label: (
+          <span style={{ color: "var(--cocalc-error, #f5222d)" }}>
+            Delete chat
+          </span>
+        ),
       },
     ],
     onClick: ({ key }) => {
@@ -570,7 +579,11 @@ export function ChatPanel({
           <Tooltip title={isResolvedRow ? "Resolved chat" : iconTooltip}>
             <Icon
               name={isResolvedRow ? "check-circle" : isAI ? "robot" : "users"}
-              style={{ color: isResolvedRow ? COLORS.GRAY_M : COLORS.GRAY }}
+              style={{
+                color: isResolvedRow
+                  ? `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`
+                  : `var(--cocalc-text-tertiary, ${COLORS.GRAY})`,
+              }}
             />
           </Tooltip>
           <div
@@ -579,7 +592,7 @@ export function ChatPanel({
               ...(isResolvedRow
                 ? {
                     textDecoration: "line-through",
-                    color: COLORS.GRAY_M,
+                    color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
                   }
                 : {}),
             }}
@@ -587,7 +600,12 @@ export function ChatPanel({
             {plainLabel}
           </div>
           {unreadCount > 0 && !isHovered && (
-            <Badge count={unreadCount} size="small" overflowCount={99} />
+            <Badge
+              count={unreadCount}
+              size="small"
+              overflowCount={99}
+              style={UNREAD_BADGE_STYLE}
+            />
           )}
           {showMenu && (
             <Dropdown
@@ -621,7 +639,9 @@ export function ChatPanel({
     if (count <= 0) {
       return null;
     }
-    const badge = <Badge count={count} size="small" />;
+    const badge = (
+      <Badge count={count} size="small" style={UNREAD_BADGE_STYLE} />
+    );
     if (!actions?.updateLastRead) {
       return badge;
     }
@@ -660,7 +680,7 @@ export function ChatPanel({
     const headerStyle = isResolvedSection
       ? {
           ...THREAD_SECTION_HEADER_STYLE,
-          color: COLORS.GRAY_M,
+          color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
           cursor: "pointer",
         }
       : THREAD_SECTION_HEADER_STYLE;
@@ -692,7 +712,7 @@ export function ChatPanel({
                 style={{
                   marginLeft: 6,
                   fontWeight: 400,
-                  color: COLORS.GRAY_M,
+                  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
                   fontSize: "0.85em",
                 }}
               >
@@ -802,7 +822,13 @@ export function ChatPanel({
         )}
       </div>
       {threadSections.length === 0 ? (
-        <div style={{ color: "#999", fontSize: "12px", padding: "0 20px" }}>
+        <div
+          style={{
+            color: "var(--cocalc-text-tertiary, #999)",
+            fontSize: "12px",
+            padding: "0 20px",
+          }}
+        >
           No chats yet.
         </div>
       ) : (
@@ -1027,7 +1053,7 @@ export function ChatPanel({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: COLORS.GRAY,
+            color: `var(--cocalc-text-tertiary, ${COLORS.GRAY})`,
             fontSize: "14px",
           }}
         >
@@ -1071,7 +1097,7 @@ export function ChatPanel({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#888",
+            color: "var(--cocalc-text-tertiary, #888)",
             fontSize: "14px",
           }}
         >
@@ -1203,14 +1229,20 @@ export function ChatPanel({
   const renderDefaultLayout = () => (
     <Layout style={CHAT_LAYOUT_STYLE}>
       {renderThreadSidebar()}
-      <Layout.Content className="smc-vfill" style={{ background: "white" }}>
+      <Layout.Content
+        className="smc-vfill"
+        style={{ background: `var(--cocalc-bg-base, ${COLORS.WHITE})` }}
+      >
         {renderChatContent()}
       </Layout.Content>
     </Layout>
   );
 
   const renderCompactLayout = () => (
-    <div className="smc-vfill" style={{ background: "white" }}>
+    <div
+      className="smc-vfill"
+      style={{ background: `var(--cocalc-bg-base, ${COLORS.WHITE})` }}
+    >
       <Drawer
         open={sidebarVisible}
         onClose={() => setSidebarVisible(false)}
@@ -1248,7 +1280,11 @@ export function ChatPanel({
           onClick={() => setSidebarVisible(true)}
         >
           Chats
-          <Badge count={totalUnread} overflowCount={99} />
+          <Badge
+            count={totalUnread}
+            overflowCount={99}
+            style={UNREAD_BADGE_STYLE}
+          />
         </Button>
         <Button
           type={!selectedThreadKey ? "primary" : "default"}

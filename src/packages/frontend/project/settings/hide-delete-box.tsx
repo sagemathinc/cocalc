@@ -17,7 +17,6 @@ import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { COLORS } from "@cocalc/util/theme";
 import { DeletedProjectWarning } from "../warnings/deleted";
 import { Project } from "./types";
 
@@ -185,7 +184,7 @@ export function HideDeleteBox(props: Readonly<Props>) {
 
     return (
       <>
-        <Row style={{ color: COLORS.GRAY_M }}>
+        <Row style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           <Col sm={12}>
             <Title level={4}>
               <Icon name={hidden ? "eye-slash" : "eye"} /> {hide_label}

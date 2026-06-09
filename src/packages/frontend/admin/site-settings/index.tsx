@@ -277,7 +277,7 @@ export default function SiteSettings({ close }) {
           style={{
             maxWidth: "800px",
             margin: "0 auto 20px auto",
-            border: "1px solid lightgrey",
+            border: "1px solid var(--cocalc-border-light, lightgray)",
           }}
           message={
             <div>

@@ -435,7 +435,7 @@ export default function LanguageModelTitleBarButton({
             actions.focus();
           }}
           type="text"
-          style={{ float: "right", color: COLORS.GRAY_M }}
+          style={{ float: "right", color: "var(--cocalc-text-primary, #5f5f5f)" }}
         >
           <Icon name="times" />
         </Button>
@@ -513,7 +513,7 @@ export default function LanguageModelTitleBarButton({
     return (
       <Paragraph
         style={{
-          color: COLORS.GRAY_D,
+          color: "var(--cocalc-text-primary-strong, #434343)",
           maxHeight: "max(20rem, 30vh)",
           display: "flex",
           flexDirection: "column",
@@ -587,7 +587,7 @@ export default function LanguageModelTitleBarButton({
                     setShowPreview(false);
                   }}
                   type="text"
-                  style={{ float: "right", color: COLORS.GRAY_M }}
+                  style={{ float: "right", color: "var(--cocalc-text-primary, #5f5f5f)" }}
                 >
                   <Icon name="times" />
                 </Button>
@@ -609,7 +609,7 @@ export default function LanguageModelTitleBarButton({
                     overflow: "auto",
                     fontSize: "12px",
                     fontFamily: "monospace",
-                    color: COLORS.GRAY,
+                    color: "var(--cocalc-text-secondary, #808080)",
                   }}
                 />
               </Space>

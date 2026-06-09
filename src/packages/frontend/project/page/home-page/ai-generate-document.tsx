@@ -66,6 +66,7 @@ import NBViewer from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
 import { useProjectContext } from "@cocalc/frontend/project/context";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { DELAY_SHOW_MS } from "@cocalc/frontend/project/new/consts";
 import { STYLE as NEW_FILE_STYLE } from "@cocalc/frontend/project/new/new-file-button";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
@@ -160,6 +161,7 @@ function AIGenerateDocumentComponent({
   docName,
   filename: filename0,
 }: Props) {
+  const { isDark } = useColorTheme();
   const intl = useIntl();
   const projectActions = useActions({ project_id });
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -672,7 +674,7 @@ function AIGenerateDocumentComponent({
           <Flex>{ex[0]} </Flex>
           <Flex>
             {ex[2].map((tag) => (
-              <Tag key={tag} color={getRandomColor(tag)}>
+              <Tag key={tag} color={getRandomColor(tag, { isDark })}>
                 {tag}
               </Tag>
             ))}
@@ -810,7 +812,7 @@ function AIGenerateDocumentComponent({
                     fontSize: "12px",
                     fontFamily: "monospace",
                     borderRadius: "5px",
-                    color: COLORS.GRAY,
+                    color: "var(--cocalc-text-secondary, #808080)",
                   }}
                 />
               ),
@@ -933,7 +935,7 @@ function AIGenerateDocumentComponent({
             style={{
               ...PREVIEW_BOX,
               fontFamily: "monospace",
-              color: COLORS.GRAY,
+              color: "var(--cocalc-text-secondary, #808080)",
             }}
           />
         );

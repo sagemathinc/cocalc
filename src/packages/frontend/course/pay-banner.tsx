@@ -64,7 +64,7 @@ export function PayBanner({
   } else {
     style = {
       fontSize: "12pt",
-      color: "#666",
+      color: "var(--cocalc-text-secondary, #666)",
       margin: "15px",
     };
     linkStyle = {};

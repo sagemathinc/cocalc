@@ -55,3 +55,34 @@ export const useDebounce = <T extends (...args) => any>(
 ): DebouncedFunc<T> => {
   return useCallbackWith(debounce, cb, wait, options);
 };
+
+/**
+ * Observe the width and height of a DOM element via ResizeObserver.
+ * Returns { width, height } that update on resize (debounced).
+ */
+export function useMeasureDimensions(
+  ref: React.RefObject<HTMLElement | null>,
+  { debounce_ms = 50 }: { debounce_ms?: number } = {},
+) {
+  const [height, setHeight] = React.useState(0);
+  const [width, setWidth] = React.useState(0);
+
+  React.useLayoutEffect(() => {
+    if (ref.current == null) return;
+    const observer = new ResizeObserver(
+      debounce(
+        () => {
+          if (ref.current == null) return;
+          setWidth(ref.current.clientWidth);
+          setHeight(ref.current.clientHeight);
+        },
+        debounce_ms,
+        { trailing: true, leading: false },
+      ),
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [ref.current]);
+
+  return { height, width };
+}

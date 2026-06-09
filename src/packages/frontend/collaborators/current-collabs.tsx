@@ -198,7 +198,7 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
         <Button
           type="link"
           size={buttonSize}
-          style={{ color: COLORS.ANTD_LINK_BLUE, padding: "0 6px" }}
+          style={{ color: "var(--cocalc-link, #1677ff)", padding: "0 6px" }}
         >
           {roleLabel} <Icon name="chevron-down" />
         </Button>
@@ -267,7 +267,7 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
             style={{
               marginBottom: "0",
               ...(isFlyout
-                ? { color: COLORS.ANTD_RED_WARN, padding: "0 4px" }
+                ? { color: "var(--cocalc-error, #f5222d)", padding: "0 4px" }
                 : {}),
             }}
           >

@@ -149,7 +149,7 @@ function ProjectUpgradeCost({ cost }) {
       member_host: (
         <span>
           {Math.round(100 * (1 - 1 / cost.member_host))}%{" "}
-          <span style={{ color: "#666" }}>non-member discount</span>
+          <span style={{ color: "var(--cocalc-text-secondary, #666)" }}>non-member discount</span>
         </span>
       ),
     },
@@ -168,8 +168,8 @@ function ProjectUpgradeCost({ cost }) {
 function PricePerUnit({ value, unit, month }: { value; unit; month? }) {
   const body = (
     <span>
-      <span style={{ color: "#000" }}>{value}</span>
-      <span style={{ color: "#666" }}> / {unit}</span>
+      <span style={{ color: "var(--cocalc-text-primary, #000)" }}>{value}</span>
+      <span style={{ color: "var(--cocalc-text-secondary, #666)" }}> / {unit}</span>
     </span>
   );
   if (month) {
@@ -218,8 +218,8 @@ function LLMServiceCost({ prompt_tokens, completion_tokens }) {
 function PriceWithToken({ text }) {
   return (
     <span>
-      <span style={{ color: "#000" }}>{text.split(" ")[0]}</span>
-      <span style={{ color: "#666" }}> / 1K tokens</span>
+      <span style={{ color: "var(--cocalc-text-primary, #000)" }}>{text.split(" ")[0]}</span>
+      <span style={{ color: "var(--cocalc-text-secondary, #666)" }}> / 1K tokens</span>
     </span>
   );
 }

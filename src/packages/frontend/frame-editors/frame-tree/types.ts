@@ -187,6 +187,8 @@ export interface EditorDescription {
   clear_info?: { text: string; confirm: string };
   placeholder?: string; // placeholder text to use when empty.
   renderer?: "canvas"; // TODO: is this used at all?
+  format_bar?: boolean; // if true, show the format bar above this editor
+  format_bar_exclude?: Set<string>; // button names to exclude from the format bar
 }
 
 export interface EditorSpec {

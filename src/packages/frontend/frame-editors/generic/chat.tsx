@@ -148,6 +148,7 @@ function Chat({ font_size, desc }: EditorComponentProps) {
           className={`cc-chat-mode-toggle${effectiveMode === "assistant" ? " cc-chat-mode-assistant" : ""}`}
         >
           <Segmented
+            size="small"
             value={effectiveMode}
             onChange={(v) => setMode(v as ChatMode)}
             options={[
@@ -155,7 +156,7 @@ function Chat({ font_size, desc }: EditorComponentProps) {
                 value: "assistant",
                 label: (
                   <span>
-                    <AIAvatar size={16} /> Assistant
+                    <AIAvatar size={16} iconColor="currentColor" /> Assistant
                   </span>
                 ),
               },

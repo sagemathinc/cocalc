@@ -80,7 +80,7 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
 
   function render_line_item(line: InvoiceLineMap, n): React.JSX.Element {
     return (
-      <Row key={line.get("id")} style={{ borderBottom: "1px solid #aaa" }}>
+      <Row key={line.get("id")} style={{ borderBottom: "1px solid var(--cocalc-text-tertiary, #aaa)" }}>
         <Col sm={1}>{n}.</Col>
         <Col sm={9}>{render_line_description(line)}</Col>
         <Col sm={2}>
@@ -92,7 +92,7 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
 
   function render_tax(): React.JSX.Element {
     return (
-      <Row key="tax" style={{ borderBottom: "1px solid #aaa" }}>
+      <Row key="tax" style={{ borderBottom: "1px solid var(--cocalc-text-tertiary, #aaa)" }}>
         <Col sm={1} />
         <Col sm={9}>WA State Sales Tax ({invoice.get("tax_percent")}%)</Col>
         <Col sm={2}>
@@ -143,7 +143,7 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
   }
 
   const style: React.CSSProperties = {
-    borderBottom: "1px solid #999",
+    borderBottom: "1px solid var(--cocalc-text-tertiary, #999)",
     padding: hide_line_items ? "0" : "15px 0",
     margin: "0",
   };

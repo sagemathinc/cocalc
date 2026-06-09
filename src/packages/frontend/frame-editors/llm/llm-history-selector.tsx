@@ -71,7 +71,7 @@ export function LLMHistorySelector({
   const overlay = (
     <div
       style={{
-        backgroundColor: "white",
+        backgroundColor: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
         border: `1px solid ${COLORS.GRAY_DDD}`,
         borderRadius: "6px",
         boxShadow: "0 6px 16px 0 rgba(0, 0, 0, 0.08)",
@@ -109,7 +109,7 @@ export function LLMHistorySelector({
           />
         ) : (
           <div
-            style={{ padding: 16, textAlign: "center", color: COLORS.FILE_EXT }}
+            style={{ padding: 16, textAlign: "center", color: "var(--cocalc-text-tertiary, #999)" }}
           >
             No matching prompts
           </div>

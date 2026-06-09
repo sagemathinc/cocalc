@@ -309,7 +309,7 @@ export function StudentsPanel({
     }
     return (
       <Student
-        background={index % 2 === 0 ? "#eee" : undefined}
+        background={index % 2 === 0 ? "var(--cocalc-bg-hover, #eee)" : undefined}
         key={student_id}
         student_id={student_id}
         student={student}

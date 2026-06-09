@@ -37,7 +37,7 @@ export const HelpIcon: React.FC<Props> = ({
   const [open, setOpen] = useState<boolean>(false);
 
   const textStyle: CSSProperties = {
-    color: COLORS.BS_BLUE_TEXT,
+    color: "var(--cocalc-link, " + COLORS.BS_BLUE_TEXT + ")",
     cursor: "pointer",
     ...style,
   } as const;

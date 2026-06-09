@@ -24,9 +24,11 @@ export default function HomePageButton({ project_id, active, width }) {
         border: "none",
         borderRadius: "0",
         fontSize: "24px",
-        color: active ? COLORS.ANTD_LINK_BLUE : COLORS.FILE_ICON,
+        color: active
+          ? `var(--cocalc-top-bar-text-active, ${COLORS.ANTD_LINK_BLUE})`
+          : `var(--cocalc-top-bar-text, ${COLORS.FILE_ICON})`,
         transitionDuration: "0s",
-        background: "#fafafa",
+        background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLLL})`,
       }}
       onClick={() => {
         // Showing homepage in flyout only mode, otherwise the files as usual

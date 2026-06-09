@@ -7,7 +7,6 @@ import type { IconName } from "@cocalc/frontend/components/icon";
 
 import { join as path_join } from "path";
 
-import { COLORS } from "@cocalc/util/theme";
 
 export const RESET_ICON: IconName = "redo";
 
@@ -36,7 +35,7 @@ export const title_style: React.CSSProperties = {
   overflow: "hidden",
   paddingLeft: "10px",
   margin: "5px 10px",
-  color: COLORS.GRAY,
+  color: "var(--cocalc-text-secondary, #808080)",
 } as const;
 
 export function props2img(props: {

@@ -48,6 +48,19 @@ export function EditorSettingsColorScheme(props: Props): React.JSX.Element {
       }
       style={props.style}
     >
+      <div
+        style={{
+          fontSize: 12,
+          color: "var(--cocalc-text-tertiary, #888)",
+          marginBottom: 8,
+        }}
+      >
+        {intl.formatMessage({
+          id: "account.editor-settings.color-schemes.explanation",
+          defaultMessage:
+            "The 'CoCalc (auto light/dark)' option automatically switches between CoCalc Light and CoCalc Dark to match your color theme and dark mode setting.",
+        })}
+      </div>
       <LabeledRow label={capitalize(title)}>
         <Button
           disabled={props.theme === DEFAULT_EDITOR_THEME}

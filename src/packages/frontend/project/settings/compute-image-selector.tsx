@@ -53,7 +53,6 @@ import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { unreachable } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 import { SoftwareEnvironmentInformation } from "./software-env-info";
 import { SoftwareInfo } from "./types";
@@ -269,7 +268,7 @@ export function ComputeImageSelector({
 
   function render_doubt() {
     return (
-      <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
+      <span style={{ color: "var(--cocalc-text-secondary, #808080)", fontSize: "11pt" }}>
         <Divider />
         <FormattedMessage
           id="project.settings.compute-image-selector.doubt"

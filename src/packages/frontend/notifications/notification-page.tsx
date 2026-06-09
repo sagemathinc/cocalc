@@ -12,7 +12,6 @@ import { A, Loading, Paragraph, Title } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { labels } from "@cocalc/frontend/i18n";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
-import { COLORS } from "@cocalc/util/theme";
 import { NotificationFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
 import { NotificationNav } from "./notification-nav";
@@ -33,7 +32,7 @@ export function NotificationPage() {
 
   function renderExplanation() {
     return (
-      <Paragraph style={{ color: COLORS.GRAY_D, flex: "0 0 auto" }}>
+      <Paragraph style={{ color: "var(--cocalc-text-primary-strong, #434343)", flex: "0 0 auto" }}>
         {intl.formatMessage(
           {
             id: "notifications.page.intro",

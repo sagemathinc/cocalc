@@ -37,7 +37,7 @@ function UserLabel({
         avatarSize={AVATAR_SIZE}
         style={{ overflow: "hidden", textOverflow: "ellipsis", flex: 0.7 }}
         addonAfter={
-          <span style={{ color: "#888", marginLeft: "10px" }}>
+          <span style={{ color: "var(--cocalc-text-tertiary, #888)", marginLeft: "10px" }}>
             {account_id == webapp_client.account_id
               ? "(me"
               : users?.get(account_id)?.get("collaborator")

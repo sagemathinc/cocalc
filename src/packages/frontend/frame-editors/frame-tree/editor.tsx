@@ -24,6 +24,7 @@ import {
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { FILE_ACTIONS } from "@cocalc/frontend/project-file";
 import { is_different } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { chat } from "../generic/chat";
 import { FrameDndProvider } from "./dnd/frame-dnd-provider";
 import FormatError from "./format-error";
@@ -46,7 +47,8 @@ const LOADING_STYLE: CSS = {
   fontSize: "40px",
   textAlign: "center",
   padding: "15px",
-  color: "#999",
+  color: `var(--cocalc-text-secondary, ${COLORS.GRAY})`,
+  background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`,
 } as const;
 
 const DEFAULT_FILE_COMMANDS: { [commandName: string]: true } = (() => {
@@ -163,6 +165,13 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
       return () => observer.disconnect();
     }, [frameRootRef.current]);
 
+    // Let actions consult the editor_spec outside the frame tree
+    // (e.g. to decide whether the top-tabbar TimeTravel button should
+    // open time travel as a frame or as a tab).
+    useEffect(() => {
+      actions.setEditorSpec?.(editor_spec);
+    }, [actions]);
+
     function render_frame_tree(): Rendered {
       if (!is_loaded) return;
       const local = local_view_state;
@@ -182,7 +191,10 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
               active_id={local.get("active_id")}
               full_id={local.get("full_id")}
               font_size={local.get("font_size")}
-              is_only={frame_tree.get("type") !== "node" && frame_tree.get("type") !== "tabs"}
+              is_only={
+                frame_tree.get("type") !== "node" &&
+                frame_tree.get("type") !== "tabs"
+              }
               cursors={cursors}
               read_only={read_only}
               is_public={is_public}

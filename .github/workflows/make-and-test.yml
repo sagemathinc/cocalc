@@ -325,30 +325,3 @@ jobs:
         with:
           name: "cocalc-api-test-results-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
           path: 'src/python/cocalc-api/test-results.xml'
-
-  report:
-    runs-on: ubuntu-latest
-
-    needs: [test]
-
-    if: ${{ !cancelled() }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download all test artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: "test-results-*"
-          merge-multiple: true
-          path: test-results/
-
-      - name: Test Report
-        uses: dorny/test-reporter@v2
-        with:
-          name: CoCalc Jest Tests
-          path: 'test-results/**/junit.xml'
-          reporter: jest-junit
-          use-actions-summary: 'true'
-          fail-on-error: false

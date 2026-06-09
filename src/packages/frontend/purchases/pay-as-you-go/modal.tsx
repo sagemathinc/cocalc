@@ -84,7 +84,7 @@ export default function PayAsYouGoModal({}) {
         />
       )}
       {storeState.cost_per_hour != null && (
-        <div style={{ color: "#666", marginBottom: "5px" }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
           This purchase will be charged on a pay-as-you-go metered basis
           according to the following rate:
           <div style={{ textAlign: "center" }}>
@@ -99,7 +99,7 @@ export default function PayAsYouGoModal({}) {
         storeState.service != null &&
         !QUOTA_SPEC[storeState.service]?.noSet && (
           <div>
-            <div style={{ color: "#666", marginBottom: "5px" }}>
+            <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
               This service is charged on a pay-as-you-go basis according to the
               following rates:
             </div>

@@ -13,7 +13,6 @@ import { A, NoWrap, QuestionMarkText, Tip } from "@cocalc/frontend/components";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import { COLORS } from "@cocalc/util/theme";
 import { DedicatedResources } from "@cocalc/util/types/dedicated";
 import { Upgrades, upgrade2quota_key } from "@cocalc/util/upgrades/quota";
 import { Project } from "../types";
@@ -239,7 +238,7 @@ export const RunQuota: React.FC<Props> = React.memo(
     function renderQuotaLimit(record: QuotaData) {
       const val = record["quota"];
 
-      const style = projectIsRunning ? {} : { color: COLORS.GRAY_L };
+      const style = projectIsRunning ? {} : { color: "var(--cocalc-text-tertiary, #c0c0c0)" };
 
       if (record.key === "idle_timeout" && val === "&infin;") {
         return (
@@ -276,7 +275,7 @@ export const RunQuota: React.FC<Props> = React.memo(
           <Tip
             tip={`The project is currently not running. The data is stale from the last run. Start the project to see the effective quotas.`}
           >
-            Limit <PoweroffOutlined style={{ color: COLORS.ANTD_RED_WARN }} />
+            Limit <PoweroffOutlined style={{ color: "var(--cocalc-error, #f5222d)" }} />
           </Tip>
         );
       }

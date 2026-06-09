@@ -81,7 +81,7 @@ export class Settings extends Component<Props, {}> {
         <Title
           level={3}
           style={{
-            borderBottom: "1px solid #ccc",
+            borderBottom: "1px solid var(--cocalc-border, #ccc)",
             paddingBottom: "15px",
           }}
         >

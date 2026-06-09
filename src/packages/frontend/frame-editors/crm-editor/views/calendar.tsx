@@ -98,10 +98,10 @@ function DataList({ data, columns, rowKey }) {
       >
         <div
           style={{
-            border: "1px solid #eee",
+            border: "1px solid var(--cocalc-border-light, #eee)",
             margin: "2.5px",
             padding: "5px",
-            background: "white",
+            background: "var(--cocalc-bg-base, white)",
             borderRadius: "3px",
           }}
         >

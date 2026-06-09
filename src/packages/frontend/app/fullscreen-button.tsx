@@ -13,7 +13,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
 import track from "@cocalc/frontend/user-tracking";
-import { COLORS } from "@cocalc/util/theme";
 import {
   NAV_HEIGHT_PX,
   PageStyle,
@@ -47,11 +46,11 @@ export const FullscreenButton: React.FC<Props> = React.memo((props: Props) => {
   const icon = fullscreen ? "compress" : "expand";
   const icon_style: CSS = {
     fontSize: fontSizeIcons,
-    color: COLORS.GRAY,
+    color: "var(--cocalc-text-secondary, #808080)",
     cursor: "pointer",
     ...(fullscreen
       ? {
-          background: "white",
+          background: "var(--cocalc-bg-base, white)",
           opacity: 0.7,
           border: "1px solid grey",
         }

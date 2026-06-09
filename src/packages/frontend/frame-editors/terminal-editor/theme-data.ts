@@ -1,8 +1,16 @@
 import { replace_all } from "@cocalc/util/misc";
-import { DEFAULT_TERMINAL_COLOR_SCHEME } from "@cocalc/util/db-schema/accounts";
+import {
+  DEFAULT_TERMINAL_COLOR_SCHEME,
+  type TerminalThemeId,
+} from "@cocalc/util/db-schema/accounts";
 
 export const DEFAULT_THEME_NAME = DEFAULT_TERMINAL_COLOR_SCHEME;
+const DEFAULT_CONCRETE_THEME_NAME = "cocalc-light";
 const PREVIEW_BASE_THEME_NAME = "default";
+type ConcreteTerminalThemeId = Exclude<
+  TerminalThemeId,
+  "cocalc-auto" | "cocalc"
+>;
 
 export const COLOR_THEMES = {
   "solarized-dark": {
@@ -94,7 +102,7 @@ export const COLOR_THEMES = {
       "#88e8e8", // color14: very bright cyan
       "#e0e0e0", // color15: light gray (GRAY_L0)
       "#c0d4f0", // foreground: light blue-gray (main text)
-      "#434343", // background: GRAY_D from theme.ts
+      "#1e2130", // background: matches dark theme bgElevated
     ],
   },
   "low-contrast": {
@@ -258,11 +266,18 @@ export const COLOR_THEMES = {
       "#faf0e6",
     ],
   },
-} as const;
+} as const satisfies Record<
+  ConcreteTerminalThemeId,
+  { comment: string; colors: readonly string[] }
+>;
 
 // Use theme_desc for UI to select a theme.
+// "cocalc" is a virtual entry that auto-switches between cocalc-light/dark.
 
-export const theme_desc = {};
+export const theme_desc: Record<string, string> = {
+  "cocalc-auto": "Auto (adapts automatically)",
+  ["cocalc" satisfies TerminalThemeId]: "CoCalc (auto light/dark)",
+};
 for (const name in COLOR_THEMES) {
   theme_desc[name] = COLOR_THEMES[name].comment;
 }
@@ -271,13 +286,42 @@ export function getThemeName(theme?: string): keyof typeof COLOR_THEMES {
   if (theme != null && COLOR_THEMES[theme] != null) {
     return theme as keyof typeof COLOR_THEMES;
   }
-  return DEFAULT_THEME_NAME;
+  return DEFAULT_CONCRETE_THEME_NAME;
 }
 
 // This is a cheap hardcoded example for use in configuration/settings.
 // It shows a terminal prompt, cat command, file output, and final prompt.
-export function example(theme: string): string {
-  let html = `<div style="background-color: #ffffff; color: #000000; font-family: monospace, monospace; line-height: 120%; width: 100%; border:1px solid grey;padding:5px">
+export function example(theme_raw: string, isDark: boolean = false): string {
+  // Resolve "cocalc" virtual theme to a concrete variant for the static example.
+  // We avoid importing resolve-color-scheme here because it depends on Redux/app-framework
+  // which pulls in darkreader (ESM-only) and breaks Next.js SSR builds.
+  if (theme_raw === "cocalc-auto") {
+    // Use CSS variables for the auto theme preview
+    return `<div style="background-color: var(--cocalc-bg-base, #fff); color: var(--cocalc-syntax-variable, #303030); font-family: monospace, monospace; line-height: 120%; width: 100%; border:none;padding:5px">
+<div><span style="color:var(--cocalc-syntax-string);">user@cocalc</span>:<span style="color:var(--cocalc-syntax-function);">~/project</span>$ cat prime_test.py</div>
+<div><span style="color:var(--cocalc-syntax-keyword);">def</span>&nbsp;<span style="color:var(--cocalc-syntax-function);">is_prime_lucas_lehmer</span>(p):</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--cocalc-syntax-string);">"""</span></div>
+<div><span style="color:var(--cocalc-syntax-string);">&nbsp;&nbsp;&nbsp;&nbsp;Test&nbsp;primality&nbsp;of&nbsp;Mersenne&nbsp;number&nbsp;2**p&nbsp;-&nbsp;1.</span></div>
+<div>&nbsp;</div>
+<div><span style="color:var(--cocalc-syntax-comment);">&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;&gt;&nbsp;is_prime_lucas_lehmer(</span><span style="color:var(--cocalc-syntax-number);">107</span><span style="color:var(--cocalc-syntax-comment);">)</span></div>
+<div><span style="color:var(--cocalc-syntax-comment);">&nbsp;&nbsp;&nbsp;&nbsp;True</span></div>
+<div><span style="color:var(--cocalc-syntax-string);">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:var(--cocalc-syntax-string);">"""</span></div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;k&nbsp;=&nbsp;<span style="color:var(--cocalc-syntax-number);">2</span>**p&nbsp;-&nbsp;<span style="color:var(--cocalc-syntax-number);">1</span>;&nbsp;s&nbsp;=&nbsp;<span style="color:var(--cocalc-syntax-number);">4</span></div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--cocalc-syntax-keyword);">for</span>&nbsp;i&nbsp;<span style="color:var(--cocalc-syntax-keyword);">in</span>&nbsp;<span style="color:var(--cocalc-syntax-function);">range</span>(<span style="color:var(--cocalc-syntax-number);">3</span>,&nbsp;p+<span style="color:var(--cocalc-syntax-number);">1</span>):</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s&nbsp;=&nbsp;(s*s&nbsp;-&nbsp;<span style="color:var(--cocalc-syntax-number);">2</span>)&nbsp;%&nbsp;k</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--cocalc-syntax-keyword);">return</span>&nbsp;s&nbsp;==&nbsp;<span style="color:var(--cocalc-syntax-number);">0</span></div>
+<div>&nbsp;</div>
+<div><span style="color:var(--cocalc-syntax-string);">user@cocalc</span>:<span style="color:var(--cocalc-syntax-function);">~/project</span>$</div>
+</div>`;
+  }
+
+  const theme =
+    theme_raw === "cocalc"
+      ? isDark
+        ? "cocalc-dark"
+        : "cocalc-light"
+      : theme_raw;
+  let html = `<div style="background-color: #ffffff; color: #000000; font-family: monospace, monospace; line-height: 120%; width: 100%; border:none;padding:5px">
 <div><span style="color:#4e9a06;">user@cocalc</span>:<span style="color:#3465a4;">~/project</span>$ cat prime_test.py</div>
 <div><span style="color:#c4a000;">def</span>&nbsp;<span style="color:#06989a;">is_prime_lucas_lehmer</span>(p):</div>
 <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#cc0000;">"""</span></div>

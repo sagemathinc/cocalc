@@ -8,7 +8,6 @@ import React, { useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
-import { COLORS } from "@cocalc/util/theme";
 
 /**
  * Rendered markdown view with a hover pencil-button to switch to edit mode.
@@ -38,7 +37,7 @@ export const MarkdownView: React.FC<{
       ) : (
         <div
           style={{
-            color: COLORS.GRAY_L,
+            color: "var(--cocalc-border, #ccc)",
             padding: "4px",
             fontStyle: "italic",
             cursor: "pointer",

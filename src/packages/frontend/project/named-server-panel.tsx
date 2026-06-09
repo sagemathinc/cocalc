@@ -25,7 +25,6 @@ import { IntlMessage } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { R_IDE } from "@cocalc/util/consts/ui";
 import { capitalize } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { NamedServerName } from "@cocalc/util/types/servers";
 import { useAvailableFeatures } from "./use-available-features";
 
@@ -169,7 +168,7 @@ export function NamedServerPanel({ project_id, name, style }: Props) {
   } else {
     body = (
       <>
-        <Paragraph style={{ color: COLORS.GRAY_D }}>
+        <Paragraph style={{ color: "var(--cocalc-text-primary-strong, #434343)" }}>
           {description}
           <br />
           <br />

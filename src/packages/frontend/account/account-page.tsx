@@ -29,6 +29,7 @@ import {
   useTypedRedux,
   useWindowDimensions,
 } from "@cocalc/frontend/app-framework";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { Icon, IconName, Loading, Title } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
@@ -118,6 +119,7 @@ const LOAD_ACCOUNT_INFO_TIMEOUT = 15_000;
 
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
+  const colorTheme = useColorTheme();
   const [hidden, setHidden] = useState(IS_MOBILE);
   const [openKeys, setOpenKeys] = useState<string[]>([]);
 
@@ -572,14 +574,15 @@ export const AccountPage: React.FC = () => {
       <div className="smc-vfill" style={{ flexDirection: "row" }}>
         <div
           style={{
-            background: "#00000005",
-            borderRight: "1px solid rgba(5, 5, 5, 0.06)",
+            background: "var(--cocalc-bg-hover, #f0f5ff)",
+            borderRight: "1px solid var(--cocalc-border-light, rgba(5, 5, 5, 0.06))",
             display: "flex",
             flexDirection: "column",
           }}
         >
           <Menu
             className={hidden ? "account-menu-inline-collapsed" : undefined}
+            theme={colorTheme.isDark ? "dark" : "light"}
             openKeys={openKeys}
             onOpenChange={handleOpenChange}
             mode="inline"
@@ -588,16 +591,16 @@ export const AccountPage: React.FC = () => {
               handle_select(e.key);
             }}
             selectedKeys={
-              active_sub_tab ? [active_page, active_sub_tab] : [active_page]
+              active_sub_tab ? [active_sub_tab] : [active_page]
             }
             inlineIndent={hidden ? 0 : 24}
             style={{
               width: hidden ? 50 : 220,
-              background: "#00000005",
+              background: "var(--cocalc-bg-hover, #f0f5ff)",
               flex: "1 1 auto",
               overflowY: "auto",
               minHeight: 0,
-              borderBottom: `1px solid ${COLORS.GRAY_DDD}`,
+              borderBottom: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_DDD})`,
             }}
           />
           <Button
@@ -609,7 +612,7 @@ export const AccountPage: React.FC = () => {
               minHeight: 0,
               textAlign: "left",
               padding: "15px 0",
-              color: COLORS.GRAY_M,
+              color: "var(--cocalc-text-primary, #5f5f5f)",
             }}
             onClick={handleHideToggle}
             icon={

@@ -180,7 +180,7 @@ export default function LicenseEditor({
             }}
           />
           {isSubscription && (
-            <div style={{ color: "#666", marginTop: "15px" }}>
+            <div style={{ color: "var(--cocalc-text-secondary, #666)", marginTop: "15px" }}>
               Subscription Start and End dates cannot be edited.
             </div>
           )}

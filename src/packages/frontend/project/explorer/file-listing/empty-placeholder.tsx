@@ -13,7 +13,6 @@ import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-fea
 import { ACTIVE_FILTER_BTN_STYLE } from "@cocalc/frontend/project/explorer/action-bar";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
-import { COLORS } from "@cocalc/util/theme";
 import { full_path_text } from "./utils";
 
 interface Props {
@@ -103,7 +102,7 @@ function FilteredEmpty({
       style={{
         textAlign: "center",
         padding: "40px 20px",
-        color: COLORS.GRAY_M,
+        color: "var(--cocalc-text-primary, #5f5f5f)",
       }}
     >
       <div style={{ fontSize: "14pt", marginBottom: 12 }}>
@@ -194,17 +193,17 @@ function TrulyEmpty({
       style={{
         textAlign: "center",
         padding: "30px 20px",
-        color: COLORS.GRAY_M,
+        color: "var(--cocalc-text-primary, #5f5f5f)",
       }}
     >
       <div style={{ fontSize: "14pt", marginBottom: 8 }}>
         This folder is empty.
       </div>
-      <div style={{ fontSize: "11pt", marginBottom: 16, color: COLORS.GRAY_L }}>
+      <div style={{ fontSize: "11pt", marginBottom: 16, color: "var(--cocalc-text-tertiary, #c0c0c0)" }}>
         Create files using the buttons below, or type a filename in the search
         box and press{" "}
         <Text keyboard>
-          <span style={{ color: COLORS.GRAY_D }}>Shift+Return</span>
+          <span style={{ color: "var(--cocalc-text-primary-strong, #434343)" }}>Shift+Return</span>
         </Text>
         .
       </div>

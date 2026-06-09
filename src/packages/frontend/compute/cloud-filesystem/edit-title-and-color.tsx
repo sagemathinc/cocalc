@@ -28,7 +28,7 @@ export default function EditTitleAndColor({
   const [title, setTitle] = useState<string>(
     cloudFilesystem.title ?? "Untitled",
   );
-  const [color, setColor] = useState<string>(cloudFilesystem.color ?? "#666");
+  const [color, setColor] = useState<string>(cloudFilesystem.color ?? "var(--cocalc-text-secondary, #666)");
 
   const doEdit = async () => {
     if (cloudFilesystem.title == title && cloudFilesystem.color == color) {
