@@ -92,6 +92,7 @@ describe("create and test a more complicated service", () => {
     });
 
     client = createServiceClient<Api>({
+      requestTransportMethods: ["big"],
       service: name,
       subject: name,
     });

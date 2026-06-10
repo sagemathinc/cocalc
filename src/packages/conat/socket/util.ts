@@ -1,5 +1,9 @@
 export const SOCKET_HEADER_CMD = "CN-SocketCmd";
 export const SOCKET_HEADER_SEQ = "CN-SocketSeq";
+// Correlates a client `connect` control message with the server's
+// `connected` reply.  See dedicated connect-control handshake in
+// socket/client.ts and socket/server.ts.
+export const SOCKET_HEADER_CONNECT_ATTEMPT = "CN-SocketConnectAttempt";
 
 export type State = "disconnected" | "connecting" | "ready" | "closed";
 
@@ -41,7 +45,12 @@ export function setDefaultSocketTimeouts({
   DEFAULT_KEEP_ALIVE_TIMEOUT = keepAliveTimeout;
 }
 
-export type Command = "connect" | "close" | "ping" | "socket";
+export type Command =
+  | "connect"
+  | "connected"
+  | "close"
+  | "ping"
+  | "socket";
 
 import { type Client } from "@cocalc/conat/core/client";
 

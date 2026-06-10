@@ -57,11 +57,22 @@ export async function callConatService(opts: ServiceCall): Promise<any> {
   const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
   // ensure not undefined, since undefined can't be published.
   const data = opts.mesg ?? null;
+  const start = Date.now();
 
   const doRequest = async () => {
+    // Wait for interest in `subject` first (when retrying is allowed) and
+    // then issue the request with the remaining budget.  Splitting these
+    // gives the request itself a clean `waitForInterest:false` so it cannot
+    // get tangled up with cluster-side wait machinery during the publish.
+    const canPrewait =
+      !opts.noRetry && typeof cn.waitForInterest == "function";
+    if (canPrewait) {
+      await cn.waitForInterest(subject, { timeout });
+    }
+    const remaining = Math.max(1, timeout - (Date.now() - start));
     resp = await cn.request(subject, data, {
-      timeout,
-      waitForInterest: !opts.noRetry,
+      timeout: canPrewait ? remaining : timeout,
+      waitForInterest: !opts.noRetry && !canPrewait,
     });
     const result = resp.data;
     if (result?.error) {
