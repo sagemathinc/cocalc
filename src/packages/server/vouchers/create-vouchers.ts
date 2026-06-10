@@ -27,6 +27,10 @@ import { decimalMultiply } from "@cocalc/util/stripe/calc";
 
 const log = getLogger("createVouchers");
 
+function vouchersTemporarilyDisabled(): boolean {
+  return true;
+}
+
 interface Options {
   account_id: string;
   client;
@@ -67,9 +71,11 @@ export default async function createVouchers({
   codes: string[];
   amount: number; // value of one single voucher
 }> {
-  throw Error(
-    "Voucher code creation is temporarily disabled. Please contact support.",
-  );
+  if (vouchersTemporarilyDisabled()) {
+    throw Error(
+      "Voucher code creation is temporarily disabled. Please contact support.",
+    );
+  }
 
   log.debug({
     account_id,
