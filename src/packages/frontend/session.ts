@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -36,8 +36,16 @@ export function session_manager(name, redux): SessionManager | undefined {
 
 interface State {
   // project_id <=> filenames
-  [k: string]: string[];
+  [k: string]: SessionFileState[];
 }
+
+type SessionFileState =
+  | string
+  | {
+      path: string;
+      ext?: string;
+      editorId?: string;
+    };
 
 class SessionManager {
   private name: string;
@@ -153,7 +161,8 @@ class SessionManager {
     const open_files = this.redux
       .getProjectStore(project_id)
       .get("open_files_order")
-      .toJS();
+      .toJS()
+      .map((path) => getSessionFileState(this.redux, project_id, path));
 
     if (open_files == null) {
       return;
@@ -196,9 +205,11 @@ class SessionManager {
     delete this._state_closed[project_id];
     if (open_files != null && !this._ignore) {
       const project = this.redux.getProjectActions(project_id);
-      open_files.map((path) =>
+      open_files.map((file) =>
         project.open_file({
-          path,
+          path: getSessionFilePath(file),
+          ext: typeof file === "string" ? undefined : file.ext,
+          editorId: typeof file === "string" ? undefined : file.editorId,
           foreground: false,
           foreground_project: false,
         }),
@@ -265,7 +276,8 @@ function getSessionState(redux: AppRedux): State[] {
         [project_id]: redux
           .getProjectStore(project_id)
           .get("open_files_order")
-          .toJS(),
+          .toJS()
+          .map((path) => getSessionFileState(redux, project_id, path)),
       });
       return true;
     });
@@ -292,10 +304,13 @@ function restoreSessionState(redux: AppRedux, state: State[]): void {
       }
       if (paths.length > 0) {
         const project = redux.getProjectActions(project_id);
-        for (const path of paths) {
+        for (const file of paths) {
+          const path = getSessionFilePath(file);
           try {
             project.open_file({
               path,
+              ext: typeof file === "string" ? undefined : file.ext,
+              editorId: typeof file === "string" ? undefined : file.editorId,
               foreground: false,
               foreground_project: false,
             });
@@ -308,4 +323,24 @@ function restoreSessionState(redux: AppRedux, state: State[]): void {
       }
     }
   }
+}
+
+function getSessionFilePath(file: SessionFileState): string {
+  return typeof file === "string" ? file : file.path;
+}
+
+function getSessionFileState(
+  redux: AppRedux,
+  project_id: string,
+  path: string,
+): SessionFileState {
+  const openFile = redux
+    .getProjectStore(project_id)
+    .getIn(["open_files", path]);
+  const ext = openFile?.get("ext");
+  const editorId = openFile?.get("editorId");
+  if (ext == null && editorId == null) {
+    return path;
+  }
+  return { path, ext, editorId };
 }

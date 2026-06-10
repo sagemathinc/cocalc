@@ -13,6 +13,7 @@ import { Tabs } from "antd";
 import { useIntl } from "react-intl";
 
 import { Tab } from "@cocalc/frontend/antd-bootstrap";
+import { canonicalFrameType } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { course, labels } from "@cocalc/frontend/i18n";
 import { CourseEditorActions } from "./actions";
 
@@ -34,36 +35,36 @@ export const CourseTabBar: React.FC<Props> = (props: Props) => {
 
   const items = [
     Tab({
-      eventKey: "course_students",
+      eventKey: "course-students",
       title: `${intl.formatMessage(course.students)} (${counts.students})`,
     }),
     Tab({
-      eventKey: "course_assignments",
+      eventKey: "course-assignments",
       title: `${intl.formatMessage(course.assignments)} (${
         counts.assignments
       })`,
     }),
     Tab({
-      eventKey: "course_handouts",
+      eventKey: "course-handouts",
       title: `${intl.formatMessage(course.handouts)} (${counts.handouts})`,
     }),
     Tab({
-      eventKey: "course_actions",
+      eventKey: "course-actions",
       title: intl.formatMessage(labels.actions),
     }),
     Tab({
-      eventKey: "course_configuration",
+      eventKey: "course-configuration",
       title: intl.formatMessage(labels.configuration),
     }),
     Tab({
-      eventKey: "course_shared_project",
+      eventKey: "course-shared_project",
       title: intl.formatMessage(course.shared_project),
     }),
   ];
 
   return (
     <Tabs
-      defaultActiveKey={type}
+      defaultActiveKey={canonicalFrameType(type)}
       onChange={select_tab.bind(this)}
       animated={false}
       items={items}

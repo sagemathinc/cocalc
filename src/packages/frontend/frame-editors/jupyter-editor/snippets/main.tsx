@@ -181,8 +181,9 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
 
   // we need to know the target frame of the jupyter notebook
   useEffect(() => {
-    const existingMinimal = frame_actions._get_most_recent_active_frame_id_of_type("jupyter_minimal");
-    const frameType = existingMinimal ? "jupyter_minimal" : "jupyter_cell_notebook";
+    const existingMinimal =
+      frame_actions._get_most_recent_active_frame_id_of_type("jupyter-minimal");
+    const frameType = existingMinimal ? "jupyter-minimal" : "jupyter";
     const jid = frame_actions.show_recently_focused_frame_of_type(
       frameType,
       "col",
@@ -260,8 +261,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       doc[0] === ""
         ? undefined
         : typeof doc[0] === "string"
-        ? [doc[0]]
-        : doc[0];
+          ? [doc[0]]
+          : doc[0];
     if (code != null && insertSetup) {
       const setup = generateSetupCode({ code, data });
       if (setup != "") code.unshift(setup);

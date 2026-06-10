@@ -10,7 +10,10 @@ Frame that display a Jupyter notebook in the traditional way with input and outp
 import { Map } from "immutable";
 
 import { Rendered } from "@cocalc/frontend/app-framework";
-import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import {
+  canonicalFrameType,
+  EditorState,
+} from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { JupyterEditor } from "@cocalc/frontend/jupyter/main";
 import { JupyterEditorActions } from "../actions";
@@ -36,7 +39,10 @@ export function CellNotebook(props: Props): Rendered {
 
   // Actions for the underlying Jupyter notebook state, kernel state, etc.
   const jupyter_actions: JupyterActions = props.actions.jupyter_actions;
-  const cellViewMode = props.desc.get("type") === "jupyter_minimal" ? "minimal" : "default";
+  const cellViewMode =
+    canonicalFrameType(props.desc.get("type")) === "jupyter-minimal"
+      ? "minimal"
+      : "default";
 
   return (
     <JupyterEditor

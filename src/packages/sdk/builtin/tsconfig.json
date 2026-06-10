@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "composite": false,
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "paths": {
+      "@cocalc/sdk": ["./index.ts"],
+      "@cocalc/sdk/*": ["./*"]
+    }
+  },
+  "include": ["./**/*.ts", "./**/*.tsx", "../typings/**/*.d.ts"],
+  "exclude": ["../dist", "../node_modules", "node_modules"]
+}

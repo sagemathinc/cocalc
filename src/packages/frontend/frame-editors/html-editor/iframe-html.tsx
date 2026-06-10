@@ -416,7 +416,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
             <Button
               size="small"
               type="primary"
-              onClick={() => actions.set_frame_type(id, "pdfjs_canvas")}
+              onClick={() => actions.set_frame_type(id, "pdfjs-canvas")}
             >
               switch to the PDF viewer
             </Button>

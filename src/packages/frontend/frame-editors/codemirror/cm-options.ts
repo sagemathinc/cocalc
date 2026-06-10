@@ -12,10 +12,12 @@ import {
   DEFAULT_EDITOR_THEME,
   EDITOR_COLOR_SCHEMES,
 } from "@cocalc/util/db-schema/accounts";
-import { path_split } from "@cocalc/util/misc";
 import * as CodeMirror from "codemirror";
 import * as feature from "../../feature";
-import { file_associations } from "../../file-associations";
+import {
+  canonical_extension,
+  get_file_association,
+} from "../../file-associations";
 import { get_editor_settings } from "../generic/client";
 
 import { defaults, filename_extension_notilde } from "@cocalc/util/misc";
@@ -30,11 +32,8 @@ function save(cm) {
 }
 
 export function default_opts(filename) {
-  let key = filename_extension_notilde(filename).toLowerCase();
-  if (!key) {
-    key = `noext-${path_split(filename).tail}`.toLowerCase();
-  }
-  return file_associations[key]?.opts ?? {};
+  const ext = canonical_extension(filename_extension_notilde(filename));
+  return get_file_association(filename, ext)?.opts ?? {};
 }
 
 export function cm_options(

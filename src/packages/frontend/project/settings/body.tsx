@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -21,6 +21,7 @@ import { AboutBox } from "./about-box";
 import { ApiKeys } from "./api-keys";
 import { Datastore } from "./datastore";
 import { Environment } from "./environment";
+import { ProjectApplications } from "./applications";
 import { HideDeleteBox } from "./hide-delete-box";
 import { ProjectCapabilities } from "./project-capabilites";
 import { ProjectControl } from "./project-control";
@@ -121,6 +122,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
               />
             )}
           <ApiKeys project_id={project_id} />
+          <ProjectApplications project_id={project_id} />
         </Col>
       </Row>
     </div>

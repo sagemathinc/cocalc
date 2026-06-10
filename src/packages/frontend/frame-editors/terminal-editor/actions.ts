@@ -31,7 +31,7 @@ export class TerminalActions extends Actions {
     return { type: "terminal" };
 
     // disabled -- "guide" causes side effects with jupyter notebook
-    //  if (this.is_public) {
+    // Public editor mode was removed from the frontend editor system.
     //    return { type: "terminal" };
     //  } else {
     //    return {

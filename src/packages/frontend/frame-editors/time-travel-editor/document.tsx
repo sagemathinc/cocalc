@@ -19,7 +19,6 @@ export function TextDocument(props) {
         editor_state={fromJS({})}
         read_only={true}
         is_current={true}
-        is_public={true}
         misspelled_words={fromJS([]) as any}
         resize={0}
         gutters={[]}

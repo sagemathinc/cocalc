@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -12,8 +12,8 @@ import { TimeTravelActions } from "./actions";
 import { register_file_editor } from "../frame-tree/register";
 
 register_file_editor({
+  id: "cocalc/time-travel-editor",
   ext: "time-travel",
   component: Editor,
   Actions: TimeTravelActions,
-  is_public: false,
 });
