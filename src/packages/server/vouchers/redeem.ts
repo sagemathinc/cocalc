@@ -29,6 +29,10 @@ export default async function redeemVoucher({
   account_id,
   code,
 }: Options): Promise<CreatedItem[]> {
+  throw Error(
+    "Voucher code redemption is temporarily disabled. Please contact support.",
+  );
+
   // get info from db about given voucher code
   log.debug("code=", code);
   const voucherCode = await getVoucherCode(code);

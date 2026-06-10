@@ -67,6 +67,10 @@ export default async function createVouchers({
   codes: string[];
   amount: number; // value of one single voucher
 }> {
+  throw Error(
+    "Voucher code creation is temporarily disabled. Please contact support.",
+  );
+
   log.debug({
     account_id,
     whenPay,
