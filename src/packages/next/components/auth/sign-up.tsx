@@ -40,6 +40,7 @@ import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
+import AuthNotice from "./auth-notice";
 import AuthPageContainer from "./fragments/auth-page-container";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 import Tags from "./tags";
@@ -90,6 +91,12 @@ function SignUp0({
     siteName,
     emailSignup,
     accountCreationInstructions,
+    accountCreationRedirectEnabled,
+    accountCreationRedirectMessage,
+    accountCreationRedirectUrl,
+    accountCreationRedirectLinkText,
+    accountCreationRedirectAllowLegacy,
+    accountCreationRedirectLegacyButtonText,
     reCaptchaKey,
     onCoCalcCom,
   } = useCustomize();
@@ -106,6 +113,7 @@ function SignUp0({
     help?: string;
   }>({ score: 0 });
   const [checkingPassword, setCheckingPassword] = useState<boolean>(false);
+  const [showLegacySignup, setShowLegacySignup] = useState<boolean>(false);
   const [issues, setIssues] = useState<{
     email?: string;
     password?: string;
@@ -247,6 +255,10 @@ function SignUp0({
     checkPasswordStrength,
   );
 
+  if (!minimal && accountCreationRedirectEnabled && !showLegacySignup) {
+    return renderAccountCreationRedirect();
+  }
+
   if (!emailSignup && strategies.length == 0) {
     return (
       <Alert
@@ -323,6 +335,32 @@ function SignUp0({
     );
   }
 
+  function renderAccountCreationRedirect() {
+    return (
+      <AuthPageContainer
+        error={renderError()}
+        footer={renderFooter()}
+        minimal={minimal}
+        title={`Create an account with ${siteName}`}
+      >
+        <AuthNotice
+          defaultMessage="New accounts should be created on the recommended site. Existing users can still sign in here."
+          message={accountCreationRedirectMessage}
+          url={accountCreationRedirectUrl}
+          linkText={accountCreationRedirectLinkText}
+          extra={
+            accountCreationRedirectAllowLegacy ? (
+              <Button onClick={() => setShowLegacySignup(true)}>
+                {accountCreationRedirectLegacyButtonText?.trim() ||
+                  "Create an account here anyway"}
+              </Button>
+            ) : undefined
+          }
+        />
+      </AuthPageContainer>
+    );
+  }
+
   return (
     <AuthPageContainer
       error={renderError()}
@@ -331,6 +369,14 @@ function SignUp0({
       minimal={minimal}
       title={`Create a free account with ${siteName}`}
     >
+      {!minimal && accountCreationRedirectEnabled && showLegacySignup && (
+        <AuthNotice
+          defaultMessage="New accounts should be created on the recommended site. Existing users can still sign in here."
+          message={accountCreationRedirectMessage}
+          url={accountCreationRedirectUrl}
+          linkText={accountCreationRedirectLinkText}
+        />
+      )}
       <Paragraph>
         By creating an account, you agree to the{" "}
         <A external={true} href="/policies/terms">

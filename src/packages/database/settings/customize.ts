@@ -59,6 +59,21 @@ export default async function getCustomize(
       anonymousSignupLicensedShares: settings.anonymous_signup_licensed_shares,
       emailSignup: settings.email_signup,
       accountCreationInstructions: settings.account_creation_email_instructions,
+      accountCreationRedirectEnabled:
+        settings.account_creation_redirect_enabled,
+      accountCreationRedirectMessage:
+        settings.account_creation_redirect_message,
+      accountCreationRedirectUrl: settings.account_creation_redirect_url,
+      accountCreationRedirectLinkText:
+        settings.account_creation_redirect_link_text,
+      accountCreationRedirectAllowLegacy:
+        settings.account_creation_redirect_allow_legacy,
+      accountCreationRedirectLegacyButtonText:
+        settings.account_creation_redirect_legacy_button_text,
+      signInBannerEnabled: settings.sign_in_banner_enabled,
+      signInBannerMessage: settings.sign_in_banner_message,
+      signInBannerUrl: settings.sign_in_banner_url,
+      signInBannerLinkText: settings.sign_in_banner_link_text,
 
       logoSquareURL: settings.logo_square,
       logoRectangularURL: settings.logo_rectangular,

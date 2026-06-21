@@ -108,6 +108,16 @@ export interface Customize {
   anonymousSignupLicensedShares?: boolean;
   emailSignup?: boolean;
   accountCreationInstructions?: string;
+  accountCreationRedirectEnabled?: boolean;
+  accountCreationRedirectMessage?: string;
+  accountCreationRedirectUrl?: string;
+  accountCreationRedirectLinkText?: string;
+  accountCreationRedirectAllowLegacy?: boolean;
+  accountCreationRedirectLegacyButtonText?: string;
+  signInBannerEnabled?: boolean;
+  signInBannerMessage?: string;
+  signInBannerUrl?: string;
+  signInBannerLinkText?: string;
   zendesk?: boolean; // true if zendesk support is configured.
   stripePublishableKey?: string;
   imprint_html?: string;

@@ -15,6 +15,7 @@ import Contact from "components/landing/contact";
 import A from "components/misc/A";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
+import AuthNotice from "./auth-notice";
 import AuthPageContainer from "./fragments/auth-page-container";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 import { MAX_PASSWORD_LENGTH } from "@cocalc/util/auth";
@@ -43,8 +44,16 @@ export default function SignIn(props: SignInProps) {
 
 function SignIn0(props: SignInProps) {
   const { minimal = false, onSuccess, showSignUp, signUpAction } = props;
-  const { anonymousSignup, reCaptchaKey, siteName, strategies } =
-    useCustomize();
+  const {
+    anonymousSignup,
+    reCaptchaKey,
+    siteName,
+    strategies,
+    signInBannerEnabled,
+    signInBannerMessage,
+    signInBannerUrl,
+    signInBannerLinkText,
+  } = useCustomize();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [signingIn, setSigningIn] = useState<boolean>(false);
@@ -136,6 +145,14 @@ function SignIn0(props: SignInProps) {
       minimal={minimal}
       title={`Sign in to ${siteName}`}
     >
+      {!minimal && signInBannerEnabled && (
+        <AuthNotice
+          defaultMessage="Use the recommended site for new accounts and new work."
+          message={signInBannerMessage}
+          url={signInBannerUrl}
+          linkText={signInBannerLinkText}
+        />
+      )}
       <div style={{ margin: "10px 0" }}>
         {strategies == null
           ? "Sign in"

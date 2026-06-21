@@ -56,6 +56,16 @@ export type SiteSettingsKeys =
   | "site_name"
   | "site_description"
   | "account_creation_email_instructions"
+  | "account_creation_redirect_enabled"
+  | "account_creation_redirect_message"
+  | "account_creation_redirect_url"
+  | "account_creation_redirect_link_text"
+  | "account_creation_redirect_allow_legacy"
+  | "account_creation_redirect_legacy_button_text"
+  | "sign_in_banner_enabled"
+  | "sign_in_banner_message"
+  | "sign_in_banner_url"
+  | "sign_in_banner_link_text"
   | "help_email"
   | "logo_square"
   | "logo_rectangular"
@@ -439,6 +449,104 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
+  },
+  account_creation_redirect_enabled: {
+    name: "Account creation redirect",
+    desc: "Replace the normal sign-up form with a configurable notice and link. If legacy account creation is allowed below, users can still reveal the original form.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    show: show_theming_vars,
+    tags: ["Theme"],
+  },
+  account_creation_redirect_message: {
+    name: "Account creation redirect message",
+    desc: "Markdown notice shown instead of the normal sign-up form when account creation redirect is enabled.",
+    default:
+      "New accounts should be created on the recommended site. Existing users can still sign in here.",
+    clearable: true,
+    show: (conf) =>
+      show_theming_vars(conf) && to_bool(conf.account_creation_redirect_enabled),
+    multiline: 3,
+    tags: ["Theme"],
+  },
+  account_creation_redirect_url: {
+    name: "Account creation redirect URL",
+    desc: "Primary destination for new account creation when account creation redirect is enabled.",
+    default: "",
+    clearable: true,
+    show: (conf) =>
+      show_theming_vars(conf) && to_bool(conf.account_creation_redirect_enabled),
+    to_val: to_trimmed_str,
+    tags: ["Theme"],
+  },
+  account_creation_redirect_link_text: {
+    name: "Account creation redirect link text",
+    desc: "Text for the primary redirect button.",
+    default: "Create an account on the recommended site",
+    clearable: true,
+    show: (conf) =>
+      show_theming_vars(conf) && to_bool(conf.account_creation_redirect_enabled),
+    tags: ["Theme"],
+  },
+  account_creation_redirect_allow_legacy: {
+    name: "Allow legacy account creation",
+    desc: "When account creation redirect is enabled, still allow users to reveal the original sign-up form.",
+    default: "yes",
+    valid: only_booleans,
+    to_val: to_bool,
+    show: (conf) =>
+      show_theming_vars(conf) && to_bool(conf.account_creation_redirect_enabled),
+    tags: ["Theme"],
+  },
+  account_creation_redirect_legacy_button_text: {
+    name: "Legacy account creation button text",
+    desc: "Text for the secondary button that reveals the original sign-up form.",
+    default: "Create an account here anyway",
+    clearable: true,
+    show: (conf) =>
+      show_theming_vars(conf) &&
+      to_bool(conf.account_creation_redirect_enabled) &&
+      to_bool(conf.account_creation_redirect_allow_legacy),
+    tags: ["Theme"],
+  },
+  sign_in_banner_enabled: {
+    name: "Sign-in banner",
+    desc: "Show a configurable banner at the top of the sign-in form.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    show: show_theming_vars,
+    tags: ["Theme"],
+  },
+  sign_in_banner_message: {
+    name: "Sign-in banner message",
+    desc: "Markdown notice shown above the sign-in form when the sign-in banner is enabled.",
+    default: "",
+    clearable: true,
+    show: (conf) =>
+      show_theming_vars(conf) && to_bool(conf.sign_in_banner_enabled),
+    multiline: 3,
+    tags: ["Theme"],
+  },
+  sign_in_banner_url: {
+    name: "Sign-in banner URL",
+    desc: "Optional link destination shown in the sign-in banner.",
+    default: "",
+    clearable: true,
+    show: (conf) =>
+      show_theming_vars(conf) && to_bool(conf.sign_in_banner_enabled),
+    to_val: to_trimmed_str,
+    tags: ["Theme"],
+  },
+  sign_in_banner_link_text: {
+    name: "Sign-in banner link text",
+    desc: "Text for the optional sign-in banner link.",
+    default: "Go to the recommended site",
+    clearable: true,
+    show: (conf) =>
+      show_theming_vars(conf) && to_bool(conf.sign_in_banner_enabled),
     tags: ["Theme"],
   },
   organization_name: {
