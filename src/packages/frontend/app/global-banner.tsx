@@ -8,10 +8,9 @@
 // this server is shutting down and users have to migrate elsewhere.
 // Rendered only if the banner is enabled and the message is set.
 
-import { Alert } from "antd";
+import { Alert, Button } from "antd";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { A } from "@cocalc/frontend/components/A";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 export default function GlobalBanner() {
@@ -30,7 +29,8 @@ export default function GlobalBanner() {
     <Alert
       banner
       type="error"
-      showIcon
+      showIcon={false}
+      style={{ display: "block" }}
       message={
         <div style={{ textAlign: "center" }}>
           <StaticMarkdown
@@ -38,9 +38,18 @@ export default function GlobalBanner() {
             style={{ display: "inline-block", width: "auto" }}
           />
           {href && (
-            <A href={href} style={{ marginLeft: "10px" }}>
-              <b>{linkText?.trim() || "Continue"}</b>
-            </A>
+            <div style={{ marginTop: "5px" }}>
+              <Button
+                danger
+                type="primary"
+                size="small"
+                href={href}
+                target="_blank"
+                rel="noopener"
+              >
+                {linkText?.trim() || "Continue"}
+              </Button>
+            </div>
           )}
         </div>
       }
