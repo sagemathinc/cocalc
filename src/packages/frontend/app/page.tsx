@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -44,6 +44,7 @@ import { ConnectionInfo } from "./connection-info";
 import { useAppContext } from "./context";
 import { useColorTheme } from "./theme-context";
 import { FullscreenButton } from "./fullscreen-button";
+import GlobalBanner from "./global-banner";
 import { I18NBanner, useShowI18NBanner } from "./i18n-banner";
 import InsecureTestModeBanner from "./insecure-test-mode-banner";
 import { AppLogo } from "./logo";
@@ -368,6 +369,7 @@ export const Page: React.FC = () => {
       onDragOver={(e) => e.preventDefault()}
       onDrop={drop}
     >
+      <GlobalBanner />
       {insecure_test_mode && <InsecureTestModeBanner />}
       {show_file_use && (
         <div style={fileUseStyle} className="smc-vfill">

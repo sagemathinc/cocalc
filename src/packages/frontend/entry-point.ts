@@ -10,6 +10,10 @@
 import debug from "debug";
 debug.log = console.log.bind(console); // see https://github.com/debug-js/debug#output-streams
 
+// Register the dayjs plugins antd's date/time pickers need, on *our* dayjs
+// instance. Must run before any picker renders. See the module for details.
+import "./app/dayjs-antd-plugins";
+
 import { COCALC_MINIMAL } from "./fullscreen";
 
 // Load/initialize Redux-based react functionality

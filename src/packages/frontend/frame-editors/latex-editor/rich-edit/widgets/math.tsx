@@ -12,24 +12,23 @@ Three flavors:
  - MathEnv          \begin{equation|align|gather|multline}…\end{…}
                     (multi-line, starred variants supported)
 
-All three render via `mathToHtml` (KaTeX) and ship with a trailing
-pencil button. Clicking the pencil opens the `ai_gen_formula` dialog in
-edit mode: the current formula is shown as context (plus a few lines of
-surrounding document text), the user types what to change, and on accept
-the source is replaced. The wire-up lives in the widget-manager (it has
-access to cm + the live marker).
+All three render via `mathToHtml` (KaTeX). Shift+clicking a rendered
+formula opens the `ai_gen_formula` dialog in edit mode: the current
+formula is shown as context (plus a few lines of surrounding document
+text), the user types what to change, and on accept the source is
+replaced. A plain click dissolves the widget to raw source for manual
+editing. The shift+click hand-off and tooltip hint live in the shared
+`Widget` component; the actual edit closure is wired in the
+widget-manager (it has access to cm + the live marker).
 
 A KaTeX render error doesn't break the widget — we fall back to a
 muted red "?math?" so the user sees something is off and can hover
 to inspect the source.
 */
 
-import { Tooltip } from "antd";
-import { CSSProperties, ReactNode, useContext, useState } from "react";
+import { ReactNode, useContext } from "react";
 
-import { Icon } from "@cocalc/frontend/components";
 import mathToHtml from "@cocalc/frontend/misc/math-to-html";
-import { COLORS } from "@cocalc/util/theme";
 
 import { MathMacrosContext } from "../math-macros-context";
 import { WidgetProps } from "../types";
@@ -59,60 +58,12 @@ function renderMath(
   return <span dangerouslySetInnerHTML={{ __html }} />;
 }
 
-function PencilButton({
-  onClick,
-  style,
-}: {
-  onClick: () => void;
-  style?: CSSProperties;
-}) {
-  const [hover, setHover] = useState(false);
-  return (
-    <Tooltip title="Edit with AI" placement="top" mouseEnterDelay={0.3}>
-      <span
-        role="button"
-        aria-label="Edit math with AI"
-        tabIndex={0}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          onClick();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.stopPropagation();
-            e.preventDefault();
-            onClick();
-          }
-        }}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        style={{
-          marginLeft: 4,
-          padding: "0 2px",
-          opacity: hover ? 1 : 0.35,
-          cursor: "pointer",
-          color: COLORS.GRAY_D,
-          fontSize: "0.85em",
-          verticalAlign: "middle",
-          ...style,
-        }}
-      >
-        <Icon name="pencil" />
-      </span>
-    </Tooltip>
-  );
-}
-
 // Display math ($$…$$, \[…\], and the equation/align/… envs) is laid
 // out as a centered block. The host span is made `display:block` by the
 // widget-manager for these types so the centering spans the line. The
 // formula sits in its own horizontally-scrollable box (wide equations
-// scroll instead of blowing out the line), and the AI-edit pencil is
-// pinned to the top-right corner so it sits NEXT TO the formula rather
-// than wrapping onto its own line below it.
+// scroll instead of blowing out the line).
 const DISPLAY_WIDGET_STYLE = {
-  position: "relative",
   textAlign: "center",
   width: "100%",
 } as const;
@@ -122,13 +73,6 @@ const DISPLAY_SCROLL_STYLE = {
   maxWidth: "100%",
   overflowX: "auto",
 } as const;
-
-const DISPLAY_PENCIL_STYLE: CSSProperties = {
-  position: "absolute",
-  top: 0,
-  right: 0,
-  marginLeft: 0,
-};
 
 function DisplayMath({
   props,
@@ -140,12 +84,6 @@ function DisplayMath({
   return (
     <Widget {...props} display="block" style={DISPLAY_WIDGET_STYLE}>
       <span style={DISPLAY_SCROLL_STYLE}>{children}</span>
-      {props.onAiEdit != null && (
-        <PencilButton
-          style={DISPLAY_PENCIL_STYLE}
-          onClick={() => void props.onAiEdit!()}
-        />
-      )}
     </Widget>
   );
 }
@@ -160,9 +98,6 @@ export function MathInline(props: WidgetProps) {
         <EmptyPlaceholder label="empty math" />
       ) : (
         renderMath(content, true, macros, props.descriptor.source)
-      )}
-      {props.onAiEdit != null && (
-        <PencilButton onClick={() => void props.onAiEdit!()} />
       )}
     </Widget>
   );

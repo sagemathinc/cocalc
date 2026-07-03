@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -12,7 +12,7 @@
 
 import type { SelectProps } from "antd";
 
-import { Button, Input, Select, Space, Switch } from "antd";
+import { Button, Input, Select, Space, Switch, Tooltip } from "antd";
 import { Set } from "immutable";
 import { ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -62,6 +62,10 @@ export function ProjectsTableControls({
   const selected_hashtags = useTypedRedux("projects", "selected_hashtags");
   const project_map = useTypedRedux("projects", "project_map");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const disableProjectCreation = useTypedRedux(
+    "customize",
+    "disable_project_creation",
+  );
 
   // Get filter key for current state
   const filter = useMemo(() => {
@@ -172,14 +176,25 @@ export function ProjectsTableControls({
       {!is_anonymous && (
         <Space>
           {tour}
-          <Button
-            ref={createNewRef}
-            type="primary"
-            onClick={onCreateProject}
-            icon={<Icon name="plus-circle" />}
+          <Tooltip
+            title={
+              disableProjectCreation
+                ? "Creating new projects is currently disabled on this server."
+                : undefined
+            }
           >
-            {intl.formatMessage(IS_MOBILE ? labels.new : labels.create_project)}
-          </Button>
+            <Button
+              ref={createNewRef}
+              type="primary"
+              disabled={disableProjectCreation}
+              onClick={onCreateProject}
+              icon={<Icon name="plus-circle" />}
+            >
+              {intl.formatMessage(
+                IS_MOBILE ? labels.new : labels.create_project,
+              )}
+            </Button>
+          </Tooltip>
         </Space>
       )}
     </Space>

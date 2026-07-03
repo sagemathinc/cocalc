@@ -10,6 +10,10 @@
 import "antd/dist/reset.css";
 import "@ant-design/v5-patch-for-react-19";
 
+// Register the dayjs plugins antd's date/time pickers need, on *our* dayjs
+// instance. Must run before any picker renders. See the module for details.
+import "@cocalc/frontend/app/dayjs-antd-plugins";
+
 import { ConfigProvider } from "antd";
 import { useRouter } from "next/router";
 import { useEffect } from "react";

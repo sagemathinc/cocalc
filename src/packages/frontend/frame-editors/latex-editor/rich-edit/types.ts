@@ -121,11 +121,11 @@ export interface WidgetProps {
    */
   onActivate: () => void;
   /**
-   * Math widgets only: called when the user clicks the trailing AI
-   * pencil. The widget-manager wires this to open the existing
-   * `ai_gen_formula` dialog with the marker's current source, then
-   * replace the marker range with the result. Non-math widgets
-   * leave this undefined.
+   * Math widgets only: called when the user shift+clicks (or presses
+   * shift+Enter on) the rendered formula. The widget-manager wires
+   * this to open the existing `ai_gen_formula` dialog with the
+   * marker's current source, then replace the marker range with the
+   * result. Non-math widgets leave this undefined.
    */
   onAiEdit?: () => Promise<void> | void;
 }
