@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -7,7 +7,7 @@
 Create a new project
 */
 
-import { Button, Card, Col, Form, Input, Modal, Row } from "antd";
+import { Button, Card, Col, Form, Input, Modal, Row, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -82,6 +82,10 @@ export function NewProjectCreator({
     "customize",
     "require_license_to_create_project",
   );
+  const disableProjectCreation = useTypedRedux(
+    "customize",
+    "disable_project_creation",
+  );
   const hasLegacyUpgrades = redux.getStore("account").hasLegacyUpgrades();
   // only require a license on cocalc.com, if users has no upgrades, and if configured to require a license
   const requireLicense =
@@ -126,6 +130,7 @@ export function NewProjectCreator({
   }
 
   function start_editing(): void {
+    if (disableProjectCreation) return;
     set_state("edit");
     set_title_text(default_value || getDefaultTitle());
     select_text();
@@ -224,16 +229,24 @@ export function NewProjectCreator({
     return (
       <Row>
         <Col xs={24}>
-          <Button
-            cocalc-test={"create-project"}
-            size="large"
-            disabled={state !== "view"}
-            onClick={toggle_editing}
-            style={{ width: "100%" }}
+          <Tooltip
+            title={
+              disableProjectCreation
+                ? "Creating new projects is currently disabled on this server."
+                : undefined
+            }
           >
-            <Icon name="plus-circle" />{" "}
-            {intl.formatMessage(labels.create_project)}
-          </Button>
+            <Button
+              cocalc-test={"create-project"}
+              size="large"
+              disabled={state !== "view" || disableProjectCreation}
+              onClick={toggle_editing}
+              style={{ width: "100%" }}
+            >
+              <Icon name="plus-circle" />{" "}
+              {intl.formatMessage(labels.create_project)}
+            </Button>
+          </Tooltip>
         </Col>
       </Row>
     );
