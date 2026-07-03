@@ -66,6 +66,7 @@ export type SiteSettingsKeys =
   | "sign_in_banner_message"
   | "sign_in_banner_url"
   | "sign_in_banner_link_text"
+  | "disable_project_creation"
   | "help_email"
   | "logo_square"
   | "logo_rectangular"
@@ -467,7 +468,8 @@ export const site_settings_conf: SiteSettings = {
       "New accounts should be created on the recommended site. Existing users can still sign in here.",
     clearable: true,
     show: (conf) =>
-      show_theming_vars(conf) && to_bool(conf.account_creation_redirect_enabled),
+      show_theming_vars(conf) &&
+      to_bool(conf.account_creation_redirect_enabled),
     multiline: 3,
     tags: ["Theme"],
   },
@@ -477,7 +479,8 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: (conf) =>
-      show_theming_vars(conf) && to_bool(conf.account_creation_redirect_enabled),
+      show_theming_vars(conf) &&
+      to_bool(conf.account_creation_redirect_enabled),
     to_val: to_trimmed_str,
     tags: ["Theme"],
   },
@@ -487,7 +490,8 @@ export const site_settings_conf: SiteSettings = {
     default: "Create an account on the recommended site",
     clearable: true,
     show: (conf) =>
-      show_theming_vars(conf) && to_bool(conf.account_creation_redirect_enabled),
+      show_theming_vars(conf) &&
+      to_bool(conf.account_creation_redirect_enabled),
     tags: ["Theme"],
   },
   account_creation_redirect_allow_legacy: {
@@ -497,7 +501,8 @@ export const site_settings_conf: SiteSettings = {
     valid: only_booleans,
     to_val: to_bool,
     show: (conf) =>
-      show_theming_vars(conf) && to_bool(conf.account_creation_redirect_enabled),
+      show_theming_vars(conf) &&
+      to_bool(conf.account_creation_redirect_enabled),
     tags: ["Theme"],
   },
   account_creation_redirect_legacy_button_text: {
@@ -513,7 +518,7 @@ export const site_settings_conf: SiteSettings = {
   },
   sign_in_banner_enabled: {
     name: "Sign-in banner",
-    desc: "Show a configurable banner at the top of the sign-in form.",
+    desc: "Show a configurable banner at the top of the sign-in form. If the message below is set, it is also shown as a non-dismissable banner at the very top of the app, so all signed-in users see it.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
@@ -547,6 +552,15 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     show: (conf) =>
       show_theming_vars(conf) && to_bool(conf.sign_in_banner_enabled),
+    tags: ["Theme"],
+  },
+  disable_project_creation: {
+    name: "Disable Project Creation",
+    desc: "If yes, the 'Create Project' button on the projects page is disabled for all users, e.g., to avoid new projects during a migration to another server. This only impacts the frontend UI.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    show: show_theming_vars,
     tags: ["Theme"],
   },
   organization_name: {
