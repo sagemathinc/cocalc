@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -196,6 +196,13 @@ export interface CustomizeState {
 
   cookie_banner_enabled?: boolean;
   cookie_banner_text?: string;
+
+  sign_in_banner_enabled?: boolean;
+  sign_in_banner_message?: string;
+  sign_in_banner_url?: string;
+  sign_in_banner_link_text?: string;
+
+  disable_project_creation?: boolean;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {

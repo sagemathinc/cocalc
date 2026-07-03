@@ -1741,45 +1741,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where : 'project_id :: UUID = $' : opts.project_id
             cb    : one_result('host', opts.cb)
 
-    set_project_storage: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            host       : required
-            cb         : required
-        @get_project_storage
-            project_id : opts.project_id
-            cb         : (err, current) =>
-                if err
-                    opts.cb(err)
-                    return
-                if current?.host? and current.host != opts.host
-                    opts.cb("change storage not implemented yet -- need to implement saving previous host")
-                else
-                    # easy case -- assigning for the first time
-                    assigned = new Date()
-                    @_query
-                        query : "UPDATE projects"
-                        jsonb_set :
-                            storage : {host:opts.host, assigned:assigned}
-                        where : 'project_id :: UUID = $' : opts.project_id
-                        cb    : (err) => opts.cb(err, assigned)
-
-    get_project_storage: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @_get_project_column('storage', opts.project_id, opts.cb)
-
-    update_project_storage_save: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @_query
-            query : "UPDATE projects"
-            jsonb_merge :
-                storage : {saved:new Date()}
-            where : 'project_id :: UUID = $' : opts.project_id
-            cb    : opts.cb
+    # Removed dead set_project_storage / get_project_storage /
+    # update_project_storage_save: the projects.storage column is now
+    # owned by the kucalc layer (see db-schema/projects.ts `storage`).
 
     set_project_storage_request: (opts) =>
         opts = defaults opts,

@@ -316,8 +316,8 @@ Table({
     },
     storage: {
       type: "map",
-      desc: "(DEPRECATED) This is a map {host:'hostname_of_server', assigned:when first saved here, saved:when last saved here}.",
-      date: ["assigned", "saved"],
+      desc: "Project storage backend selection and placement, used to coordinate the lazy migration off the legacy ZFS pools onto the NFS/btrfs storage system. Map of the form {driver:'zfs'|'nfs', nfs_server:'<shard-id>' (set only when driver='nfs'), size_bytes:?, inodes:?, quota_capacity_bytes:? (current btrfs qgroup limit), archive_format:'legacy-streams-bup'|'nfs-tar-zst', flipped_at:<when archive flipped driver to nfs>, materialized_at:<when last unarchived onto NFS>, evicted_at:<when LRU eviction last archived it>, last_active_seen:<mirror of last_active for LRU>}. Written by the kucalc management layer, not the hub.",
+      date: ["flipped_at", "materialized_at", "evicted_at", "last_active_seen"],
     },
     last_backup: {
       type: "timestamp",

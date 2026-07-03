@@ -12,6 +12,10 @@ import adminAlert from "@cocalc/server/messages/admin-alert";
 
 const log = getLogger("server:vouchers:redeem");
 
+function vouchersTemporarilyDisabled(): boolean {
+  return true;
+}
+
 interface Options {
   account_id: string;
   code: string;
@@ -29,6 +33,12 @@ export default async function redeemVoucher({
   account_id,
   code,
 }: Options): Promise<CreatedItem[]> {
+  if (vouchersTemporarilyDisabled()) {
+    throw Error(
+      "Voucher code redemption is temporarily disabled. Please contact support.",
+    );
+  }
+
   // get info from db about given voucher code
   log.debug("code=", code);
   const voucherCode = await getVoucherCode(code);

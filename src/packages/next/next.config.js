@@ -44,6 +44,37 @@ const config = {
     config.devServer = {
       hot: true,
     };
+    // Keep minification, but do NOT mangle class/function names. The minifier
+    // otherwise renames classes (e.g. `Long` -> `n`), which breaks libraries
+    // that identify types by `constructor.name`. Concretely: google-gax's
+    // proto3-json-serializer detects a protobuf `Long` via
+    // `value.constructor.name === 'Long'`; once mangled the check fails and
+    // serializing any int64 field (e.g. a compute server's diskSizeGb) throws
+    //   "toProto3JSON: don't know how to convert value 30".
+    // This surfaced in the Rspack-bundled hub-next runtime (the compute server
+    // "start" action runs in-process there), but the same class of bug can bite
+    // browser code too, so we preserve names in both the client and server
+    // bundles while still stripping whitespace / mangling locals for size.
+    for (const plugin of config.optimization?.minimizer ?? []) {
+      if (plugin?.constructor?.name === "SwcJsMinimizerRspackPlugin") {
+        const args = (plugin._args ??= [{}]);
+        const opts = (args[0] ??= {});
+        const min = (opts.minimizerOptions ??= {});
+        const mangle = (min.mangle ??= {});
+        mangle.keep_classnames = true;
+        mangle.keep_fnames = true;
+      }
+    }
+    // The server bundle isn't size-sensitive and it runs the compute-server ->
+    // GCP code that depends on the above (the "start" action executes in-process
+    // in hub-next). Disable its minification entirely as a robust backstop via
+    // the standard webpack option -- independent of the minifier-plugin internals
+    // the loop above pokes at -- so a future next-rspack change can't silently
+    // reintroduce the mangled-`Long` bug on the server.
+    if (isServer) {
+      config.optimization = config.optimization ?? {};
+      config.optimization.minimize = false;
+    }
     // Important: return the modified config
     return config;
   },
