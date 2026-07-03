@@ -60,6 +60,11 @@ export default async function deleteProject({
     log.debug("problem stopping project", { project_id, err });
   }
 
+  // Flip deleted + stamp deleted_at in one atomic write. deleted_at is what
+  // cleanup_old_projects_data's grace window keys on; setting it here (and
+  // in the user-query path's before_change hook) is what keeps a project
+  // recoverable for `age_d` days after the user clicks delete, even when
+  // last_edited is months old.
   if (!skipPermissionCheck && account_id) {
     await userQuery({
       account_id,
@@ -72,8 +77,9 @@ export default async function deleteProject({
     });
   } else {
     const pool = getPool();
-    await pool.query("UPDATE projects SET deleted=true WHERE project_id=$1", [
-      project_id,
-    ]);
+    await pool.query(
+      "UPDATE projects SET deleted=true, deleted_at=NOW(), last_edited=NOW() WHERE project_id=$1",
+      [project_id],
+    );
   }
 }

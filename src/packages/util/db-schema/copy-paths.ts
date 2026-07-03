@@ -102,6 +102,9 @@ Table({
       "((finished IS NULL))",
       "((finished IS NOT NULL))",
       "((error IS NOT NULL))",
+      // used by cleanup_old_projects_data to chunk-delete copies of a deleted project
+      "target_project_id",
+      "source_project_id",
     ],
   },
 });

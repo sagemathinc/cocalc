@@ -13,7 +13,7 @@ export function newCounter(
   name: string,
   help: string,
   labelNames: string[] = [],
-) {
+): Counter<string> {
   name = withPrefix(aspect, name);
   const key = `counter-${name}`;
   if (cache[key] != null) {
