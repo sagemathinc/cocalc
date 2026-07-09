@@ -221,7 +221,8 @@ import {
 } from "socket.io-client";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import type { ConnectionStats, ServerInfo } from "./types";
-import * as msgpack from "@msgpack/msgpack";
+import { DataEncoding, decode, encode } from "./codec";
+export { DataEncoding, decode, encode } from "./codec";
 import { randomId } from "@cocalc/conat/names";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
@@ -261,12 +262,6 @@ import {
 export const MAX_INTEREST_TIMEOUT = 90_000;
 
 const DEFAULT_WAIT_FOR_INTEREST_TIMEOUT = 30_000;
-
-const MSGPACK_ENCODER_OPTIONS = {
-  // ignoreUndefined is critical so database queries work properly, and
-  // also we have a lot of api calls with tons of wasted undefined values.
-  ignoreUndefined: true,
-};
 
 export const DEFAULT_SOCKETIO_CLIENT_OPTIONS = {
   // A major problem if we allow long polling is that we must always use at most
@@ -335,11 +330,6 @@ export function setDefaultTimeouts({
   DEFAULT_PUBLISH_TIMEOUT = publish;
 }
 
-export enum DataEncoding {
-  MsgPack = 0,
-  JsonCodec = 1,
-}
-
 interface SubscriptionOptions {
   maxWait?: number;
   mesgLimit?: number;
@@ -349,6 +339,17 @@ interface SubscriptionOptions {
   // it starts ticking.
   timeout?: number;
 }
+
+interface RpcServiceOptions {
+  queue?: string;
+  timeout?: number;
+}
+
+type RpcServiceHandle = {
+  subject: string;
+  close: () => void;
+  stop: () => void;
+};
 
 // WARNING!  This is the default and you can't just change it!
 // Yes, for specific messages you can, but in general DO NOT.  The reason is because, e.g.,
@@ -395,6 +396,12 @@ export class Client extends EventEmitter {
   // queueGroups is a map from subject to the queue group for the subscription to that subject
   private queueGroups: { [subject: string]: string } = {};
   private subs: { [subject: string]: SubscriptionEmitter } = {};
+  private rpcServiceQueues: { [subject: string]: string } = {};
+  private rpcServiceImpls: { [subject: string]: any } = {};
+  private fastRpcServiceQueues: { [subject: string]: string } = {};
+  private fastRpcServiceHandlers: {
+    [subject: string]: (payload: any) => any;
+  } = {};
   private sockets: {
     // all socket servers created using this Client
     servers: { [subject: string]: ConatSocketServer };
@@ -473,12 +480,20 @@ export class Client extends EventEmitter {
       const firstTime = this.info == null;
       this.info = info;
       this.emit("info", info);
-      setTimeout(this.syncSubscriptions, firstTime ? 3000 : 0);
+      setTimeout(
+        () => {
+          void this.syncSubscriptions();
+          void this.syncRpcServices();
+        },
+        firstTime ? 3000 : 0,
+      );
     });
     this.conn.on("permission", ({ message, type, subject }) => {
       logger.debug(message);
       this.permissionError[type]?.set(subject, message);
     });
+    this.conn.on("rpc-request", this.handleRpcRequest);
+    this.conn.on("fast-rpc-request", this.handleFastRpcRequest);
     this.conn.on("connect", async () => {
       logger.debug(`Conat: Connected to ${this.options.address}`);
       if (this.conn.connected) {
@@ -718,6 +733,17 @@ export class Client extends EventEmitter {
       this.conn.emit("unsubscribe", { subject });
       delete this.queueGroups[subject];
     }
+    for (const subject of Object.keys(this.rpcServiceRoutes())) {
+      this.conn.emit("rpc-service-close", { subject });
+    }
+    for (const subject in this.rpcServiceQueues) {
+      delete this.rpcServiceQueues[subject];
+      delete this.rpcServiceImpls[subject];
+    }
+    for (const subject in this.fastRpcServiceQueues) {
+      delete this.fastRpcServiceQueues[subject];
+      delete this.fastRpcServiceHandlers[subject];
+    }
     for (const sub of Object.values(this.subs)) {
       sub.refCount = 0;
       sub.close();
@@ -726,6 +752,14 @@ export class Client extends EventEmitter {
     }
     // @ts-ignore
     delete this.queueGroups;
+    // @ts-ignore
+    delete this.rpcServiceQueues;
+    // @ts-ignore
+    delete this.rpcServiceImpls;
+    // @ts-ignore
+    delete this.fastRpcServiceQueues;
+    // @ts-ignore
+    delete this.fastRpcServiceHandlers;
     // @ts-ignore
     delete this.inboxSubject;
     delete this.inbox;
@@ -824,6 +858,171 @@ export class Client extends EventEmitter {
       stable = false;
     }
     return stable;
+  };
+
+  // Re-register every locally-tracked rpc/fast-rpc service with the
+  // router after (re)connect.  Mirrors the syncSubscriptions retry loop:
+  // until() retries with backoff so a transient ack timeout (which would
+  // otherwise become an unhandled rejection AND silently leave services
+  // unregistered) is handled by retrying instead of giving up.
+  private syncRpcServices = reuseInFlight(async () => {
+    let fails = 0;
+    await until(
+      async () => {
+        if (this.isClosed() || isEmpty(this.rpcServiceRoutes())) {
+          return true;
+        }
+        try {
+          if (this.info == null) {
+            // not signed in yet -- wait for the next info, then retry
+            await once(this, "info");
+          }
+          if (this.isClosed() || isEmpty(this.rpcServiceRoutes())) {
+            return true;
+          }
+          await this.waitUntilConnected();
+          const routes = this.rpcServiceRoutes();
+          if (this.isClosed() || isEmpty(routes)) {
+            return true;
+          }
+          const services = Object.entries(routes).map(([subject, queue]) => ({
+            subject,
+            queue,
+          }));
+          const resp = await this.conn
+            .timeout(DEFAULT_SUBSCRIPTION_TIMEOUT)
+            .emitWithAck("rpc-service", services);
+          for (let i = 0; i < services.length; i++) {
+            if (resp?.[i]?.error) {
+              logger.debug(
+                `WARNING: rpc service '${services[i].subject}' failed to (re-)register: ${resp[i].error}`,
+              );
+            }
+          }
+          return true;
+        } catch (err) {
+          fails++;
+          if (fails >= 3) {
+            console.log(
+              `WARNING: failed to sync rpc services ${fails} times -- ${err}`,
+            );
+          }
+        }
+        return false;
+      },
+      { start: 1000, max: 15000 },
+    );
+  });
+
+  private handleRpcRequest = async (
+    { subject, pattern, encoding, raw, headers },
+    respond,
+  ) => {
+    if (respond == null) {
+      return;
+    }
+    const impl = this.rpcServiceImpls[pattern];
+    if (impl == null) {
+      respond({
+        error: `rpc service '${pattern}' is not registered`,
+        code: 503,
+      });
+      return;
+    }
+    const request = new Message({
+      encoding,
+      raw,
+      headers,
+      client: this,
+      subject,
+    });
+    this.recvStats(raw?.byteLength ?? raw?.length ?? 0);
+    try {
+      const [name, args] = request.data;
+      const f = impl[name];
+      if (f == null) {
+        throw Error(`${name} not defined`);
+      }
+      const response = messageData(await f.apply(request, args));
+      this.stats.send.messages += 1;
+      this.stats.send.bytes += response.raw.length;
+      respond({
+        encoding: response.encoding,
+        raw: response.raw,
+        headers: response.headers,
+      });
+    } catch (err) {
+      const response = messageData(null, {
+        headers: {
+          error: err instanceof Error ? err.message : `${err}`,
+          error_attrs: {
+            code: (err as any)?.code,
+            errno: (err as any)?.errno,
+            path: (err as any)?.path,
+            syscall: (err as any)?.syscall,
+            subject: (err as any)?.subject,
+          },
+        },
+      });
+      respond({
+        encoding: response.encoding,
+        raw: response.raw,
+        headers: response.headers,
+      });
+    }
+  };
+
+  private handleFastRpcRequest = async ({ pattern, payload }, respond) => {
+    if (respond == null) {
+      return;
+    }
+    const handler = this.fastRpcServiceHandlers[pattern];
+    if (handler == null) {
+      respond({
+        error: `fast rpc service '${pattern}' is not registered`,
+        code: 503,
+      });
+      return;
+    }
+    try {
+      respond(await handler(payload));
+    } catch (err) {
+      respond({
+        error: err instanceof Error ? err.message : `${err}`,
+        code: (err as any)?.code,
+      });
+    }
+  };
+
+  private rpcServiceRoutes = (): { [subject: string]: string } => {
+    const routes: { [subject: string]: string } = {};
+    for (const subject in this.rpcServiceQueues ?? {}) {
+      routes[subject] = this.rpcServiceQueues[subject];
+    }
+    for (const subject in this.fastRpcServiceQueues ?? {}) {
+      routes[subject] = this.fastRpcServiceQueues[subject];
+    }
+    return routes;
+  };
+
+  private assertCompatibleRpcServiceQueue = (
+    subject: string,
+    queue: string,
+  ) => {
+    const existing =
+      this.rpcServiceQueues?.[subject] ?? this.fastRpcServiceQueues?.[subject];
+    if (existing != null && existing != queue) {
+      throw Error(
+        `rpc service '${subject}' is already registered with queue '${existing}'`,
+      );
+    }
+  };
+
+  private hasRpcServiceRoute = (subject: string): boolean => {
+    return (
+      this.rpcServiceQueues?.[subject] != null ||
+      this.fastRpcServiceQueues?.[subject] != null
+    );
   };
 
   numSubscriptions = () => Object.keys(this.queueGroups).length;
@@ -1066,6 +1265,192 @@ export class Client extends EventEmitter {
     loop();
     return sub;
   };
+
+  rpcService: <T = any>(
+    subject: string,
+    impl: T,
+    opts?: RpcServiceOptions,
+  ) => Promise<RpcServiceHandle> = async (subject, impl, opts = {}) => {
+    if (!isValidSubject(subject)) {
+      throw Error(`invalid rpc service subject '${subject}'`);
+    }
+    await this.waitUntilSignedIn();
+    const queue = opts.queue ?? "0";
+    if (this.rpcServiceImpls[subject] != null) {
+      throw Error(`rpc service '${subject}' is already registered`);
+    }
+    this.assertCompatibleRpcServiceQueue(subject, queue);
+    this.rpcServiceQueues[subject] = queue;
+    this.rpcServiceImpls[subject] = impl;
+    try {
+      const response = await this.conn
+        .timeout(opts.timeout ?? DEFAULT_SUBSCRIPTION_TIMEOUT)
+        .emitWithAck("rpc-service", { subject, queue });
+      if (response?.error) {
+        throw new ConatError(response.error, { code: response.code });
+      }
+    } catch (err) {
+      delete this.rpcServiceQueues[subject];
+      delete this.rpcServiceImpls[subject];
+      throw err;
+    }
+    const close = () => {
+      if (this.rpcServiceQueues?.[subject] == null) {
+        return;
+      }
+      delete this.rpcServiceQueues[subject];
+      delete this.rpcServiceImpls[subject];
+      if (!this.hasRpcServiceRoute(subject) && !this.isClosed()) {
+        this.conn.emit("rpc-service-close", { subject });
+      }
+    };
+    return { subject, close, stop: close };
+  };
+
+  fastRpcService = async (
+    subject: string,
+    handler: (payload: any) => any,
+    opts: RpcServiceOptions = {},
+  ): Promise<RpcServiceHandle> => {
+    if (!isValidSubject(subject)) {
+      throw Error(`invalid fast rpc service subject '${subject}'`);
+    }
+    await this.waitUntilSignedIn();
+    const queue = opts.queue ?? "0";
+    if (this.fastRpcServiceHandlers[subject] != null) {
+      throw Error(`fast rpc service '${subject}' is already registered`);
+    }
+    this.assertCompatibleRpcServiceQueue(subject, queue);
+    this.fastRpcServiceQueues[subject] = queue;
+    this.fastRpcServiceHandlers[subject] = handler;
+    try {
+      const response = await this.conn
+        .timeout(opts.timeout ?? DEFAULT_SUBSCRIPTION_TIMEOUT)
+        .emitWithAck("rpc-service", { subject, queue });
+      if (response?.error) {
+        throw new ConatError(response.error, { code: response.code });
+      }
+    } catch (err) {
+      delete this.fastRpcServiceQueues[subject];
+      delete this.fastRpcServiceHandlers[subject];
+      throw err;
+    }
+    const close = () => {
+      if (this.fastRpcServiceQueues?.[subject] == null) {
+        return;
+      }
+      delete this.fastRpcServiceQueues[subject];
+      delete this.fastRpcServiceHandlers[subject];
+      if (!this.hasRpcServiceRoute(subject) && !this.isClosed()) {
+        this.conn.emit("rpc-service-close", { subject });
+      }
+    };
+    return { subject, close, stop: close };
+  };
+
+  fastRpcRequest = async (
+    subject: string,
+    payload: any,
+    { timeout = DEFAULT_REQUEST_TIMEOUT }: { timeout?: number } = {},
+  ): Promise<any> => {
+    if (timeout <= 0) {
+      throw Error("timeout must be positive");
+    }
+    await this.waitUntilSignedIn();
+    let response;
+    try {
+      response = await this.conn.timeout(timeout).emitWithAck("fast-rpc", {
+        subject,
+        payload,
+        timeout,
+      });
+    } catch (err) {
+      // socket.io ack never resolved -- the request did NOT reach a
+      // service handler (no listener at all, or the router itself never
+      // acked).  Tag so callers can safely auto-fallback without risk
+      // of double-executing a side-effecting handler.
+      const e = toConatError(err);
+      if (e instanceof ConatError) {
+        (e as any).transportTimeout = true;
+      }
+      throw e;
+    }
+    if (response?.error) {
+      // Server returned an error -- could be 408 from inner emitWithAck
+      // to the service socket, in which case the handler MAY have run.
+      // Do NOT tag transportTimeout here.
+      throw new ConatError(response.error, { code: response.code });
+    }
+    return response;
+  };
+
+  rpcRequest = async (
+    subject: string,
+    mesg: any,
+    {
+      timeout = DEFAULT_REQUEST_TIMEOUT,
+      ignoreErrorHeader,
+      ...options
+    }: PublishOptions & { ignoreErrorHeader?: boolean } = {},
+  ): Promise<Message> => {
+    if (timeout <= 0) {
+      throw Error("timeout must be positive");
+    }
+    await this.waitUntilSignedIn();
+    const request = messageData(mesg, options);
+    this.stats.send.messages += 1;
+    this.stats.send.bytes += request.raw.length;
+    let response;
+    try {
+      response = await this.conn.timeout(timeout).emitWithAck("rpc", {
+        subject,
+        encoding: request.encoding,
+        raw: request.raw,
+        headers: request.headers,
+        timeout,
+      });
+    } catch (err) {
+      throw toConatError(err);
+    }
+    if (response?.error) {
+      throw new ConatError(response.error, { code: response.code });
+    }
+    const resp = new Message({
+      encoding: response.encoding,
+      raw: response.raw,
+      headers: response.headers,
+      client: this,
+      subject,
+    });
+    this.recvStats(response.raw?.byteLength ?? response.raw?.length ?? 0);
+    if (!ignoreErrorHeader && resp.headers?.error) {
+      throw Error(`${resp.headers.error}`);
+    }
+    return resp;
+  };
+
+  rpcCall<T = any>(subject: string, opts?: PublishOptions): T {
+    const call = async (name: string, args: any[]) => {
+      const resp = await this.rpcRequest(subject, [name, args], opts);
+      return resp.data;
+    };
+
+    return new Proxy(
+      { subject },
+      {
+        get: (target, name) => {
+          const s = target[String(name)];
+          if (s !== undefined) {
+            return s;
+          }
+          if (typeof name !== "string" || name == "then") {
+            return undefined;
+          }
+          return async (...args) => await call(name, args);
+        },
+      },
+    ) as T;
+  }
 
   // Call a service as defined above.
   call<T = any>(subject: string, opts?: PublishOptions): T {
@@ -1575,55 +1960,6 @@ interface RequestManyOptions extends PublishOptions {
   maxMessages?: number;
 }
 
-export function encode({
-  encoding,
-  mesg,
-}: {
-  encoding: DataEncoding;
-  mesg: any;
-}) {
-  if (encoding == DataEncoding.MsgPack) {
-    return msgpack.encode(mesg, MSGPACK_ENCODER_OPTIONS);
-  } else if (encoding == DataEncoding.JsonCodec) {
-    return jsonEncoder(mesg);
-  } else {
-    throw Error(`unknown encoding ${encoding}`);
-  }
-}
-
-export function decode({
-  encoding,
-  data,
-}: {
-  encoding: DataEncoding;
-  data;
-}): any {
-  if (encoding == DataEncoding.MsgPack) {
-    return msgpack.decode(data);
-  } else if (encoding == DataEncoding.JsonCodec) {
-    return jsonDecoder(data);
-  } else {
-    throw Error(`unknown encoding ${encoding}`);
-  }
-}
-
-let textEncoder: TextEncoder | undefined = undefined;
-let textDecoder: TextDecoder | undefined = undefined;
-
-function jsonEncoder(obj: any) {
-  if (textEncoder === undefined) {
-    textEncoder = new TextEncoder();
-  }
-  return textEncoder.encode(JSON.stringify(obj));
-}
-
-function jsonDecoder(data: Buffer): any {
-  if (textDecoder === undefined) {
-    textDecoder = new TextDecoder();
-  }
-  return JSON.parse(textDecoder.decode(data));
-}
-
 interface Chunk {
   id: string;
   seq: number;
@@ -1837,21 +2173,27 @@ export class Message<T = any> extends MessageData<T> {
     return this.client.publishSync(subject, mesg, opts);
   };
 
-  respond = async (
+  respond = (
     mesg,
     opts: PublishOptions = {},
   ): Promise<{ bytes: number; count: number }> => {
     const subject = this.respondSubject();
     if (!subject) {
-      return { bytes: 0, count: 0 };
+      return Promise.resolve({ bytes: 0, count: 0 });
     }
-    return await this.client.publish(subject, mesg, {
+    const promise = this.client.publish(subject, mesg, {
       // we *always* wait for interest for async respond, since
       // it is by far the most likely situation where it wil be needed, due
       // to inboxes when users first sign in.
       waitForInterest: true,
       ...opts,
     });
+    // Many request handlers use mesg.respond(...) fire-and-forget.  Keep
+    // awaited callers seeing failures, but prevent cleanup races from
+    // becoming process-level unhandled rejections when the caller
+    // intentionally ignores the returned promise.
+    promise.catch(() => undefined);
+    return promise;
   };
 }
 

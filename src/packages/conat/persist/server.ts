@@ -169,8 +169,14 @@ export function server({
           socket.emit("stream-initialized");
         } catch (err) {
           error = `${err}`;
-          errorCode = err.code;
+          errorCode =
+            err.code ??
+            (error.includes("permission denied") ? 403 : undefined);
           socket.write(null, { headers: { error, code: errorCode } });
+          // Wake any pending `await once(socket, "stream-initialized")`
+          // waiters in the request handler below so they re-check `error`
+          // and rethrow instead of stalling to the request timeout.
+          socket.emit("stream-initialized");
         }
       }
     });
@@ -194,6 +200,15 @@ export function server({
         }
         if (stream == null) {
           await once(socket, "stream-initialized", request.timeout ?? 30000);
+        }
+        // Re-check error after the wake-up: storage init may have failed
+        // while we were awaiting "stream-initialized" (the init-error
+        // path emits this event to wake us so we surface the real error
+        // rather than stalling to the request timeout).  Without this,
+        // we'd fall through to the "bug" throw below or to the
+        // request-timeout, both of which mask the original 403/etc.
+        if (error) {
+          throw new ConatError(error, { code: errorCode });
         }
         if (stream == null) {
           throw Error("bug");

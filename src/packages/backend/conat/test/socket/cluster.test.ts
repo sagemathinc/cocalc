@@ -16,6 +16,14 @@ import {
 
 beforeAll(before);
 
+// Cross-cluster connect involves multiple round-trips of cluster sync
+// (interest propagation for the status subject, the connect command, the
+// client subject, and the inbox).  Default jest 5s budget can be too tight
+// under CI parallelism.  Bump to 15s as a fail-fast guardrail: if a real
+// hang happens we want jest to abort each test promptly rather than stall
+// the suite for retries.
+jest.setTimeout(15000);
+
 describe("most basic possible test of creating a socket in a cluster built from scratch", () => {
   let client0, client1;
   it("a 2-node cluster", async () => {

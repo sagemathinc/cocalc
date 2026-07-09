@@ -534,6 +534,7 @@ export class CoreStream<T = any> extends EventEmitter {
       raw: data,
       key,
     } as RawMsg;
+    let alreadyProcessed = false;
     if (seq > (this.raw.slice(-1)[0]?.seq ?? 0)) {
       // easy fast initial load to the end of the list (common special case)
       this.messages.push(mesg);
@@ -559,7 +560,25 @@ export class CoreStream<T = any> extends EventEmitter {
       } else if (this.raw[i].seq > seq) {
         this.raw.splice(i, 0, raw);
         this.messages.splice(i, 0, mesg);
-      } // other case -- we already have it.
+      } else {
+        // this.raw[i].seq === seq -- already have it.
+        alreadyProcessed = true;
+      }
+    }
+    if (alreadyProcessed) {
+      // Even though the seq is already stored, downstream consumers
+      // (DKV save loops, changefeed waiters) may still be holding local
+      // state that needs to clear once they see this seq as delivered
+      // again.  Re-emit so they can converge.
+      let prev: T | undefined = undefined;
+      if (typeof key == "string") {
+        prev = this.kv[key]?.mesg ?? this.lastValueByKey.get(key);
+      }
+      this.lastSeq = Math.max(this.lastSeq, seq);
+      if (!noEmit) {
+        this.emitChange({ mesg, raw, key, prev, msgID });
+      }
+      return;
     }
     let prev: T | undefined = undefined;
     // Issue #8702: Capture the previous raw message for this key BEFORE updating this.kv.
@@ -765,6 +784,39 @@ export class CoreStream<T = any> extends EventEmitter {
     return this.raw[n]?.headers;
   };
 
+  // After a successful publish/setKv/setKvMany, wait until the local
+  // changefeed has caught up to the published seq.  Without this, a
+  // caller that publishes and then immediately reads back can race:
+  // the persistence layer has accepted the write but our own
+  // raw/messages/kv reflection of it hasn't been delivered yet.
+  // Returns when the local mirror is consistent (or this stream is
+  // closed, or the timeout elapses).
+  private waitForLocalPublish = async (
+    x: { seq: number },
+    options?: PublishOptions,
+  ) => {
+    await until(
+      () => {
+        if (this.raw == null) {
+          // closed -- give up cleanly
+          return true;
+        }
+        if (options?.key != null) {
+          if (options.headers?.[COCALC_TOMBSTONE_HEADER]) {
+            return this.lastSeq >= x.seq && this.kv[options.key] == null;
+          }
+          const keySeq = this.kv[options.key]?.raw.seq;
+          return (
+            keySeq === x.seq ||
+            (this.lastSeq >= x.seq && (keySeq == null || keySeq > x.seq))
+          );
+        }
+        return this.lastSeq >= x.seq;
+      },
+      { start: 1, min: 1, max: 25, timeout: options?.timeout ?? 5000 },
+    );
+  };
+
   // key:value interface for subset of messages pushed with key option set.
   // NOTE: This does NOT throw an error if our local seq is out of date (leave that
   // to dkv built on this).
@@ -774,9 +826,17 @@ export class CoreStream<T = any> extends EventEmitter {
     options?: {
       headers?: Headers;
       previousSeq?: number;
+      msgID?: string;
+      ttl?: number;
+      timeout?: number;
     },
   ): Promise<{ seq: number; time: number } | undefined> => {
-    return await this.publish(mesg, { ...options, key });
+    const publishOptions = { ...options, key };
+    const x = await this.publish(mesg, publishOptions);
+    if (x != null) {
+      await this.waitForLocalPublish(x, publishOptions);
+    }
+    return x;
   };
 
   setKvMany = async (
@@ -795,7 +855,19 @@ export class CoreStream<T = any> extends EventEmitter {
     for (const { key, mesg, options } of x) {
       messages.push({ mesg, options: { ...options, key } });
     }
-    return await this.publishMany(messages);
+    const results = await this.publishMany(messages);
+    // Wait for local convergence on each successful entry.  Errors are
+    // skipped -- nothing to wait for.
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      if (r != null && (r as any).seq != null) {
+        await this.waitForLocalPublish(
+          r as { seq: number },
+          messages[i].options,
+        );
+      }
+    }
+    return results;
   };
 
   deleteKv = async (
@@ -803,18 +875,32 @@ export class CoreStream<T = any> extends EventEmitter {
     options?: {
       msgID?: string;
       previousSeq?: number;
+      // force=true skips the "this.kv[key] is already undefined, nothing
+      // to do" early-return.  Used by DKV to issue a tombstone write
+      // immediately on delete() without waiting for the coalesced save
+      // loop, even when the local view doesn't show the entry.
+      force?: boolean;
+      // waitForLocal=false skips the post-publish waitForLocalPublish
+      // step.  Only use this when the caller can tolerate local reads
+      // racing behind the persisted tombstone.
+      waitForLocal?: boolean;
     },
   ) => {
-    if (this.kv[key] === undefined) {
+    if (!options?.force && this.kv[key] === undefined) {
       // nothing to do
       return;
     }
-    return await this.publish(null as any, {
+    const publishOptions = {
       ...options,
       headers: { [COCALC_TOMBSTONE_HEADER]: true },
       key,
       ttl: DEFAULT_TOMBSTONE_TTL,
-    });
+    };
+    const x = await this.publish(null as any, publishOptions);
+    if (x != null && options?.waitForLocal !== false) {
+      await this.waitForLocalPublish(x, publishOptions);
+    }
+    return x;
   };
 
   getKv = (key: string): T | undefined => {

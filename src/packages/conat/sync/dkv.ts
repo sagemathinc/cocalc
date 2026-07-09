@@ -424,8 +424,28 @@ export class DKV<T = any> extends EventEmitter {
 
   delete = (key) => {
     this._delete(key);
-    if (!this.noAutosave) {
-      this.save();
+    if (!this.noAutosave && this.kv != null) {
+      // Start the tombstone write immediately rather than going through
+      // the coalesced save() loop.  Some callers inspect the underlying
+      // stream inventory right after delete -- if that read can overtake
+      // the save loop's write, they see the stale value.  force:true so
+      // we still emit the tombstone even if the local view already shows
+      // the entry as gone.  Keep the local TOMBSTONE marker until our
+      // local stream has caught up; otherwise a read can briefly fall
+      // through to the stale saved value.
+      this.kv
+        .deleteKv(key, { force: true })
+        .then(() => {
+          if (this.local?.[key] === TOMBSTONE) {
+            this.changed.delete(key);
+            this.discardLocalState(key);
+          }
+        })
+        .catch(() => {
+          // Fall back to the coalesced save loop if the direct write
+          // fails (e.g. transient persist server hiccup).
+          this.save();
+        });
     }
   };
 
