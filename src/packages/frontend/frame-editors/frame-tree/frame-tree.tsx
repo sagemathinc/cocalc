@@ -29,7 +29,7 @@ or
 */
 
 import { delay } from "awaiting";
-import { Map, Set } from "immutable";
+import { Map as IMap, Set as ISet } from "immutable";
 import React from "react";
 
 import { AccountState } from "@cocalc/frontend/account/types";
@@ -53,39 +53,44 @@ import { get_file_editor } from "./register";
 import { TabsContainer } from "./tabs-container";
 import { FrameTitleBar } from "./title-bar";
 import * as tree_ops from "./tree-ops";
-import { EditorDescription, EditorSpec, EditorState, NodeDesc } from "./types";
+import {
+  EditorDescription,
+  EditorSpec,
+  EditorState,
+  NodeDesc,
+  getEditorDescription,
+} from "./types";
 
 interface FrameTreeProps {
   actions: Actions;
   active_id: string;
   available_features: AvailableFeatures;
-  complete: Map<string, any>;
-  cursors: Map<string, any>;
-  derived_file_types: Set<string>;
+  complete: IMap<string, any>;
+  cursors: IMap<string, any>;
+  derived_file_types: ISet<string>;
   editor_settings: AccountState["editor_settings"];
   editor_spec: EditorSpec;
   editor_state: EditorState; // IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
   font_size: number;
-  frame_tree: Map<string, any>;
+  frame_tree: IMap<string, any>;
   full_id: string;
   has_uncommitted_changes: boolean;
   has_unsaved_changes: boolean;
   is_only: boolean;
-  is_public: boolean;
   is_saving: boolean;
   is_visible: boolean;
-  local_view_state: Map<string, any>;
-  misspelled_words: Set<string>;
+  local_view_state: IMap<string, any>;
+  misspelled_words: ISet<string>;
   name: string; // just so editors (leaf nodes) can plug into reduxProps if they need to.
   path: string; // assumed to never change -- all frames in same project
   project_id: string; // assumed to never change -- all frames in same project
   read_only: boolean; // if true, then whole document considered read only (individual frames can still be via desc)
-  reload: Map<string, number>;
+  reload: IMap<string, number>;
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
-  settings: Map<string, any>;
+  settings: IMap<string, any>;
   status: string;
   tab_is_visible: boolean;
-  terminal?: Map<string, any>; // terminal settings from account
+  terminal?: IMap<string, any>; // terminal settings from account
   value?: string;
 }
 
@@ -102,7 +107,6 @@ function shouldMemoize(prev, next) {
     "has_uncommitted_changes",
     "has_unsaved_changes",
     "is_only",
-    "is_public",
     "is_saving",
     "is_visible",
     "local_view_state",
@@ -136,7 +140,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       has_uncommitted_changes,
       has_unsaved_changes,
       is_only,
-      is_public,
       is_saving,
       is_visible,
       local_view_state,
@@ -157,6 +160,12 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     const elementRef = React.useRef<HTMLDivElement>(null as any);
     const cols_container_ref = React.useRef<HTMLDivElement>(null as any);
     const rows_container_ref = React.useRef<HTMLDivElement>(null as any);
+
+    // Track reset-frame-tree attempts so a broken default layout doesn't
+    // cause an infinite render -> reset -> render loop. Keyed by error
+    // message so different errors each get their own retry budget.
+    const resetAttemptsRef = React.useRef<Map<string, number>>(new Map());
+    const lastResetAtRef = React.useRef<number>(0);
 
     const [forceReload, setForceReload] = useState<number>(0);
 
@@ -186,7 +195,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           has_uncommitted_changes={has_uncommitted_changes}
           has_unsaved_changes={has_unsaved_changes}
           is_only={false}
-          is_public={is_public}
           is_saving={is_saving}
           is_visible={is_visible}
           local_view_state={local_view_state}
@@ -214,9 +222,12 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     }
 
     function get_editor_actions(desc: NodeDesc): Actions | undefined {
-      if (desc.get("type") == "cm" && editor_spec["cm"] == null) {
+      if (
+        desc.get("type") == "cm" &&
+        getEditorDescription(editor_spec, "cm") == null
+      ) {
         // make it so the spec includes info about cm editor.
-        editor_spec.cm = copy(cm_spec);
+        editor_spec[cm_spec.type] = copy(cm_spec);
       }
 
       if (desc.get("type") == "cm" && desc.get("path", path) != path) {
@@ -296,7 +307,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       ) {
         if (path_leaf.slice(path_leaf.length - 12) != ".time-travel") {
           path_leaf = hidden_meta_file(path_leaf, "time-travel");
-          const editor = get_file_editor("time-travel", false);
+          const editor = get_file_editor("time-travel");
           if (editor == null) throw Error("bug -- editor must exist");
           name_leaf = editor.init(path_leaf, redux, project_id_leaf);
           const actions2: TimeTravelActions = redux.getActions(name_leaf);
@@ -335,7 +346,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           editor_state={editor_state}
           font_size={font_size}
           is_fullscreen={is_only || desc.get("id") === full_id}
-          is_public={is_public}
           is_subframe={is_subframe}
           is_visible={is_visible}
           local_view_state={local_view_state}
@@ -354,8 +364,22 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       );
     }
 
-    async function reset_frame_tree(): Promise<void> {
-      await delay(100);
+    // Reset the frame tree with exponential backoff per distinct error.
+    // Without this, a reset that produces the same invalid tree triggers
+    // a render that throws the same error, which schedules another reset,
+    // etc. -- a tight loop that floods the console. Matches the defaults
+    // used by misc.retry_until_success (start 1s, factor 1.4, max 20s).
+    async function reset_frame_tree(errorKey: string): Promise<void> {
+      const attempts = resetAttemptsRef.current.get(errorKey) ?? 0;
+      const delayMs = Math.min(1_000 * Math.pow(1.4, attempts), 20_000);
+      const scheduledAt = Date.now();
+      lastResetAtRef.current = scheduledAt;
+      resetAttemptsRef.current.set(errorKey, attempts + 1);
+      await delay(delayMs);
+      // Abandon if another reset was scheduled after us (newer error wins).
+      if (lastResetAtRef.current !== scheduledAt) {
+        return;
+      }
       if (actions) {
         actions.reset_frame_tree();
       }
@@ -380,33 +404,39 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       // NOTE: get_editor_actions may mutate props.editor_spec
       // if necessary for subframe, etc. So we call it first!
       let editor_actions: Actions | undefined,
-        spec: EditorDescription,
+        spec: EditorDescription | undefined,
         component: any;
       try {
         editor_actions = get_editor_actions(desc);
         if (editor_actions == null) {
           return <Loading />;
         }
-        spec = editor_spec[type];
+        spec = getEditorDescription(editor_spec, type);
         component = spec != null ? spec.component : undefined;
         if (component == null) {
           throw Error(
             `unknown type '${type}'. Known types for this editor: ${JSON.stringify(
-              Object.keys(editor_spec),
+              Object.values(editor_spec).map(({ type }) => type),
             )}`,
           );
         }
       } catch (err) {
         const mesg = `Invalid frame tree ${JSON.stringify(desc)} -- ${err}`;
-        console.log(mesg);
-        // reset -- fix this disaster next time around.
-        reset_frame_tree();
+        const errorKey = `${desc.get("type")}:${err}`;
+        if (!resetAttemptsRef.current.has(errorKey)) {
+          console.log(mesg);
+        }
+        reset_frame_tree(errorKey);
         return <div>{mesg}</div>;
       }
       return (
         <FrameLeafContainer
           id={desc.get("id")}
-          frameLabel={isIntlMessage(spec?.short) ? spec.short.defaultMessage : (spec?.short ?? desc.get("type"))}
+          frameLabel={
+            isIntlMessage(spec?.short)
+              ? spec.short.defaultMessage
+              : (spec?.short ?? desc.get("type"))
+          }
           contextValue={{
             id: desc.get("id"),
             project_id,
@@ -421,8 +451,8 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           style={spec != null ? spec.style : undefined}
           onClick={() => actions.set_active_id(desc.get("id"), true)}
           onTouchStart={() => actions.set_active_id(desc.get("id"))}
-          titlebar={render_titlebar(desc, spec, editor_actions)}
-          leaf={render_leaf(desc, component, spec, editor_actions)}
+          titlebar={render_titlebar(desc, spec!, editor_actions)}
+          leaf={render_leaf(desc, component, spec!, editor_actions)}
         />
       );
     }
@@ -569,7 +599,12 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             flex: 1,
             overflow: "hidden",
           }
-        : { display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" };
+        : {
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            overflow: "hidden",
+          };
 
       return (
         <div
@@ -618,7 +653,11 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     }
 
     return (
-      <div className={"smc-vfill"} style={{ overflow: "clip" }} ref={elementRef}>
+      <div
+        className={"smc-vfill"}
+        style={{ overflow: "clip" }}
+        ref={elementRef}
+      >
         {render_root()}
       </div>
     );

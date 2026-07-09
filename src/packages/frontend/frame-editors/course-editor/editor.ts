@@ -176,14 +176,14 @@ const course_shared_project: CourseEditorDescription = {
 } as const;
 
 export const EDITOR_SPEC = {
-  course_students,
-  course_assignments,
-  course_handouts,
-  course_configuration,
-  course_actions,
-  course_shared_project,
+  "course-students": course_students,
+  "course-assignments": course_assignments,
+  "course-handouts": course_handouts,
+  "course-configuration": course_configuration,
+  "course-actions": course_actions,
+  "course-shared_project": course_shared_project,
   terminal,
-  time_travel,
+  timetravel: time_travel,
 } as const;
 
 export const Editor = createEditor({

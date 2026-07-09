@@ -26,7 +26,7 @@ export class Actions extends WhiteboardActions<State> {
     return {
       direction: "col",
       type: "node",
-      first: { type: "pages" },
+      first: { type: "whiteboard-pages" },
       second: {
         direction: "row",
         type: "node",
@@ -34,8 +34,8 @@ export class Actions extends WhiteboardActions<State> {
         second: {
           direction: "col",
           type: "node",
-          first: { type: "speaker_notes" },
-          second: { type: "table_of_contents" },
+          first: { type: "slides-notes" },
+          second: { type: "markdown-toc" },
           pos: 0.8,
         },
         pos: 0.8,
@@ -79,7 +79,7 @@ export class Actions extends WhiteboardActions<State> {
     super.setPage(frameId, pageNumber);
     if (node.get("type") == this.mainFrameType) {
       const id: string | undefined =
-        this._get_most_recent_active_frame_id_of_type("speaker_notes");
+        this._get_most_recent_active_frame_id_of_type("slides-notes");
       if (id != null && id != frameId) {
         this.setPage(id, pageNumber);
       }
@@ -107,7 +107,7 @@ export class Actions extends WhiteboardActions<State> {
         y: -492,
         z: 0,
       },
-      false
+      false,
     );
     this.createElement(
       undefined,
@@ -127,7 +127,7 @@ export class Actions extends WhiteboardActions<State> {
         y: -393,
         z: 1,
       },
-      false
+      false,
     );
     if (commit) {
       this.syncstring_commit();

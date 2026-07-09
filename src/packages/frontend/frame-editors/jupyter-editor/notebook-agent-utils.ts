@@ -180,7 +180,7 @@ export interface NotebookContext {
  * Extract notebook context (focused cell, cursor, selection) from
  * the JupyterEditorActions.  The agent runs in the chat frame, so
  * we must resolve the notebook frame via
- * _get_most_recent_active_frame_id_of_type("jupyter_cell_notebook").
+ * _get_most_recent_active_frame_id_of_type("jupyter").
  */
 export function getNotebookContext(
   actions: JupyterEditorActions,
@@ -787,9 +787,7 @@ function scrollToCell(
 ): void {
   if (!editorActions) return;
   try {
-    const frameId = (
-      editorActions as any
-    )._get_most_recent_active_frame_id(
+    const frameId = (editorActions as any)._get_most_recent_active_frame_id(
       (node: any) => isJupyterNotebookFrameType(node.get("type")),
     );
     if (!frameId) return;
@@ -1272,8 +1270,7 @@ export function getFewShotExamples(readOnly?: boolean): AgentHistoryMessage[] {
     },
     {
       role: "assistant",
-      content:
-        '```tool\n{"name": "get_cell", "args": {"index": 3}}\n```',
+      content: '```tool\n{"name": "get_cell", "args": {"index": 3}}\n```',
     },
     {
       role: "user",
@@ -1292,8 +1289,7 @@ export function getFewShotExamples(readOnly?: boolean): AgentHistoryMessage[] {
     },
     {
       role: "assistant",
-      content:
-        '```tool\n{"name": "get_cell", "args": {"index": 5}}\n```',
+      content: '```tool\n{"name": "get_cell", "args": {"index": 5}}\n```',
     },
     {
       role: "user",
@@ -1312,8 +1308,7 @@ export function getFewShotExamples(readOnly?: boolean): AgentHistoryMessage[] {
     },
     {
       role: "assistant",
-      content:
-        '```tool\n{"name": "run_cell", "args": {"index": 3}}\n```',
+      content: '```tool\n{"name": "run_cell", "args": {"index": 3}}\n```',
     },
     {
       role: "user",
@@ -1323,7 +1318,7 @@ export function getFewShotExamples(readOnly?: boolean): AgentHistoryMessage[] {
     {
       role: "assistant",
       content:
-        "Cell #3 has a `NameError` — `x` is not defined. The variable is likely defined in an earlier cell that hasn't been run yet.\n```tool\n{\"name\": \"run_cell\", \"args\": {\"index\": 1}}\n```\n```tool\n{\"name\": \"run_cell\", \"args\": {\"index\": 3}}\n```",
+        'Cell #3 has a `NameError` — `x` is not defined. The variable is likely defined in an earlier cell that hasn\'t been run yet.\n```tool\n{"name": "run_cell", "args": {"index": 1}}\n```\n```tool\n{"name": "run_cell", "args": {"index": 3}}\n```',
     },
     // Separator: clear few-shot context before real conversation
     {
@@ -1332,4 +1327,3 @@ export function getFewShotExamples(readOnly?: boolean): AgentHistoryMessage[] {
     },
   ];
 }
-

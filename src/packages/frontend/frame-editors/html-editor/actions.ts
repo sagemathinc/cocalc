@@ -15,11 +15,9 @@ import { raw_url } from "../frame-tree/util";
 
 export class Actions extends CodeEditorActions {
   _init2(): void {
-    if (!this.is_public) {
-      this._init_syncstring_value();
-      this._init_spellcheck();
-      this._init_iframe_reload();
-    }
+    this._init_syncstring_value();
+    this._init_spellcheck();
+    this._init_iframe_reload();
   }
 
   _init_iframe_reload(): void {
@@ -29,20 +27,16 @@ export class Actions extends CodeEditorActions {
   }
 
   _raw_default_frame_tree(): FrameTree {
-    if (this.is_public) {
-      return { type: "html" };
-    } else {
-      return {
-        direction: "col",
-        type: "node",
-        first: {
-          type: "cm",
-        },
-        second: {
-          type: "iframe",
-        },
-      };
-    }
+    return {
+      direction: "col",
+      type: "node",
+      first: {
+        type: "cm",
+      },
+      second: {
+        type: "iframe",
+      },
+    };
   }
 
   // https://github.com/sagemathinc/cocalc/issues/3984

@@ -26,7 +26,7 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
   public course_actions: CourseActions;
 
   _raw_default_frame_tree(): FrameTree {
-    return { type: "course_students" };
+    return { type: "course-students" };
   }
 
   _init2(): void {

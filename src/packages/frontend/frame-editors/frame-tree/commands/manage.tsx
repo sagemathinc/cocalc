@@ -10,12 +10,21 @@ import { IntlShape } from "react-intl";
 import { redux } from "@cocalc/frontend/app-framework";
 import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
 import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
-import { Icon, IconName, isIconName } from "@cocalc/frontend/components/icon";
+import {
+  Icon,
+  type IconRef,
+  isIconName,
+  isIconRefObject,
+} from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { cmp, trunc_middle } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { EditorDescription } from "../types";
+import {
+  EditorDescription,
+  getEditorDescription,
+  getEditorDescriptions,
+} from "../types";
 import { COMMANDS } from "./commands";
 import { APPLICATION_MENU, SEARCH_COMMANDS } from "./const";
 import { GROUPS, MENUS } from "./menus";
@@ -199,9 +208,12 @@ export class ManageCommands {
 
   applicationMenuTitle = () => {
     let title: string = "Application";
-    let icon: IconName | undefined = undefined;
+    let icon: IconRef | undefined = undefined;
     if (this.props.editor_spec != null) {
-      const spec = this.props.editor_spec[this.props.type];
+      const spec = getEditorDescription(
+        this.props.editor_spec,
+        this.props.type,
+      );
       if (spec != null) {
         icon = spec.icon;
         if (spec.short) {
@@ -246,8 +258,8 @@ export class ManageCommands {
     if (cmd == null) {
       throw Error(`unknown command '${name}'`);
     }
-    const subs =
-      this.props.editor_spec[this.props.type]?.customizeCommands?.[name ?? ""];
+    const subs = getEditorDescription(this.props.editor_spec, this.props.type)
+      ?.customizeCommands?.[name ?? ""];
     if (subs != null) {
       cmd = { ...cmd, ...subs };
     }
@@ -260,8 +272,8 @@ export class ManageCommands {
   frameTypeCommands = (createNew: boolean) => {
     const selected_type: string = this.props.type;
     const items: Partial<Command>[] = [];
-    for (const type in this.props.editor_spec) {
-      const spec = this.props.editor_spec[type];
+    for (const spec of getEditorDescriptions(this.props.editor_spec)) {
+      const type = spec.type;
       if (spec == null) {
         // typescript should prevent this but, also double checking
         // makes this easier to debug.
@@ -274,7 +286,7 @@ export class ManageCommands {
       items.push({
         search,
         label: selected_type === type ? <b>{label}</b> : label,
-        icon: spec.icon ? spec.icon : "file",
+        icon: <Icon name={spec.icon ?? "file"} />,
         onClick: () => {
           if (createNew) {
             this.props.actions.new_frame(type);
@@ -337,7 +349,11 @@ export class ManageCommands {
           display: "inline-block",
         }}
       >
-        {isIconName(icon) ? <Icon name={icon} rotate={rotate} /> : icon}
+        {isIconName(icon) || isIconRefObject(icon) ? (
+          <Icon name={icon} rotate={rotate} />
+        ) : (
+          icon
+        )}
       </span>
     );
   };

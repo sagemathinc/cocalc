@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -21,18 +21,7 @@ import type { IconName } from "@cocalc/frontend/components/icon";
 import imageExtensions from "image-extensions";
 import videoExtensions from "video-extensions";
 import audioExtensions from "audio-extensions";
-import { filename_extension } from "@cocalc/util/misc";
-
-export function filenameMode(path: string, fallback = "text"): string {
-  return file_associations[filename_extension(path)]?.opts?.mode ?? fallback;
-}
-
-export function filenameIcon(
-  path: string,
-  fallback = "file" as IconName,
-): IconName {
-  return file_associations[filename_extension(path)]?.icon ?? fallback;
-}
+import { filename_extension, path_split } from "@cocalc/util/misc";
 
 const codemirror_associations: { [ext: string]: string } = {
   adb: "ada",
@@ -158,7 +147,96 @@ export interface FileSpec {
   ext?: string;
 }
 
-export const file_associations: { [ext: string]: FileSpec } = {};
+export const NO_EXT_PREFIX = "noext-";
+type FileAssociationsListener = (
+  ext: string,
+  spec: FileSpec | undefined,
+) => void;
+const file_association_listeners = new Set<FileAssociationsListener>();
+const file_associations_target: { [ext: string]: FileSpec } = {};
+
+function emit_file_association_change(
+  ext: string,
+  spec: FileSpec | undefined,
+): void {
+  for (const listener of file_association_listeners) {
+    listener(ext, spec);
+  }
+}
+
+export function on_file_associations_change(
+  listener: FileAssociationsListener,
+): () => void {
+  file_association_listeners.add(listener);
+  return () => {
+    file_association_listeners.delete(listener);
+  };
+}
+
+export const file_associations = new Proxy(file_associations_target, {
+  set(target, prop, value: FileSpec) {
+    if (typeof prop === "string") {
+      target[prop] = value;
+      emit_file_association_change(prop, value);
+      return true;
+    }
+    return false;
+  },
+  deleteProperty(target, prop) {
+    if (typeof prop === "string") {
+      delete target[prop];
+      emit_file_association_change(prop, undefined);
+      return true;
+    }
+    return false;
+  },
+}) as { [ext: string]: FileSpec };
+
+export interface ResolvedFileType {
+  ext: string;
+  key: string;
+  association?: FileSpec;
+}
+
+export function canonical_extension(ext: string | undefined | null): string {
+  return (ext ?? "").toLowerCase();
+}
+
+export function exact_filename_key(path: string): string {
+  return `${NO_EXT_PREFIX}${path_split(path).tail.toLowerCase()}`;
+}
+
+export function resolve_file_type(
+  path: string,
+  ext?: string,
+): ResolvedFileType {
+  ext = canonical_extension(ext ?? filename_extension(path));
+  const exactKey = exact_filename_key(path);
+  const association = file_associations[exactKey] ?? file_associations[ext];
+  return {
+    ext,
+    key: file_associations[exactKey] != null ? exactKey : ext,
+    association,
+  };
+}
+
+export function get_file_association(
+  path: string,
+  ext?: string,
+): FileSpec | undefined {
+  return resolve_file_type(path, ext).association;
+}
+
+export function filenameMode(path: string, fallback = "text"): string {
+  return get_file_association(path)?.opts?.mode ?? fallback;
+}
+
+export function filenameIcon(
+  path: string,
+  fallback = "file" as IconName,
+): IconName {
+  return get_file_association(path)?.icon ?? fallback;
+}
 
 const MODE_TO_ICON: { [mode: string]: IconName } = {
   python: "python",
@@ -578,7 +656,5 @@ file_associations["sagews"] = {
 };
 
 export function excludeFromComputeServer(path: string): boolean {
-  const ext = filename_extension(path);
-  const x = file_associations[ext];
-  return !!x?.exclude_from_compute_server;
+  return !!get_file_association(path)?.exclude_from_compute_server;
 }

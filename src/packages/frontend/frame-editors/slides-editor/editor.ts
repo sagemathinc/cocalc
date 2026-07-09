@@ -144,15 +144,15 @@ const slideshow: EditorDescription = {
 
 export const EDITOR_SPEC = {
   slides,
-  speaker_notes,
-  search,
-  pages,
-  overview,
+  "slides-notes": speaker_notes,
+  "whiteboard-search": search,
+  "whiteboard-pages": pages,
+  "whiteboard-overview": overview,
   terminal,
-  time_travel,
-  introspect,
-  table_of_contents,
-  slideshow,
+  timetravel: time_travel,
+  "jupyter-introspect": introspect,
+  "markdown-toc": table_of_contents,
+  "slides-slideshow": slideshow,
 } as const;
 
 export const Editor = createEditor({

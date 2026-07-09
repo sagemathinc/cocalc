@@ -78,7 +78,10 @@ import {
   FlyoutLogMode,
   storeFlyoutState,
 } from "@cocalc/frontend/project/page/flyouts/state";
-import { migrateStarsOnMove, removeStarsOnDelete } from "@cocalc/frontend/project/page/flyouts/store";
+import {
+  migrateStarsOnMove,
+  removeStarsOnDelete,
+} from "@cocalc/frontend/project/page/flyouts/store";
 import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
@@ -687,19 +690,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           setFlyoutDirectory(this.project_id, fileDir);
         }
 
-        // Reopen the file if relationship has changed
-        const is_public =
-          redux.getProjectsStore().get_my_group(this.project_id) === "public";
-
         const info = store.get("open_files").getIn([path, "component"]) as any;
         if (info == null) {
           // shouldn't happen...
           return;
-        }
-        const was_public = info.is_public;
-        if (is_public !== was_public) {
-          // re-open the file, which will "fix" the public state to be right.
-          this.open_file({ path });
         }
 
         // Finally, ensure that the react/redux stuff is initialized, so
@@ -719,14 +713,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           // of file.
           (async () => {
             try {
-              const { name, Editor } = await this.init_file_react_redux(
-                path,
-                is_public,
-                this.open_files?.get(path, "ext"),
-              );
+              const { name, Editor, editorId } =
+                await this.init_file_react_redux(
+                  path,
+                  this.open_files?.get(path, "ext"),
+                  this.open_files?.get(path, "editorId"),
+                );
               if (this.open_files == null) return;
               info.redux_name = name;
               info.Editor = Editor;
+              if (editorId != null) {
+                this.open_files.set(path, "editorId", editorId);
+              }
               // IMPORTANT: we make a *copy* of info below to trigger an update
               // of the component that displays this editor.  Otherwise, the user
               // would just see a spinner until they tab away and tab back.
@@ -789,9 +787,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // the directory they were looking at.
     if (flyout === "new") {
       change.flyout_new_path =
-        store.get("flyout_browsing_path") ??
-        store.get("current_path") ??
-        "";
+        store.get("flyout_browsing_path") ?? store.get("current_path") ?? "";
     }
     this.setState(change);
     // also store this in local storage
@@ -1008,12 +1004,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    const path_data = store
-      .get("open_files")
-      .getIn([opts.path, "component"]) as any;
-    const is_public = path_data ? path_data.is_public : false;
-
-    project_file.save(opts.path, this.redux, this.project_id, is_public);
+    project_file.save(opts.path, this.redux, this.project_id);
   }
 
   // Save all open files in this project
@@ -1039,8 +1030,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         // that has not yet been initialized).
         return;
       }
-      const { is_public } = component;
-      project_file.save(path, this.redux, this.project_id, is_public);
+      project_file.save(path, this.redux, this.project_id);
     });
   }
 
@@ -1088,42 +1078,56 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   */
   initFileRedux = async (
     path: string,
-    is_public: boolean = false,
     ext?: string, // use this extension even instead of path's extension.
-  ): Promise<string | undefined> => {
+    editorId?: string,
+  ): Promise<{ name: string | undefined; editorId: string | undefined }> => {
     // LAZY IMPORT, so that editors are only available
     // when you are going to use them.  Helps with code splitting.
     await import("./editors/register-all");
 
     // Initialize the file's store and actions
+    const resolvedEditorId = project_file.resolve_editor_id(
+      path,
+      this.project_id,
+      ext,
+      editorId,
+    );
     const name = await project_file.initializeAsync(
       path,
       this.redux,
       this.project_id,
-      is_public,
       undefined,
       ext,
+      resolvedEditorId,
     );
-    return name;
+    return { name, editorId: resolvedEditorId };
   };
 
   private init_file_react_redux = async (
     path: string,
-    is_public: boolean,
     ext?: string,
-  ): Promise<{ name: string | undefined; Editor: any }> => {
-    const name = await this.initFileRedux(path, is_public, ext);
+    editorId?: string,
+  ): Promise<{
+    name: string | undefined;
+    Editor: any;
+    editorId: string | undefined;
+  }> => {
+    const { name, editorId: resolvedEditorId } = await this.initFileRedux(
+      path,
+      ext,
+      editorId,
+    );
 
     // Make the Editor react component
     const Editor = await project_file.generateAsync(
       path,
       this.redux,
       this.project_id,
-      is_public,
       ext,
+      resolvedEditorId,
     );
 
-    return { name, Editor };
+    return { name, Editor, editorId: resolvedEditorId };
   };
 
   get_scroll_saver_for = (path: string) => {
@@ -1464,10 +1468,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const file_paths = store.get("open_files");
-    file_paths.map((obj, path) => {
-      const component_data = obj.get("component");
-      const is_public = component_data ? component_data.is_public : undefined;
-      project_file.remove(path, this.redux, this.project_id, is_public);
+    file_paths.map((_obj, path) => {
+      project_file.remove(path, this.redux, this.project_id);
     });
 
     this.open_files?.close_all();
@@ -1485,12 +1487,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const component_data = open_files.getIn([path, "component"]) as any;
     if (component_data == null) return; // nothing to do since already closed.
     this.open_files?.delete(path);
-    project_file.remove(
-      path,
-      this.redux,
-      this.project_id,
-      component_data.is_public,
-    );
+    project_file.remove(path, this.redux, this.project_id);
     this.save_session();
   };
 

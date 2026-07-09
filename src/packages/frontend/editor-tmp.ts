@@ -1,10 +1,15 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { filename_extension_notilde, path_split } from "@cocalc/util/misc";
-import { file_associations } from "./file-associations";
+import { filename_extension_notilde } from "@cocalc/util/misc";
+import {
+  canonical_extension,
+  get_file_association,
+  resolve_file_type,
+  file_associations,
+} from "./file-associations";
 import { icon as file_icon } from "./file-editors";
 
 // Given a text file (defined by content), try to guess
@@ -37,24 +42,20 @@ function guess_file_extension_type(content: string): string {
 
 export function file_options(filename: string, content?: string) {
   let x;
-  let ext = filename_extension_notilde(filename).toLowerCase();
+  let ext = canonical_extension(filename_extension_notilde(filename));
   if (ext == "" && content != null) {
     // no recognized extension, but have contents
     ext = guess_file_extension_type(content);
   }
-  if (ext == "") {
-    x = file_associations[`noext-${path_split(filename).tail.toLowerCase()}`];
-  } else {
-    x = file_associations[ext];
-  }
+  x = get_file_association(filename, ext);
   if (x == null) {
-    x = file_associations[""];
+    x = { ...file_associations[""] };
     // Don't use the icon for this fallback, to give the icon selection below a chance to work;
     // we do this so new react editors work.  All this code will go away someday.
     delete x.icon;
   }
   if (x.icon == null) {
-    const icon = file_icon(ext);
+    const icon = file_icon(resolve_file_type(filename, ext).ext);
     if (icon != null) {
       x.icon = icon;
     } else {
@@ -64,4 +65,4 @@ export function file_options(filename: string, content?: string) {
   return x;
 }
 
-export const UNKNOWN_FILE_TYPE_ICON = "question-circle"
+export const UNKNOWN_FILE_TYPE_ICON = "question-circle";

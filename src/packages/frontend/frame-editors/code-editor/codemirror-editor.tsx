@@ -56,8 +56,7 @@ export interface Props {
   editor_state: EditorState;
   read_only: boolean;
   is_current: boolean;
-  is_public: boolean;
-  value?: string; // if defined and is_public, use this static value and editor is read-only  (TODO: public was deprecated years ago)
+  value?: string;
   misspelled_words?: Set<string> | string; // **or** show these words as not spelled correctly
   resize: number;
   gutters?: string[];
@@ -99,10 +98,9 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
     init_codemirror(props);
     return () => {
       // clean up because unmounting.
-      if (cmRef.current != null && !props.is_public) {
+      if (cmRef.current != null) {
         save_editor_state(cmRef.current);
-        const actions = editor_actions();
-        if (actions != null) {
+        if (editor_actions()?._syncstring != null) {
           // We can't just use save_syncstring(), since if this is
           // the last editor, then editor_actions()._cm may already be empty.
           editor_actions()?.set_value(cmRef.current.getValue());
@@ -122,8 +120,11 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
   }, [props.read_only]);
 
   useEffect(() => {
-    if (props.is_public && cmRef.current != null && props.value != null) {
-      // we really know that this will be undefined.
+    if (
+      cmRef.current != null &&
+      editor_actions()?._syncstring == null &&
+      props.value != null
+    ) {
       cmRef.current.setValueNoJump(props.value);
     }
   }, [props.value]);
@@ -215,7 +216,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
 
   // Save the underlying syncstring content.
   function save_syncstring(): void {
-    if (props.is_public) {
+    if (editor_actions()?._syncstring == null) {
       return;
     }
     editor_actions()?.set_syncstring_to_codemirror(undefined, true);
@@ -242,7 +243,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
     styleActiveLineRef.current = options.styleActiveLine;
     options.styleActiveLine = false;
 
-    if (props.is_public || props.read_only) {
+    if (props.read_only) {
       options.readOnly = true;
     }
 
@@ -296,9 +297,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
       }
     }
 
-    if (!props.is_public) {
-      cm_highlight_misspelled_words();
-    }
+    cm_highlight_misspelled_words();
 
     set_has_cm(true);
 
@@ -322,11 +321,11 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
   function init_new_codemirror(): void {
     const cm = cmRef.current;
     if (cm == null) return;
-    (cm as any)._actions = editor_actions();
+    const actions = editor_actions();
+    (cm as any)._actions = actions;
 
-    if (props.is_public) {
+    if (actions?._syncstring == null) {
       if (props.value != null) {
-        // should always be the case if public.
         cm.setValue(props.value);
       }
     } else {
@@ -343,9 +342,9 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
     cm.on("scroll", () => throttled_save_editor_state(cm));
     init_style_hacks(cm);
 
-    editor_actions()?.set_cm(props.id, cm);
+    actions?.set_cm(props.id, cm);
 
-    if (props.is_public) {
+    if (actions?._syncstring == null) {
       return;
     }
 

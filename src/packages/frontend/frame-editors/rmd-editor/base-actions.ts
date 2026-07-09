@@ -35,6 +35,22 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
   // Subclasses provide the format-specific build logic and empty-file template.
   protected abstract _run_converter(hash?: number): Promise<void>;
   protected abstract get minimal_template(): string;
+  protected abstract get build_frame_type(): string;
+
+  protected canonical_frame_type(type: string): string {
+    switch (type) {
+      case "build":
+        return this.build_frame_type;
+      case "iframe":
+        return "preview-html";
+      case "markdown":
+        return "markdown-rendered";
+      case "pdfjs_canvas":
+        return "pdfjs-canvas";
+      default:
+        return super.canonical_frame_type(type);
+    }
+  }
 
   protected do_build_on_save(): boolean {
     const account: AccountStore = this.redux.getStore("account");
@@ -267,31 +283,27 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
   }
 
   _raw_default_frame_tree(): FrameTree {
-    if (this.is_public) {
-      return { type: "cm" };
-    } else {
-      return {
-        direction: "col",
+    return {
+      direction: "col",
+      type: "node",
+      first: {
+        type: "cm",
+      },
+      second: {
         type: "node",
-        first: {
-          type: "cm",
-        },
-        second: {
-          type: "node",
-          direction: "row",
-          first: { type: "iframe" },
-          second: { type: "build" },
-          pos: 0.8,
-        },
-      };
-    }
+        direction: "row",
+        first: { type: "preview-html" },
+        second: { type: this.build_frame_type },
+        pos: 0.8,
+      },
+    };
   }
 
   reload(_id?: string, hash?: number) {
     // what is id supposed to be used for?
     // the html editor, which also has an iframe, calls somehow super.reload
     hash = hash || Date.now();
-    ["iframe", "pdfjs_canvas", "markdown"].forEach((viewer) =>
+    ["preview-html", "pdfjs-canvas", "markdown-rendered"].forEach((viewer) =>
       this.set_reload(viewer, hash),
     );
   }

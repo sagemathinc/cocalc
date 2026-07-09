@@ -1,6 +1,7 @@
 import Draggable from "react-draggable";
 import { CSSProperties, ReactNode, useRef, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
 
 export type SortDirection = "ascending" | "descending";
 export function nextSortState(direction?: SortDirection | null) {
@@ -25,24 +26,33 @@ export function ColumnHeading({
   direction,
   onSortClick,
   setWidth,
+  style,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   width?: number;
   title?: ReactNode;
   direction?: SortDirection;
   onSortClick?: () => void;
   setWidth?: (number) => void;
+  style?: CSSProperties;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }) {
   const ignoreClickRef = useRef<boolean>(false);
   return (
     <th
       style={{
         cursor: "pointer",
-        color: "#428bca",
-        background: "rgb(250, 250, 250)",
+        color: COLORS.FG_BLUE,
+        background: COLORS.GRAY_LLL,
         padding: "10px 5px",
-        border: "1px solid #eee",
+        border: `1px solid ${COLORS.GRAY_LL}`,
         position: "relative",
+        ...style,
       }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <div
         style={{ width: width ?? 150 }}
