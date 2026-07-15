@@ -91,8 +91,8 @@ function SortableTab({
     transition,
     ...(isDragging
       ? {
-          backgroundColor: COLORS.BLUE_LLLL,
-          border: `1px solid ${COLORS.BLUE_LL}`,
+          backgroundColor: `var(--cocalc-bg-hover, ${COLORS.BLUE_LLLL})`,
+          border: `1px solid var(--cocalc-border, ${COLORS.BLUE_LL})`,
           boxShadow: "0 0 4px 2px rgba(0, 0, 0, 0.1)",
         }
       : {}),

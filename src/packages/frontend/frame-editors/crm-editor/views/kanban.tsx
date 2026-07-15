@@ -165,7 +165,7 @@ export default function Kanban({
                   style={{
                     width: "100%",
                     background: "#ececec",
-                    border: "1px solid #ccc",
+                    border: "1px solid var(--cocalc-border, #ccc)",
                   }}
                   data={data}
                   itemContent={(index) => {
@@ -176,9 +176,9 @@ export default function Kanban({
                           style={{
                             height: recordHeight,
                             margin: CARD_MARGIN,
-                            border: "1px solid #f0f0f0",
+                            border: "1px solid var(--cocalc-border-light, #f0f0f0)",
                             borderRadius: "8px",
-                            background: "#f8f8f8",
+                            background: "var(--cocalc-bg-elevated, #f8f8f8)",
                           }}
                         >
                           <Loading delay={0} text="Moving..." theme="medium" />
@@ -202,9 +202,9 @@ export default function Kanban({
                         style={{
                           height: recordHeight,
                           margin: CARD_MARGIN,
-                          border: "1px solid #f0f0f0",
+                          border: "1px solid var(--cocalc-border-light, #f0f0f0)",
                           borderRadius: "8px",
-                          background: "#f8f8f8",
+                          background: "var(--cocalc-bg-elevated, #f8f8f8)",
                         }}
                       ></div>
                     );
@@ -250,7 +250,7 @@ function Title({ children }) {
     <div
       style={{
         display: "flex",
-        background: "#f8f8f8",
+        background: "var(--cocalc-bg-elevated, #f8f8f8)",
         padding: "10px 5px 5px 5px",
         borderRadius: "8px",
         cursor: "move",

@@ -115,7 +115,7 @@ export default function MountCloudFilesystem({
           }
         />
         {!cloudFilesystem.mount && (
-          <p style={{ color: "#666" }}>
+          <p style={{ color: "var(--cocalc-text-secondary, #666)" }}>
             <b>WARNING:</b> When a cloud file system is first created or has not
             been used for a while, it can take several minutes to automount in a
             running project while{" "}

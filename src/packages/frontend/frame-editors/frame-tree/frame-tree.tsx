@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -117,6 +117,18 @@ function shouldMemoize(prev, next) {
     "terminal",
     "value",
   ]);
+}
+
+function isSubframeLeaf(
+  type: string,
+  path: string,
+  pathLeaf: string,
+  editorActions: Actions,
+): boolean {
+  if (type === "cm" && editorActions instanceof TimeTravelActions) {
+    return true;
+  }
+  return type == "cm" && path != pathLeaf;
 }
 export const FrameTree: React.FC<FrameTreeProps> = React.memo(
   (props: FrameTreeProps) => {
@@ -237,6 +249,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       desc: NodeDesc,
       spec: EditorDescription,
       editor_actions: Actions,
+      is_subframe: boolean,
     ): Rendered {
       const id = desc.get("id");
       return (
@@ -252,6 +265,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           is_full={desc.get("id") === full_id && !is_only}
           is_only={is_only}
           is_paused={desc.get("is_paused")}
+          is_subframe={is_subframe}
           path={desc.get("path", path)}
           project_id={desc.get("project_id", project_id)}
           spec={spec}
@@ -317,10 +331,9 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           // and we are in a render function.
           setTimeout(() => actions2.init_frame_tree(), 50);
         }
-      } else if (type == "cm" && path != path_leaf) {
-        // A code editor inside some other editor frame tree
-        is_subframe = true;
       }
+      is_subframe =
+        is_subframe || isSubframeLeaf(type, path, path_leaf, editor_actions);
 
       return (
         <FrameTreeLeaf
@@ -385,7 +398,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       try {
         editor_actions = get_editor_actions(desc);
         if (editor_actions == null) {
-          return <Loading />;
+          return <Loading theme="medium" />;
         }
         spec = editor_spec[type];
         component = spec != null ? spec.component : undefined;
@@ -406,7 +419,11 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       return (
         <FrameLeafContainer
           id={desc.get("id")}
-          frameLabel={isIntlMessage(spec?.short) ? spec.short.defaultMessage : (spec?.short ?? desc.get("type"))}
+          frameLabel={
+            isIntlMessage(spec?.short)
+              ? spec.short.defaultMessage
+              : (spec?.short ?? desc.get("type"))
+          }
           contextValue={{
             id: desc.get("id"),
             project_id,
@@ -421,7 +438,17 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           style={spec != null ? spec.style : undefined}
           onClick={() => actions.set_active_id(desc.get("id"), true)}
           onTouchStart={() => actions.set_active_id(desc.get("id"))}
-          titlebar={render_titlebar(desc, spec, editor_actions)}
+          titlebar={render_titlebar(
+            desc,
+            spec,
+            editor_actions,
+            isSubframeLeaf(
+              desc.get("type"),
+              path,
+              desc.get("path", path),
+              editor_actions,
+            ),
+          )}
           leaf={render_leaf(desc, component, spec, editor_actions)}
         />
       );
@@ -569,7 +596,12 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             flex: 1,
             overflow: "hidden",
           }
-        : { display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" };
+        : {
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            overflow: "hidden",
+          };
 
       return (
         <div
@@ -583,7 +615,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     }
 
     if (value == null) {
-      return <Loading />;
+      return <Loading theme="medium" />;
     }
     if (reload === undefined) {
       return <span>no props.reload</span>;
@@ -618,7 +650,11 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     }
 
     return (
-      <div className={"smc-vfill"} style={{ overflow: "clip" }} ref={elementRef}>
+      <div
+        className={"smc-vfill"}
+        style={{ overflow: "clip" }}
+        ref={elementRef}
+      >
         {render_root()}
       </div>
     );

@@ -12,6 +12,7 @@ import {
   DEFAULT_EDITOR_THEME,
   EDITOR_COLOR_SCHEMES,
 } from "@cocalc/util/db-schema/accounts";
+import { resolveEditorColorScheme } from "./resolve-editor-scheme";
 import { path_split } from "@cocalc/util/misc";
 import * as CodeMirror from "codemirror";
 import * as feature from "../../feature";
@@ -46,6 +47,10 @@ export function cm_options(
   frame_id: string = "",
 ) {
   let theme = editor_settings?.get("theme");
+  // Resolve CoCalc's virtual auto themes to the concrete light/dark variant.
+  if (theme === "cocalc" || theme === "cocalc-auto") {
+    theme = resolveEditorColorScheme(theme);
+  }
   // if we do not know the theme, fallback to default
   if (!theme || EDITOR_COLOR_SCHEMES[theme] == null) {
     console.warn(

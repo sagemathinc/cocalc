@@ -101,11 +101,11 @@ export default function DescriptionEditor({
         }}
         style={{
           float: "right",
-          border: "1px solid #ccc",
+          border: "1px solid var(--cocalc-border, #ccc)",
           padding: "15px",
-          background: "white",
+          background: "var(--cocalc-bg-base, white)",
           marginBottom: "15px",
-          boxShadow: "3px 3px 3px #ccc",
+          boxShadow: "3px 3px 3px var(--cocalc-border, #ccc)",
         }}
       />
       <Button

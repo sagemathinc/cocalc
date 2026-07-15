@@ -138,7 +138,7 @@ function Search({
       </Card>
       <div className="smc-vfill">
         <div style={{ overflow: "auto", padding: "15px" }}>
-          <div style={{ color: "#888", textAlign: "center", fontSize }}>
+          <div style={{ color: "var(--cocalc-text-tertiary, #888)", textAlign: "center", fontSize }}>
             {!search?.trim() && <span>Enter a search above</span>}
             {(result?.hits?.length ?? 0) == 0 && search?.trim() && (
               <span>No Matches</span>
@@ -181,8 +181,8 @@ function SearchResult({
         cursor: "pointer",
         margin: "10px 0",
         padding: "5px",
-        border: "1px solid #ccc",
-        background: "#f8f8f8",
+        border: "1px solid var(--cocalc-border, #ccc)",
+        background: "var(--cocalc-bg-elevated, #f8f8f8)",
         borderRadius: "5px",
         maxHeight: "100px",
         overflow: "hidden",

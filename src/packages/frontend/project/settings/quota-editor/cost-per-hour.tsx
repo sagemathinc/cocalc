@@ -37,7 +37,7 @@ export default function CostPerHour({ quota }: Props) {
   return (
     <Statistic
       title={"Cost per hour (USD)"}
-      valueStyle={quota.enabled ? undefined : { color: "#888" }}
+      valueStyle={quota.enabled ? undefined : { color: "var(--cocalc-text-tertiary, #888)" }}
       value={value}
       precision={3}
       prefix={"$"}

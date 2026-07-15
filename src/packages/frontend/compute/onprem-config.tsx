@@ -90,8 +90,8 @@ export default function OnPremCloudConfiguration({
 
   return (
     <div style={{ marginBottom: "30px" }}>
-      <div style={{ color: "#666", marginBottom: "15px" }}>
-        <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "15px" }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
           <b>Self Hosted Compute Server</b>
         </div>
         You can connect your own <b>Ubuntu 22.04 Virtual Machine</b> to this
@@ -112,7 +112,7 @@ export default function OnPremCloudConfiguration({
           </li>
         </ul>
       </div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <b>Architecture</b>
       </div>
       <Select
@@ -197,11 +197,11 @@ function Image(props) {
   const { state = "deprovisioned" } = props;
   return (
     <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <b>Image</b>
       </div>
       {(state == "deprovisioned" || state == "off") && (
-        <div style={{ color: "#666", marginBottom: "5px" }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
           Select compute server image. You will be able to use sudo with no
           password and can easily install anything into the Ubuntu Linux image.
         </div>
@@ -212,14 +212,14 @@ function Image(props) {
         arch={props.configuration.arch}
         warnBigGb={4}
       />
-      <div style={{ color: "#666", marginTop: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginTop: "5px" }}>
         <ImageDescription configuration={props.configuration} />
         <ImageLinks
           image={props.configuration.image}
           style={{ flexDirection: "row" }}
         />
         {!(state == "deprovisioned" || state == "off") && (
-          <div style={{ color: "#666", marginTop: "5px" }}>
+          <div style={{ color: "var(--cocalc-text-secondary, #666)", marginTop: "5px" }}>
             You can only edit the image when server is deprovisioned or off.
           </div>
         )}

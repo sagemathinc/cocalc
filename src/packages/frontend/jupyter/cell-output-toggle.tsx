@@ -84,7 +84,7 @@ export const CollapsedOutput: React.FC<CollapsedOutputProps> = React.memo(
   ({ actions, id }: CollapsedOutputProps) => {
     if (actions == null) {
       return (
-        <div style={{ textAlign: "center", width: "100%", color: "#666" }}>
+        <div style={{ textAlign: "center", width: "100%", color: "var(--cocalc-text-secondary, #666)" }}>
           (Output Hidden)
         </div>
       );
@@ -100,7 +100,7 @@ export const CollapsedOutput: React.FC<CollapsedOutputProps> = React.memo(
           onClick={show_output}
           type="text"
           size="small"
-          style={{ color: "#666" }}
+          style={{ color: "var(--cocalc-text-secondary, #666)" }}
         >
           <Icon name="ColumnHeightOutlined" />
           Expand

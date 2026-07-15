@@ -17,7 +17,6 @@ import { FormattedMessage, useIntl } from "react-intl";
 
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 
 import RemoveMyself from "./remove-myself";
 
@@ -160,7 +159,7 @@ export function ProjectsOperations({
         <div>
           <p>{description}</p>
           <p>{warning}</p>
-          <p style={{ fontSize: "0.9em", color: COLORS.GRAY_M }}>{undoable}</p>
+          <p style={{ fontSize: "0.9em", color: "var(--cocalc-text-primary, #5f5f5f)" }}>{undoable}</p>
         </div>
       ),
       okText: intl.formatMessage(
@@ -242,7 +241,7 @@ export function ProjectsOperations({
           <p>
             <strong>{warning}</strong>
           </p>
-          <p style={{ fontSize: "0.9em", color: COLORS.GRAY_M }}>{undoable}</p>
+          <p style={{ fontSize: "0.9em", color: "var(--cocalc-text-primary, #5f5f5f)" }}>{undoable}</p>
         </div>
       ),
       okText: intl.formatMessage(

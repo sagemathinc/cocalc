@@ -39,7 +39,7 @@ register({
     return (
       <div {...attributes} contentEditable={false}>
         <hr />
-        <div style={{ color: "#666", fontWeight: "bold", fontSize: "large" }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #666)", fontWeight: "bold", fontSize: "large" }}>
           <Tooltip title="The references below must be edited in the markdown source.">
             References
           </Tooltip>

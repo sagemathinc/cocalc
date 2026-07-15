@@ -10,7 +10,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import track from "@cocalc/frontend/user-tracking";
-import { COLORS } from "@cocalc/util/theme";
 import collabsImage from "./tour-collabs.png";
 import projectsImage from "./tour-projects.png";
 
@@ -81,7 +80,7 @@ export default function ProjectsPageTour({
           </p>
           <p>
             Finally,{" "}
-            <Icon name="star-filled" style={{ color: COLORS.YELL_L }} />
+            <Icon name="star-filled" style={{ color: "var(--cocalc-star, #FFD700)" }} />
             -star a project to add it to the quick access row at the top!
           </p>
         </div>

@@ -97,7 +97,7 @@ export function OneCard({
               style={{
                 paddingLeft: "5px",
                 float: "right",
-                color: "#666",
+                color: "var(--cocalc-text-secondary, #666)",
                 fontWeight: 200,
                 fontSize: "10pt",
               }}
@@ -179,7 +179,7 @@ export function Data({
         }}
       >
         {!noTitle && (
-          <div style={{ color: "#888", width: "125px", overflow: "auto" }}>
+          <div style={{ color: "var(--cocalc-text-tertiary, #888)", width: "125px", overflow: "auto" }}>
             {column.title}{" "}
           </div>
         )}

@@ -11,6 +11,7 @@ because then they will be compatible with all mentions already used with chat an
 */
 
 import React from "react";
+
 import { SlateElement, register, RenderElementProps } from "../register";
 
 export interface Mention extends SlateElement {
@@ -22,8 +23,8 @@ export interface Mention extends SlateElement {
 }
 
 const STYLE = {
-  color: "#0958d9",
-  background: "white",
+  color: "var(--cocalc-link, #003eb3)",
+  background: "var(--cocalc-bg-elevated, white)",
   borderRadius: "3px",
   padding: "3px",
   margin: "-3px 0",

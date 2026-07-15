@@ -21,7 +21,6 @@ import { Icon, IconName, Loading } from "@cocalc/frontend/components";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
 import { capitalize, is_different, path_split } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "./actions";
 import { useBuildLogs } from "./hooks";
 import { BuildLogs } from "./types";
@@ -229,7 +228,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
             style={{
               margin: "5px",
               right: 0,
-              background: "white",
+              background: "var(--cocalc-bg-base, white)",
               paddingLeft: "5px",
             }}
           >
@@ -237,7 +236,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
               text={status}
               style={{
                 fontSize: props.font_size,
-                color: COLORS.GRAY,
+                color: "var(--cocalc-text-secondary, #808080)",
               }}
             />
           </div>
@@ -331,7 +330,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
         return;
       }
       return (
-        <div style={{ color: COLORS.GRAY }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
           Click the <Icon name="play-circle" /> Build button or hit shift+enter
           to run LaTeX.
         </div>

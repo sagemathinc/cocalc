@@ -6,13 +6,13 @@
 import { Button, Tooltip } from "antd";
 import React, { useState } from "react";
 
+import { useAppContext } from "@cocalc/frontend/app/context";
 import { Icon } from "@cocalc/frontend/components";
 import { CODE_BAR_BTN_STYLE } from "@cocalc/frontend/jupyter/consts";
-import { COLORS } from "@cocalc/util/theme";
+import { getSectionBarBackground } from "./styles";
 
 /** Section divider row — single hover state across output and code columns */
 export function SectionDividerRow({
-  isFirst,
   sectionCollapsed,
   sectionTitle,
   onToggle,
@@ -23,7 +23,6 @@ export function SectionDividerRow({
   zenMode,
   minimalLayout,
 }: {
-  isFirst?: boolean;
   sectionCollapsed?: boolean;
   sectionTitle?: string;
   onToggle?: () => void;
@@ -34,14 +33,11 @@ export function SectionDividerRow({
   zenMode?: boolean;
   minimalLayout?: string;
 }) {
+  const { isDark } = useAppContext();
   const [hovered, setHovered] = useState(false);
-  const bg = hovered ? COLORS.GRAY_LL : COLORS.GRAY_LLL;
-  const borderTop = isFirst ? undefined : `1px solid ${COLORS.GRAY_LL}`;
-  const borderBottom = `1px solid ${COLORS.GRAY_LL}`;
+  const bg = getSectionBarBackground(isDark, hovered ? "hover" : "base");
   const segmentStyle: React.CSSProperties = {
     backgroundColor: bg,
-    borderTop,
-    borderBottom,
     transition: "background-color 150ms ease",
   };
 
@@ -63,34 +59,43 @@ export function SectionDividerRow({
         }}
       >
         {/* Gutter-width area with toggle icon */}
-        <div style={{
-          width: "44px",
-          minWidth: "44px",
-          display: "flex",
-          justifyContent: "flex-start",
-          alignItems: "center",
-          paddingLeft: "2px",
-        }}>
+        <div
+          style={{
+            width: "44px",
+            minWidth: "44px",
+            display: "flex",
+            justifyContent: "flex-start",
+            alignItems: "center",
+            paddingLeft: "2px",
+          }}
+        >
           <Icon
             name={sectionCollapsed ? "plus-square" : "minus-square"}
-            style={{ color: COLORS.GRAY_M, fontSize: "14px" }}
+            style={{
+              color: "var(--cocalc-text-primary, #888)",
+              fontSize: "14px",
+            }}
           />
         </div>
         {/* Title */}
         {sectionCollapsed && sectionTitle ? (
-          <span style={{
-            color: COLORS.GRAY_D,
-            fontSize: "13px",
-            fontWeight: 600,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            flex: 1,
-            padding: "0 8px",
-          }}>
+          <span
+            style={{
+              color: "var(--cocalc-text-primary-strong, #555)",
+              fontSize: "13px",
+              fontWeight: 600,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              flex: 1,
+              padding: "0 8px",
+            }}
+          >
             {sectionTitle}
           </span>
-        ) : <span style={{ flex: 1 }} />}
+        ) : (
+          <span style={{ flex: 1 }} />
+        )}
         {/* Run button in zen mode (no code column) */}
         {onRunSection && !showCode && (
           <Tooltip title="Run all code cells in this section">
@@ -103,7 +108,7 @@ export function SectionDividerRow({
                 onRunSection();
               }}
               style={{
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #888)",
                 visibility: hovered ? "visible" : "hidden",
                 marginRight: "4px",
               }}

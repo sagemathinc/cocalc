@@ -30,6 +30,7 @@ export interface AppState {
   timeAgoAbsolute?: boolean;
   setTimeAgoAbsolute?: (boolean) => void;
   showActBarLabels?: boolean; // whether to show labels on the vertical fixed bar
+  isDark: boolean; // whether the effective color theme is dark
 }
 
 export const DEFAULT_CONTEXT = {
@@ -44,6 +45,7 @@ export const DEFAULT_CONTEXT = {
     return label;
   },
   showActBarLabels: ACTIVITY_BAR_LABELS_DEFAULT,
+  isDark: false,
 };
 
 export const AppContext = createContext<AppState>(DEFAULT_CONTEXT);
@@ -63,14 +65,14 @@ export function calcStyle(isNarrow: boolean): PageStyle {
 
   const topBarStyle = {
     height: `${height}px`,
-    background: "#fafafa",
+    background: "var(--cocalc-top-bar-bg, #fafafa)",
   } as const;
 
   const fileUseStyle = {
-    background: "white",
-    border: `2px solid ${COLORS.GRAY_DDD}`,
+    background: "var(--cocalc-bg-elevated, #ffffff)",
+    border: `2px solid var(--cocalc-border-light, ${COLORS.GRAY_DDD})`,
     borderRadius: "5px",
-    boxShadow: "0 0 15px #aaa",
+    boxShadow: "0 0 15px rgba(0, 0, 0, 0.3)",
     fontSize: "10pt",
     height: "90%",
     margin: 0,

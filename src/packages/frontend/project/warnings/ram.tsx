@@ -105,7 +105,7 @@ function Banner({ memory, project_id, onClose }) {
       style={{ border: "none" }}
       showIcon
       message={
-        <b style={{ color: "#666" }}>
+        <b style={{ color: "var(--cocalc-text-secondary, #666)" }}>
           {rss_mb < limit_mb ? (
             <>This project is running low on RAM memory</>
           ) : (

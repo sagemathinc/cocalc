@@ -2,7 +2,6 @@ import { Button, Space } from "antd";
 import { Node, Path, Transforms } from "slate";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 
 import { findElement } from "../../control";
 import { ReactEditor } from "../../slate-react";
@@ -12,7 +11,7 @@ import { toSlate } from "./index";
 function InsertButton({ children, onClick }) {
   return (
     <Button
-      style={{ color: COLORS.GRAY_M }}
+      style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}
       size="small"
       onClick={(e) => {
         e.stopPropagation(); // keep the editor with the insert bar itself from getting selected

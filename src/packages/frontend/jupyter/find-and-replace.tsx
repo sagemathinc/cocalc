@@ -242,7 +242,7 @@ export function FindAndReplace({
     return (
       <div>
         {render_matches_title(matches.length)}
-        <pre style={{ color: "#666", maxHeight: "50vh" }}>{v}</pre>
+        <pre style={{ color: "var(--cocalc-text-secondary, #666)", maxHeight: "50vh" }}>{v}</pre>
       </div>
     );
   }

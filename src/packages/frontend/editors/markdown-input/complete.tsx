@@ -303,7 +303,7 @@ const STYLE: CSS = {
   position: "absolute",
   zIndex: 1,
   padding: "3px",
-  background: "white",
+  background: "var(--cocalc-bg-elevated, white)",
   borderRadius: "4px",
   boxShadow: "0 1px 5px rgba(0,0,0,.2)",
   overflowY: "auto",

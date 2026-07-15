@@ -163,7 +163,7 @@ function HideToggle({ disabled, field, title, hidden, onChange }) {
       ref={setNodeRef}
       style={{
         width: "100%",
-        color: "#666",
+        color: "var(--cocalc-text-secondary, #666)",
         height: "30px",
         paddingTop: "5px",
         transform: transform

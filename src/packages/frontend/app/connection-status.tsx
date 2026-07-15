@@ -10,6 +10,7 @@ import {
 import type { ConatConnectionStatus } from "@cocalc/frontend/conat/client";
 import { capitalize } from "@cocalc/util/misc";
 import { MAX_SUBSCRIPTIONS_PER_CLIENT } from "@cocalc/conat/core/constants";
+import { COLORS } from "@cocalc/util/theme";
 
 let MAX_SEND_MESSAGES = 1000,
   MAX_SEND_BYTES = 1_000_000;
@@ -84,7 +85,7 @@ export function ConnectionStatsDisplay({
             )}
             size="small"
             status="active"
-            strokeColor="#1890ff"
+            strokeColor={COLORS.ANTD_LINK_BLUE}
             format={() => `${status.stats.send.messages}`}
           />
         </Descriptions.Item>
@@ -102,7 +103,7 @@ export function ConnectionStatsDisplay({
             )}
             size="small"
             status="active"
-            strokeColor="#40a9ff"
+            strokeColor={COLORS.BLUE_L}
             format={() => bytesToStr(status.stats.send.bytes)}
           />
         </Descriptions.Item>

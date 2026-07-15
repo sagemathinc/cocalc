@@ -467,7 +467,7 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
                   contributions to this project
                 </h3>
 
-                <div style={{ color: "#666" }}>
+                <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
                   Adjust <i>your</i> contributions to the quotas on this project
                   (disk space, memory, cores, etc.). The total quotas for this
                   project are the sum of the contributions of all collaborators

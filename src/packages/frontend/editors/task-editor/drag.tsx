@@ -40,10 +40,10 @@ interface Props {
 export const DragHandle: React.FC<Props> = ({ id, sortable }) => {
   let color, Handle;
   if (sortable) {
-    color = "#888";
+    color = "var(--cocalc-text-tertiary, #888)";
     Handle = EnabledDragHandle;
   } else {
-    color = "#eee";
+    color = "var(--cocalc-border-light, #eee)";
     Handle = DisabledDragHandle;
   }
   return (

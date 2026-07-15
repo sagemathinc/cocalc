@@ -5,7 +5,6 @@
 
 import { Progress, Space, Tooltip } from "antd";
 import { TimeAgo, Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 import { capitalize, seconds2hms, server_time } from "@cocalc/util/misc";
 import { useEffect } from "react";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
@@ -72,7 +71,7 @@ export default function CellTiming({
           <Icon
             name="hand"
             style={{
-              color: "#ff4d4f",
+              color: "var(--cocalc-error, #ff4d4f)",
               marginRight: "5px",
             }}
           />{" "}
@@ -109,7 +108,7 @@ export default function CellTiming({
             <Icon
               name="plus-circle-filled"
               style={{
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
                 animation: "loadingCircle 3s infinite linear",
                 marginRight: "5px",
               }}

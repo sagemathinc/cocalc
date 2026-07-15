@@ -719,10 +719,22 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     }
 
     const css: CSSProperties = { height: "auto" };
-    if (options0.theme == null) {
-      css.backgroundColor = "#fff";
+    if (contenteditable) {
+      css.color = "inherit";
+    } else if (options0.theme == null) {
+      css.backgroundColor = "var(--cocalc-bg-base, #fff)";
     }
     $(cm.current.getWrapperElement()).css(css);
+    if (contenteditable) {
+      $(cm.current.getWrapperElement())
+        .find(
+          ".CodeMirror-scroll, .CodeMirror-sizer, .CodeMirror-lines, .CodeMirror-code, pre.CodeMirror-line, pre.CodeMirror-line-like, .CodeMirror-linebackground, .CodeMirror-activeline-background",
+        )
+        .css({
+          backgroundColor: "transparent",
+          color: "inherit",
+        });
+    }
 
     cm_last_remote.current = value;
     cm.current.setValue(value);

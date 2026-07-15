@@ -14,7 +14,6 @@ import {
 import { Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
-import { COLORS } from "@cocalc/util/theme";
 import {
   FONT_SIZE_ICONS_NORMAL,
   PageStyle,
@@ -31,7 +30,7 @@ interface Props {
 const BASE_STYLE: CSS = {
   fontSize: FONT_SIZE_ICONS_NORMAL,
   display: "inline",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
 } as const;
 
 export const ConnectionIndicator: React.FC<Props> = React.memo(
@@ -54,7 +53,7 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
       flex: "0 0 auto",
       display: "flex",
       alignItems: "center",
-      color: COLORS.GRAY_M,
+      color: "var(--cocalc-text-primary, #5f5f5f)",
       cursor: "pointer",
       height: `${height}px`,
       padding: `${topPaddingIcons} ${sidePaddingIcons}`,
@@ -62,8 +61,8 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
         ? {
             backgroundColor:
               connection_status === "disconnected"
-                ? COLORS.ANTD_RED_WARN
-                : COLORS.ORANGE_WARN,
+                ? "var(--cocalc-error, #f5222d)"
+                : "var(--cocalc-warning, #FFA500)",
           }
         : {}),
     } as const;

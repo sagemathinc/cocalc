@@ -51,12 +51,12 @@ const REF_CHIP_STYLE = {
   display: "inline-block",
   padding: "0 6px",
   borderRadius: 10,
-  background: COLORS.GRAY_LL,
-  color: COLORS.GRAY_D,
+  background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LL})`,
+  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_D})`,
   fontSize: "0.85em",
   fontFamily: "sans-serif",
   fontWeight: 500,
-  border: `1px solid ${COLORS.GRAY_L}`,
+  border: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
   verticalAlign: "baseline",
 } as const;
 
@@ -66,7 +66,7 @@ export function Footnote(props: WidgetProps) {
     <Widget {...props}>
       <sup
         style={{
-          color: COLORS.BS_BLUE_TEXT,
+          color: `var(--cocalc-link, ${COLORS.BS_BLUE_TEXT})`,
           fontWeight: 600,
           fontSize: "0.75em",
           marginLeft: 1,
@@ -114,7 +114,7 @@ export function Caption(props: WidgetProps) {
         <em
           style={{
             fontStyle: "italic",
-            color: COLORS.GRAY_D,
+            color: `var(--cocalc-text-secondary, ${COLORS.GRAY_D})`,
           }}
         >
           <span
@@ -123,7 +123,7 @@ export function Caption(props: WidgetProps) {
               marginRight: 4,
               fontStyle: "normal",
               fontSize: "0.85em",
-              color: COLORS.GRAY,
+              color: `var(--cocalc-text-tertiary, ${COLORS.GRAY})`,
             }}
           >
             Caption:
@@ -203,18 +203,18 @@ const PROSE_LABEL_STYLE = {
 
 const PROSE_BEGIN_STYLE_THEOREM = {
   ...PROSE_LABEL_STYLE,
-  color: COLORS.BS_BLUE_TEXT,
+  color: `var(--cocalc-link, ${COLORS.BS_BLUE_TEXT})`,
 } as const;
 
 const PROSE_BEGIN_STYLE_ABSTRACT = {
   ...PROSE_LABEL_STYLE,
-  color: COLORS.GRAY_D,
+  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_D})`,
   fontStyle: "italic",
 } as const;
 
 const PROSE_END_STYLE = {
   ...PROSE_LABEL_STYLE,
-  color: COLORS.GRAY,
+  color: `var(--cocalc-text-tertiary, ${COLORS.GRAY})`,
   fontWeight: 500,
 } as const;
 
@@ -254,13 +254,14 @@ export function CodeListingEnv(props: WidgetProps) {
         style={{
           fontFamily: "monospace",
           fontSize: "0.95em",
-          background: COLORS.GRAY_LL,
+          background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LL})`,
+          color: `var(--cocalc-text-primary, ${COLORS.GRAY_DD})`,
           padding: "6px 10px",
           borderRadius: 3,
           margin: 0,
           whiteSpace: "pre",
           overflowX: "auto",
-          borderLeft: `3px solid ${COLORS.GRAY}`,
+          borderLeft: `3px solid var(--cocalc-border, ${COLORS.GRAY})`,
         }}
         title={`${envName} env — ${props.descriptor.source.length} chars`}
       >

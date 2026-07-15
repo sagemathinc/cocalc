@@ -94,7 +94,7 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
 
   function iso(d) {
     try {
-      return <div style={{ color: "#666" }}>{d.toISOString()}</div>;
+      return <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>{d.toISOString()}</div>;
     } catch (err) {
       return `${err}`;
     }

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -53,6 +53,41 @@ export const SENDGRID_TEMPLATE_ID = "0375d02c-945f-4415-a611-7dc3411e2a78";
 export const SENDGRID_ASM_INVITES = 699;
 export const SENDGRID_ASM_NEWSLETTER = 698;
 
+// Re-export the dynamic theme system so consumers can import from here
+export {
+  adjustThemeIntensity,
+  type BaseColors,
+  COLOR_THEMES,
+  type ColorTheme,
+  type ColorThemeId,
+  deriveAccessibilityTheme,
+  deriveDarkTheme,
+  deriveTheme,
+  generateRandomizedBaseColors,
+  getColorTheme,
+  getRandomizedTheme,
+  hexToRgb,
+  LEGACY_OTHER_SETTINGS_THEME_BRIGHTNESS,
+  luminance,
+  mixColors,
+  type NativeDarkMode,
+  normalizeThemeIntensity,
+  OTHER_SETTINGS_COLOR_THEME,
+  OTHER_SETTINGS_CUSTOM_THEME_COLORS,
+  OTHER_SETTINGS_NATIVE_DARK_MODE,
+  OTHER_SETTINGS_RANDOM_THEME_SEED,
+  OTHER_SETTINGS_THEME_INTENSITY,
+  PRESET_BASE_COLORS,
+  THEME_INTENSITY_DEFAULT,
+  THEME_INTENSITY_MAX,
+  THEME_INTENSITY_MIN,
+  lighten,
+  resolveUserTheme,
+  THEME_CUSTOM_ID,
+  THEME_DEFAULT,
+  THEME_RANDOMIZED_ID,
+} from "./theme-colors";
+
 // This is the applications color scheme
 const MAIN_COLORS = {
   BLUE_DDD: "#0E2B59",
@@ -78,6 +113,7 @@ const MAIN_COLORS = {
   GRAY_L0: "#e0e0e0",
   GRAY_LL: "#eeeeee",
   GRAY_LLL: "#f5f5f5",
+  GRAY_LLLL: "#fafafa",
   WHITE: "#ffffff",
   // bootstrap 3 colors
   BS_GREEN_BGRND: "rgb(92,184,92)",

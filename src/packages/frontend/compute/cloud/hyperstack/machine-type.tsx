@@ -130,7 +130,7 @@ function getLabel(x: PurchaseOption, priceData) {
           {!cpuOnly && <>{x.available ?? 0} available in</>}{" "}
           {capitalize(x.region_name.toLowerCase().split("-")[0])} 🍃
         </div>
-        <div style={{ flex: 1, color: "#888" }}>
+        <div style={{ flex: 1, color: "var(--cocalc-text-tertiary, #888)" }}>
           {/* humanFlavor(x.flavor_name) */}
         </div>
         <div style={{ flex: 1 }}>
@@ -250,7 +250,7 @@ export default function MachineType({
   }
 
   return (
-    <div style={{ color: "#666" }}>
+    <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
       {(state == "off" || state == "deprovisioned") && (
         <div style={{ float: "right", display: "flex", marginLeft: "15px" }}>
           <Tooltip

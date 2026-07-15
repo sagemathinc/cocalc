@@ -73,9 +73,9 @@ export default function CloudFilesystem({
         opacity: deleting ? 0.5 : undefined,
         width: "100%",
         minWidth: "500px",
-        border: `0.5px solid ${color ?? "#f0f0f0"}`,
-        borderRight: `10px solid ${color ?? "#aaa"}`,
-        borderLeft: `10px solid ${color ?? "#aaa"}`,
+        border: `0.5px solid ${color ?? "var(--cocalc-border-light, #f0f0f0)"}`,
+        borderRight: `10px solid ${color ?? "var(--cocalc-text-tertiary, #aaa)"}`,
+        borderLeft: `10px solid ${color ?? "var(--cocalc-text-tertiary, #aaa)"}`,
         ...style,
       }}
     >
@@ -173,7 +173,7 @@ export default function CloudFilesystem({
           />
         }
         description={
-          <div style={{ color: "#666" }}>
+          <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
             <ShowError setError={setError} error={error} />
             Cloud File System{" "}
             <BytesUsed {...cloudFilesystem} show={show?.setShowMetrics} />,{" "}
@@ -268,7 +268,7 @@ function BytesUsed({ bytes_used, show }: { bytes_used?; show }) {
   return (
     <span style={{ cursor: "pointer" }} onClick={() => show(true)}>
       storing{" "}
-      <span style={{ color: "#666", fontWeight: "bold" }}>
+      <span style={{ color: "var(--cocalc-text-secondary, #666)", fontWeight: "bold" }}>
         {human_readable_size(bytes_used ?? 0)}
       </span>
     </span>

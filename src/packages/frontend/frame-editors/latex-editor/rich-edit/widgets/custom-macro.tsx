@@ -32,24 +32,24 @@ const CHIP_STYLE = {
   display: "inline-block",
   padding: "0 6px",
   borderRadius: 3,
-  background: COLORS.GRAY_LL,
-  color: COLORS.GRAY_D,
+  background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LL})`,
+  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_D})`,
   fontSize: "0.85em",
   fontFamily: "sans-serif",
-  border: `1px solid ${COLORS.GRAY_L}`,
+  border: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
   verticalAlign: "baseline",
 } as const;
 
 const NAME_STYLE = {
   fontFamily: "monospace",
   fontWeight: 600,
-  color: COLORS.BS_BLUE_TEXT,
+  color: `var(--cocalc-link, ${COLORS.BS_BLUE_TEXT})`,
   marginRight: 4,
 } as const;
 
 const CONTENT_STYLE = {
   fontStyle: "italic",
-  color: COLORS.GRAY,
+  color: `var(--cocalc-text-tertiary, ${COLORS.GRAY})`,
   // Keep the chip compact — long content gets truncated with
   // ellipsis. The full source is visible on hover via the Widget
   // wrapper's Tooltip.

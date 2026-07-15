@@ -38,9 +38,9 @@ export function ColumnHeading({
       style={{
         cursor: "pointer",
         color: "#428bca",
-        background: "rgb(250, 250, 250)",
+        background: "var(--cocalc-bg-hover, rgb(250, 250, 250))",
         padding: "10px 5px",
-        border: "1px solid #eee",
+        border: "1px solid var(--cocalc-border-light, #eee)",
         position: "relative",
       }}
     >

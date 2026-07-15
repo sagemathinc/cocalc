@@ -43,7 +43,7 @@ const STYLE: CSS = {
   // marginbottom: "1ex",
   // minheight: "2em",
   border: "0px",
-  background: "#fff",
+  background: "var(--cocalc-bg-base, #fff)",
 } as const;
 
 export interface Props {

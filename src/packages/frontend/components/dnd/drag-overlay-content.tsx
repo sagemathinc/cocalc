@@ -10,7 +10,7 @@ type Variant = "valid" | "neutral" | "invalid";
 const VARIANT_COLORS: Record<Variant, string> = {
   valid: `${COLORS.ANTD_LINK_BLUE}e0`,
   neutral: `${COLORS.GRAY_D}d0`,
-  invalid: `${COLORS.ANTD_RED}e0`,
+  invalid: "var(--cocalc-error, #f5222de0)",
 };
 
 interface Props {
@@ -25,7 +25,7 @@ export function DragOverlayContent({ icon, text, variant }: Props) {
       style={{
         ...DRAG_OVERLAY_STYLE,
         background: VARIANT_COLORS[variant],
-        color: COLORS.WHITE,
+        color: "var(--cocalc-text-on-primary, white)",
       }}
     >
       <Icon name={icon} style={{ marginRight: 6 }} />

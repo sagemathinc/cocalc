@@ -207,7 +207,7 @@ function CoursePanelWrapper(props: FrameProps) {
     <div
       style={{
         padding: "0 15px",
-        background: "#fafafa",
+        background: "var(--cocalc-bg-elevated, #fafafa)",
       }}
       className="smc-vfill"
     >

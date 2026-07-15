@@ -10,7 +10,6 @@ import {
   compute_image2name,
   is_custom_image,
 } from "@cocalc/frontend/custom-software/util";
-import { COLORS } from "@cocalc/util/theme";
 
 interface DisplayProps {
   image?: string;
@@ -49,7 +48,7 @@ export function SoftwareImageDisplay({ image }: DisplayProps) {
       return (
         <>
           {img_data.get("display")}{" "}
-          <span style={{ color: COLORS.GRAY, fontFamily: "monospace" }}>
+          <span style={{ color: "var(--cocalc-text-secondary, #808080)", fontFamily: "monospace" }}>
             ({name})
           </span>
         </>

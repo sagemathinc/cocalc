@@ -24,7 +24,7 @@ const STYLE: CSSProperties = {
 };
 
 const InnerStyle: CSSProperties = {
-  border: "1px solid rgb(207, 207, 207)",
+  border: "1px solid var(--cocalc-border, rgb(207, 207, 207))",
   borderRadius: "2px",
   padding: "5px 25px",
 };

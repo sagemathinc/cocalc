@@ -95,7 +95,7 @@ function EditNumber({ field, obj, spec }) {
   } else {
     return (
       <ClickToEdit empty={value == null}>
-        <Icon name="pencil" style={{ marginRight: "8px", color: "#666" }} />
+        <Icon name="pencil" style={{ marginRight: "8px", color: "var(--cocalc-text-secondary, #666)" }} />
         {value != null ? displayFormatter(value) : ""}
       </ClickToEdit>
     );

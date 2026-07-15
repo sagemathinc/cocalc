@@ -128,7 +128,7 @@ export default function Pages() {
           </div>
           <DragHandle
             id={`${sortedPageIds.get(index)}`}
-            style={{ marginRight: "5px", color: "#999" }}
+            style={{ marginRight: "5px", color: "var(--cocalc-text-tertiary, #999)" }}
           />
           <Overview
             margin={15}
@@ -141,8 +141,8 @@ export default function Pages() {
             navMap={"page"}
             style={{
               pointerEvents: "none",
-              background: "white",
-              border: "1px solid #ccc",
+              background: "var(--cocalc-bg-base, white)",
+              border: "1px solid var(--cocalc-border, #ccc)",
               borderRadius: "5px",
             }}
             maxScale={2}
@@ -158,7 +158,7 @@ export default function Pages() {
   };
 
   return (
-    <div className="smc-vfill" ref={divRef} style={{ background: "#eee" }}>
+    <div className="smc-vfill" ref={divRef} style={{ background: "var(--cocalc-bg-hover, #eee)" }}>
       <SortableList
         items={sortedPageIds.toJS()}
         Item={({ id }) => {

@@ -39,7 +39,6 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import * as misc from "@cocalc/util/misc";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
-import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
 import { ComputeImageSelector } from "./compute-image-selector";
 import { RestartProject } from "./restart-project";
@@ -63,7 +62,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
 
   function render_state() {
     return (
-      <span style={{ fontSize: "12pt", color: COLORS.GRAY_M }}>
+      <span style={{ fontSize: "12pt", color: "var(--cocalc-text-primary, #5f5f5f)" }}>
         <ProjectState show_desc={true} state={project.get("state")} />
       </span>
     );
@@ -78,10 +77,10 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     if (date == null) {
       // e.g., viewing as admin where the info about idle timeout
       // horizon simply isn't known.
-      return <span style={{ color: COLORS.GRAY_M }}>(not available)</span>;
+      return <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>(not available)</span>;
     }
     return (
-      <span style={{ color: COLORS.GRAY_M }}>
+      <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
         <Icon name="hourglass-half" />{" "}
         <FormattedMessage
           id="project.settings.control.idle_timeout.info"
@@ -186,7 +185,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         style={rowStyle()}
         vertical={isFlyout}
       >
-        <span style={{ color: COLORS.GRAY_M }}>
+        <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           <Icon name="clock" />{" "}
           <FormattedMessage
             id="project.settings.control.uptime.info"
@@ -217,7 +216,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         style={rowStyle(true)}
         vertical={isFlyout}
       >
-        <span style={{ color: COLORS.GRAY_M }}>
+        <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           <Icon name="calculator" />{" "}
           <FormattedMessage
             id="project.settings.control.cpu_usage.info"
@@ -271,14 +270,14 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
 
   function render_custom_compute_image() {
     return (
-      <div style={{ color: COLORS.GRAY_M }}>
+      <div style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
         <div style={{ fontSize: "11pt" }}>
           <div>
             <Icon name={SOFTWARE_ENVIRONMENT_ICON} /> Custom image:
           </div>
           <SoftwareImageDisplay image={compute_image} />
           &nbsp;
-          <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
+          <span style={{ color: "var(--cocalc-text-secondary, #808080)", fontSize: "11pt" }}>
             <br /> You cannot change a custom software image. Instead, create a
             new project and select it there.{" "}
             <a

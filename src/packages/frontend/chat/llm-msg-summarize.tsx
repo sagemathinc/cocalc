@@ -15,7 +15,6 @@ import LLMSelector, {
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { ChatMessageTyped } from "./types";
 
@@ -115,7 +114,7 @@ export function SummarizeThread({
         placement={"bottom"}
         title={"Summarize this thread using a language model."}
       >
-        <Button type="text" style={{ color: COLORS.GRAY_M }}>
+        <Button type="text" style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           <AIAvatar size={16} style={{ top: 0 }} />
           Summarize…
         </Button>

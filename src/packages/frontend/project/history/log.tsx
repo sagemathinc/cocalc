@@ -189,7 +189,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
     return (
       <div
         className="smc-vfill"
-        style={{ border: "1px solid #ccc", borderRadius: "3px" }}
+        style={{ border: "1px solid var(--cocalc-border, #ccc)", borderRadius: "3px" }}
       >
         {render_log_entries()}
       </div>

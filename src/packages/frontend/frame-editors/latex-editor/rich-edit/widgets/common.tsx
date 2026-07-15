@@ -96,7 +96,7 @@ export function Widget({
           // a pointer reads better than the text I-beam (which felt
           // wrong over non-text widgets like images).
           cursor: "pointer",
-          background: hover ? COLORS.GRAY_LL : "transparent",
+          background: hover ? `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})` : "transparent",
           borderRadius: 2,
           padding: "0 1px",
           ...style,
@@ -113,7 +113,7 @@ export function EmptyPlaceholder({ label }: { label: string }) {
   return (
     <span
       style={{
-        color: COLORS.GRAY_L,
+        color: `var(--cocalc-text-muted, ${COLORS.GRAY_L})`,
         fontStyle: "italic",
         fontSize: "0.9em",
       }}

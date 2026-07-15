@@ -4,5 +4,5 @@ export default function CloudFilesystemLog({
   id: number;
   style?;
 }) {
-  return <div style={{ color: "#666", ...style }}>Log</div>;
+  return <div style={{ color: "var(--cocalc-text-secondary, #666)", ...style }}>Log</div>;
 }

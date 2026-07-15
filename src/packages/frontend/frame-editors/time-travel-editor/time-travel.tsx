@@ -443,8 +443,8 @@ export function TimeTravel(props: Props) {
     return (
       <div
         style={{
-          background: props.is_current ? "#fafafa" : "#ddd",
-          borderBottom: "1px solid #ccc",
+          background: props.is_current ? "var(--cocalc-bg-elevated, #fafafa)" : "#ddd",
+          borderBottom: "1px solid var(--cocalc-border, #ccc)",
           padding: "5px",
         }}
       >
@@ -543,7 +543,7 @@ export function TimeTravel(props: Props) {
         style={{
           padding: "5px 0 5px 15px",
           borderTop: "1px solid #ddd",
-          background: "#fafafa",
+          background: "var(--cocalc-bg-elevated, #fafafa)",
           marginLeft: "5px",
         }}
       >

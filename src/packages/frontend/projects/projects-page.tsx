@@ -23,7 +23,6 @@ import {
 import { Icon, Loading, LoginLink, Title } from "@cocalc/frontend/components";
 import { Footer } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 
 import { NewProjectCreator } from "./create-project";
 import { LoadAllProjects } from "./projects-load-all";
@@ -39,7 +38,7 @@ import { FilenameSearch } from "./filename-search";
 const LOADING_STYLE: CSS = {
   fontSize: "40px",
   textAlign: "center",
-  color: COLORS.GRAY,
+  color: "var(--cocalc-text-secondary, #808080)",
 } as const;
 
 export const ProjectsPage: React.FC = () => {

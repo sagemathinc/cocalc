@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -42,7 +42,7 @@ type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
 import "@cocalc/frontend/codemirror/init";
 
 export const BLURED_STYLE: CSSProperties = {
-  border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
+  border: "1px solid var(--cocalc-border, rgb(204,204,204))", // focused will be rgb(112, 178, 230);
   borderRadius: "5px",
 } as const;
 
@@ -656,7 +656,7 @@ export function MarkdownInput(props: Props) {
           color: "#767676",
           fontSize: "12px",
           padding: "2.5px 15px",
-          background: "white",
+          background: "var(--cocalc-bg-base, white)",
           ...instructionsStyle,
         }}
       >
@@ -681,7 +681,7 @@ export function MarkdownInput(props: Props) {
           color: "#767676",
           fontSize: "12px",
           padding: "3px 15px",
-          background: "white",
+          background: "var(--cocalc-bg-base, white)",
           ...instructionsStyle,
         }}
       >

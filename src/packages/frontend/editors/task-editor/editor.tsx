@@ -56,7 +56,7 @@ export function TaskEditor({
           fontSize: "40px",
           textAlign: "center",
           padding: "15px",
-          color: "#999",
+          color: "var(--cocalc-text-tertiary, #999)",
         }}
       >
         <Loading />

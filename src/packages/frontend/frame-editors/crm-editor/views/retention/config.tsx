@@ -103,7 +103,7 @@ export default function RetentionConfig({
   };
 
   return (
-    <div style={{ paddingBottom: "5px", borderBottom: "1px solid #ccc" }}>
+    <div style={{ paddingBottom: "5px", borderBottom: "1px solid var(--cocalc-border, #ccc)" }}>
       <Form form={form} layout="inline">
         <Select
           style={{ width: "275px", marginRight: "15px" }}

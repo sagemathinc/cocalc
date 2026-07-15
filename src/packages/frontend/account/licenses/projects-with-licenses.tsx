@@ -44,7 +44,7 @@ export function ProjectsWithLicenses({}) {
     return (
       <Row
         key={projects[index]?.project_id}
-        style={{ borderBottom: "1px solid lightgrey", cursor: "pointer" }}
+        style={{ borderBottom: "1px solid var(--cocalc-border-light, lightgray)", cursor: "pointer" }}
         onClick={() => {
           setProjectId(project_id);
         }}

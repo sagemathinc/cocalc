@@ -35,9 +35,9 @@ export class ProjectQuotaFreeTable extends Component {
             title="Free servers"
             tip="Many free projects are crammed together inside weaker compute machines, competing for CPU, RAM and I/O."
           >
-            <span style={{ fontWeight: "bold", color: "#666" }}>low-grade</span>
+            <span style={{ fontWeight: "bold", color: "var(--cocalc-text-secondary, #666)" }}>low-grade</span>
             <Gap />
-            <span style={{ color: "#999" }}>Server hosting</span>
+            <span style={{ color: "var(--cocalc-text-tertiary, #999)" }}>Server hosting</span>
           </Tip>
         </div>
         <div style={{ marginBottom: "5px", marginLeft: "10px" }}>
@@ -45,9 +45,9 @@ export class ProjectQuotaFreeTable extends Component {
             title="Internet access"
             tip="Despite working inside a web-browser, free projects are not allowed to directly access the internet due to security/abuse reasons."
           >
-            <span style={{ fontWeight: "bold", color: "#666" }}>no</span>
+            <span style={{ fontWeight: "bold", color: "var(--cocalc-text-secondary, #666)" }}>no</span>
             <Gap />
-            <span style={{ color: "#999" }}>Internet access</span>
+            <span style={{ color: "var(--cocalc-text-tertiary, #999)" }}>Internet access</span>
           </Tip>
         </div>
         {PROJECT_UPGRADES.field_order

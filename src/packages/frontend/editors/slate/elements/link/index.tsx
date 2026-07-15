@@ -11,7 +11,7 @@ import { dict } from "@cocalc/util/misc";
 import { register, SlateElement } from "../register";
 
 export const LINK_STYLE: CSS = {
-  backgroundColor: "white",
+  backgroundColor: "var(--cocalc-bg-base, white)",
   padding: "1px",
   margin: "-1px", // so the position isn't changed; important when background is white so doesn't look weird.
   borderRadius: "2px",

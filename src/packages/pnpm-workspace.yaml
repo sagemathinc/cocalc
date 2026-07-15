@@ -38,6 +38,7 @@ minimumReleaseAgeExclude: []
 # on an old broken version, which broke due to somebody deleting the request
 # dependency of retry-request.
 overrides:
+  dayjs: 1.11.13
   follow-redirects@<=1.15.11: 1.16.0
   es5-ext@<0.10.63: ^0.10.63
   undici@<5.28.3: ^5.28.4

@@ -131,7 +131,7 @@ class ProjectUpgradesTable extends Component<reduxProps, State> {
     return (
       <Row
         key={project_id}
-        style={darker ? { backgroundColor: "#eee" } : undefined}
+        style={darker ? { backgroundColor: "var(--cocalc-bg-hover, #eee)" } : undefined}
       >
         <Col sm={4}>
           <ProjectTitle

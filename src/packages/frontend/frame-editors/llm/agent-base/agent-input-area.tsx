@@ -12,7 +12,6 @@ import { Button, Tooltip } from "antd";
 import { useEffect, useRef } from "react";
 
 import { Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 
 import type { AgentSession } from "./types";
 import { INPUT_AREA_STYLE } from "./types";
@@ -46,7 +45,7 @@ export function AgentRollbackHint({
     <div
       style={{
         fontSize: "0.8em",
-        color: COLORS.GRAY_M,
+        color: "var(--cocalc-text-primary, #5f5f5f)",
         textAlign: "center",
       }}
     >
@@ -61,7 +60,7 @@ export function AgentRollbackHint({
           minWidth: 0,
           fontSize: "inherit",
           lineHeight: "inherit",
-          color: COLORS.GRAY_M,
+          color: "var(--cocalc-text-primary, #5f5f5f)",
         }}
       >
         TimeTravel
@@ -194,8 +193,8 @@ export function AgentInputArea({
                     height: "36px",
                     ...(doneHighlight
                       ? {
-                          background: COLORS.BS_GREEN,
-                          borderColor: COLORS.BS_GREEN,
+                          background: "var(--cocalc-success, #5CB85C)",
+                          borderColor: "var(--cocalc-success, #5CB85C)",
                         }
                       : {}),
                   }}

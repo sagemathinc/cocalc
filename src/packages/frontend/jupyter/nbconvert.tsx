@@ -320,7 +320,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
           return (
             <div>
               <Loading
-                style={{ fontSize: "20px", color: "#666" }}
+                style={{ fontSize: "20px", color: "var(--cocalc-text-secondary, #666)" }}
                 text="Exporting..."
               />{" "}
               <ProgressEstimate

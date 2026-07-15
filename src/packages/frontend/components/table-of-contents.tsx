@@ -148,7 +148,7 @@ function Header({
           <Icon
             name={icon}
             style={{
-              color: iconColor ?? "#666",
+              color: iconColor ?? "var(--cocalc-text-secondary, #666)",
               marginLeft:
                 level == 1
                   ? "5px"

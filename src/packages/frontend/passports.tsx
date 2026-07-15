@@ -80,8 +80,8 @@ const PASSPORT_ICON_STYLES = {
     color: "white",
   },
   github: {
-    backgroundColor: "white",
-    color: "black",
+    backgroundColor: "var(--cocalc-bg-base, white)",
+    color: "var(--cocalc-text-primary, black)",
   },
   sso: {
     backgroundColor: "black",

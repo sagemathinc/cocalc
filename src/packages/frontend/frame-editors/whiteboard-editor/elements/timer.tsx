@@ -69,7 +69,7 @@ export default function Stopwatch({ element, focused, readOnly }: Props) {
         timeStyle={timeStyle}
         style={{
           overflow: "scroll",
-          border: "1px solid lightgrey",
+          border: "1px solid var(--cocalc-border-light, lightgray)",
           borderRadius: "5px",
           boxShadow: "0 0 5px grey",
         }}

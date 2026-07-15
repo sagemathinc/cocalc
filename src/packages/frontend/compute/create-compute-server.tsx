@@ -301,7 +301,7 @@ export default function CreateComputeServer({
         title={
           <div>
             <div style={{ display: "flex" }}>Create Compute Server</div>
-            <div style={{ textAlign: "center", color: "#666" }}>
+            <div style={{ textAlign: "center", color: "var(--cocalc-text-secondary, #666)" }}>
               {showTemplates && (
                 <PublicTemplates
                   disabled={loadingTemplate}
@@ -334,7 +334,7 @@ export default function CreateComputeServer({
             <div
               style={{
                 marginBottom: "5px",
-                color: "#666",
+                color: "var(--cocalc-text-secondary, #666)",
                 textAlign: "center",
               }}
             >
@@ -352,7 +352,7 @@ export default function CreateComputeServer({
             <div
               style={{
                 marginBottom: "5px",
-                color: "#666",
+                color: "var(--cocalc-text-secondary, #666)",
                 textAlign: "center",
               }}
             >

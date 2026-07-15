@@ -9,7 +9,6 @@ import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-mark
 import { labels } from "@cocalc/frontend/i18n";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { get_array_range, plural } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import Message from "./message";
 import { Folder, isFolder } from "./types";
 import useCommand from "./use-command";
@@ -374,8 +373,8 @@ function ShowAllThreads({
         style={{
           margin: "5px 15px",
           paddingRight: "20px",
-          background: focused ? "#eee" : index % 2 ? "#f2f6fc" : "white",
-          border: focused ? `1px solid #ccc` : `1px solid transparent`,
+          background: focused ? "var(--cocalc-bg-hover, #eee)" : index % 2 ? "#f2f6fc" : "white",
+          border: focused ? `1px solid var(--cocalc-border, #ccc)` : `1px solid transparent`,
           borderRadius: "5px",
         }}
       >
@@ -443,7 +442,7 @@ function ShowAllThreads({
           }
           style={{
             fontSize: "14pt",
-            color: COLORS.GRAY_M,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
             marginLeft: "24px",
             marginRight: "30px",
           }}
@@ -462,7 +461,7 @@ function ShowAllThreads({
       </Flex>
       <div
         className="smc-vfill"
-        style={{ border: "1px solid #ccc", borderRadius: "3px" }}
+        style={{ border: "1px solid var(--cocalc-border, #ccc)", borderRadius: "3px" }}
       >
         {filteredMessages != null && (
           <ScrollableList
@@ -579,7 +578,7 @@ function ShowOneThread({
         >
           <Icon
             name="left-circle-o"
-            style={{ fontSize: "14pt", color: COLORS.GRAY_M }}
+            style={{ fontSize: "14pt", color: "var(--cocalc-text-primary, #5f5f5f)" }}
           />
           {intl.formatMessage(labels.back)}
         </Button>

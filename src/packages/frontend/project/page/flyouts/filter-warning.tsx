@@ -50,7 +50,7 @@ export function FlyoutClearFilter({
       <Button
         size="small"
         type="text"
-        style={{ float: "right", color: COLORS.GRAY_M }}
+        style={{ float: "right", color: "var(--cocalc-text-primary, #5f5f5f)" }}
         onClick={() => setFilter("")}
         icon={<Icon name="close-circle-filled" />}
       />
@@ -111,7 +111,7 @@ export const FlyoutClipboardBanner: React.FC<{
             <Button
               size="small"
               type="text"
-              style={{ float: "right", color: COLORS.GRAY_M }}
+              style={{ float: "right", color: "var(--cocalc-text-primary, #5f5f5f)" }}
               onClick={(e) => {
                 e.stopPropagation();
                 clear();

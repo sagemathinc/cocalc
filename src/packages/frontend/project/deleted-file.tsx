@@ -31,7 +31,7 @@ export default function DeletedFile({ project_id, path, time }: Props) {
   }, []);
 
   return (
-    <div className="smc-vfill" style={{ background: "#aaa" }}>
+    <div className="smc-vfill" style={{ background: "var(--cocalc-text-tertiary, #aaa)" }}>
       <Modal
         open={open}
         title={

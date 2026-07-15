@@ -172,7 +172,7 @@ export default function Students({ actions, unit, onClose }: Props) {
       key="all"
       style={{
         minHeight: "32px" /* this avoids a flicker */,
-        borderBottom: "1px solid #ccc",
+        borderBottom: "1px solid var(--cocalc-border, #ccc)",
         paddingBottom: "15px",
       }}
     >

@@ -44,7 +44,6 @@ import { DeletedProjectWarning } from "../warnings/deleted";
 import { DiskSpaceWarning } from "../warnings/disk-space";
 import { OOMWarning } from "../warnings/oom";
 import { RamWarning } from "../warnings/ram";
-import { FIX_BORDERS } from "./common";
 import { Content } from "./content";
 import { isFixedTab } from "./file-tab";
 import { FlyoutBody } from "./flyouts/body";
@@ -55,12 +54,9 @@ import {
   getFlyoutWidth,
   storeFlyoutState,
 } from "./flyouts/state";
-import HomePageButton from "./home-page/button";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
-import ProjectTabs, {
-  FIXED_TABS_BG_COLOR,
-  VerticalFixedTabs,
-} from "./activity-bar-tabs";
+import { TopTabBar } from "./top-tabbar";
+import { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./activity-bar-tabs";
 import { throttle } from "lodash";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import { TOGGLE_ACTIVITY_BAR_TOGGLE_BUTTON_SPACE } from "./activity-bar-consts";
@@ -266,9 +262,24 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     if (!flyout) return;
     if (fullscreen && fullscreen !== "project") return;
 
+    // Flyout is a single column: header on top, body fills remaining height.
+    // The dragbar sits to the right as a full-height resizer.
     return (
       <div style={{ display: "flex", flexDirection: "row" }}>
-        <FlyoutBody flyout={flyout} flyoutWidth={flyoutWidth} />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          <FlyoutHeader
+            flyoutWidth={flyoutWidth}
+            flyout={flyout}
+            narrowerPX={narrowerPX}
+          />
+          <FlyoutBody flyout={flyout} flyoutWidth={flyoutWidth} />
+        </div>
         <DndContext
           onDragStart={() => setOldFlyoutWidth(flyoutWidth)}
           onDragEnd={(e) => updateDrag(e)}
@@ -279,38 +290,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             oldFlyoutWidth={oldFlyoutWidth}
           />
         </DndContext>
-      </div>
-    );
-  }
-
-  function renderFlyoutHeader() {
-    if (!flyout) return;
-    return (
-      <FlyoutHeader
-        flyoutWidth={flyoutWidth}
-        flyout={flyout}
-        narrowerPX={narrowerPX}
-      />
-    );
-  }
-
-  function renderTopRow() {
-    if (fullscreen && fullscreen !== "project") return;
-
-    // CSS note: the paddingTop is here to not make the tabs touch the top row (looks funny)
-    // this was part of the container-content div, which makes little sense for e.g. the banner bars
-    return (
-      <div style={{ display: "flex", height: "36px" }}>
-        <HomePageButton
-          project_id={project_id}
-          active={active_project_tab == "home"}
-          width={homePageButtonWidth}
-        />
-        {renderFlyoutHeader()}
-        <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
-          <StartButton minimal style={{ margin: "2px 4px 0px 4px" }} />
-          <ProjectTabs project_id={project_id} />
-        </div>
       </div>
     );
   }
@@ -359,8 +338,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             flexDirection: "column",
             background: FIXED_TABS_BG_COLOR,
             borderRadius: "0",
-            borderTop: FIX_BORDERS.borderTop,
-            borderRight: flyout == null ? FIX_BORDERS.borderRight : undefined,
+            borderTop: "5px solid transparent",
           }}
         >
           <VerticalFixedTabs setHomePageButtonWidth={setHomePageButtonWidth} />
@@ -378,6 +356,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
+          background: "var(--cocalc-bg-base, #f9fbff)",
         }}
       >
         {START_BANNER && <StartButton />}
@@ -404,12 +383,22 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         <SoftwareEnvUpgrade project_id={project_id} />
         <ProjectWarningBanner />
         <FileDndProvider project_id={project_id}>
-          {renderTopRow()}
           {is_deleted && <DeletedProjectWarning />}
           <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
             {renderActivityBarButtons()}
             {renderFlyout()}
-            {renderMainContent()}
+            <div
+              style={{
+                flex: "1 1 auto",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+                background: "var(--cocalc-top-bar-bg, #ddd)",
+              }}
+            >
+              <TopTabBar />
+              {renderMainContent(/* bg-base applied inside */)}
+            </div>
           </div>
         </FileDndProvider>
       </div>
@@ -455,7 +444,12 @@ function FlyoutDragbar({
         width: "5px",
         height: "100%",
         cursor: "col-resize",
-        ...(active ? { zIndex: 1000, backgroundColor: COLORS.GRAY } : {}),
+        ...(active
+          ? {
+              zIndex: 1000,
+              backgroundColor: `var(--cocalc-drag-bar-hover, ${COLORS.GRAY})`,
+            }
+          : {}),
       }}
       {...listeners}
       {...attributes}

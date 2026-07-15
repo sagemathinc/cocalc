@@ -10,7 +10,7 @@ export default function Component({ editor, size }) {
         height: "24px",
         width: "46px",
         padding: 0,
-        background: size ? "#ccc" : undefined,
+        background: size ? "var(--cocalc-bg-hover, #ccc)" : undefined,
       }}
       onClick={(font_size) => {
         formatAction(editor, "font_size", font_size);

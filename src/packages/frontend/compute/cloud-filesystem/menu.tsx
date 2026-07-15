@@ -234,7 +234,7 @@ export default function Menu({
         <Button type="text" size={size}>
           <Icon
             name="ellipsis"
-            style={{ fontSize: fontSize ?? "15pt", color: "#000" }}
+            style={{ fontSize: fontSize ?? "15pt", color: "var(--cocalc-text-primary, #000)" }}
             rotate="90"
           />
         </Button>

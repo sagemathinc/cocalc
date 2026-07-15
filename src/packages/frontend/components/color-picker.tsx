@@ -25,7 +25,6 @@ import {
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 import { capitalize } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { Icon } from "./icon";
 
 const Pickers = {
@@ -152,7 +151,7 @@ export default function ColorPicker({
                 float: "right",
                 fontSize: "12px",
                 marginTop: "20px",
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
               }}
             >
               Color Picker

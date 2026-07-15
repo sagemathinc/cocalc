@@ -223,7 +223,7 @@ export default function Views({ table, style }: Props) {
         <div
           style={{
             display: "flex",
-            borderRight: "6px solid #eee",
+            borderRight: "6px solid var(--cocalc-border-light, #eee)",
             maxWidth: "90%",
           }}
         >
@@ -420,7 +420,7 @@ export function SortableItem({
                   key: "delete",
                   label: (
                     <span
-                      style={{ color: "#ff4d4f" }}
+                      style={{ color: "var(--cocalc-error, #ff4d4f)" }}
                       onClick={() => onAction("delete")}
                     >
                       <Icon name="trash" style={{ marginRight: "10px" }} />

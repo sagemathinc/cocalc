@@ -18,7 +18,7 @@ import { moreOutput } from "./static";
 // Support for all the output Jupyter MIME types must be explicitly loaded.
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-frontend";
 
-export default function Output({ element, onClick }) {
+export default function Output({ element, onClick, hasInput = true }) {
   const { project_id, path } = useFrameContext();
   const isMounted = useIsMountedRef();
   const [jupyterActions, setJupyterActions] = useState<
@@ -64,6 +64,16 @@ export default function Output({ element, onClick }) {
     <div
       className="nodrag" /* because of ipywidgets, e.g., sliders */
       onClick={onClick}
+      style={{
+        ...(hasInput
+          ? {
+              marginTop: "6px",
+            }
+          : undefined),
+        border: "1px solid var(--cocalc-border, #cfcfcf)",
+        borderRadius: "4px",
+        padding: "4px",
+      }}
     >
       <CellOutput
         actions={jupyterActions}
@@ -80,6 +90,8 @@ export default function Output({ element, onClick }) {
         style={{
           maxHeight: "80vh",
           overflow: "auto",
+          background: "var(--cocalc-bg-hover, #f8f8f8)",
+          color: "var(--cocalc-text-primary, #303030)",
           display: "block" /* must specify or scroll blocking doesn't work */,
         }}
       />

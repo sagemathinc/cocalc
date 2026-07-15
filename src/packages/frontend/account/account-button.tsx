@@ -53,7 +53,7 @@ export const AccountTabDropdown: React.FC<Props> = (props: AccountTabProps) => {
           height: "30px",
           padding: "8px",
           whiteSpace: "nowrap",
-          ...(is_active && { backgroundColor: "white" }),
+          ...(is_active && { backgroundColor: "var(--cocalc-bg-elevated, white)" }),
         }}
       >
         {icon}

@@ -77,8 +77,8 @@ const BAR_STYLE = {
   flexWrap: "nowrap",
   overflow: "hidden",
   padding: "4px 8px",
-  borderBottom: `1px solid ${COLORS.GRAY_LL}`,
-  background: COLORS.GRAY_LLL,
+  borderBottom: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_LL})`,
+  background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLL})`,
   flexShrink: 0,
   gap: 2,
 } as const;
@@ -96,7 +96,7 @@ const AREA_STYLE = {
 const BTN_STYLE = {
   border: "none",
   background: "transparent",
-  color: COLORS.GRAY_D,
+  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_D})`,
 } as const;
 
 interface Props {

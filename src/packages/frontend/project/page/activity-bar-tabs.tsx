@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -36,11 +36,20 @@ import FileTabs from "./file-tabs";
 import { ShareIndicator } from "./share-indicator";
 
 const INDICATOR_STYLE: React.CSSProperties = {
-  overflow: "hidden",
+  display: "inline-flex",
+  alignItems: "center",
+  height: "100%",
   paddingLeft: "5px",
 } as const;
 
-export const FIXED_TABS_BG_COLOR = "rgba(0, 0, 0, 0.02)";
+const CHAT_INDICATOR_TAB_STYLE: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "stretch",
+  height: "100%",
+  paddingLeft: "5px",
+} as const;
+
+export const FIXED_TABS_BG_COLOR = `var(--cocalc-top-bar-bg, rgba(0, 0, 0, 0.02))`;
 
 interface PTProps {
   project_id: string;
@@ -62,12 +71,13 @@ export default function ProjectTabs(props: PTProps) {
         overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex" }}>
+      <div style={{ display: "flex", height: "100%", alignItems: "stretch" }}>
         <div
           style={{
             display: "flex",
             overflow: "hidden",
             flex: 1,
+            height: "100%",
           }}
         >
           <FileTabs
@@ -78,8 +88,11 @@ export default function ProjectTabs(props: PTProps) {
         </div>
         <div
           style={{
-            display: "inline-flex",
+            display: "flex",
+            alignItems: "stretch",
+            height: "100%",
             marginLeft: "-10px",
+            background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_L0})`,
           }}
         >
           <ShareIndicatorTab activeTab={activeTab} project_id={project_id} />
@@ -185,10 +198,9 @@ export function VerticalFixedTabs({
     if (isAnonymous && v.noAnonymous) {
       continue;
     }
-    const color =
-      activeTab == name
-        ? { color: COLORS.PROJECT.FIXED_LEFT_ACTIVE }
-        : undefined;
+    const color = {
+      color: `var(--cocalc-text-primary, ${COLORS.TAB})`,
+    };
 
     const isActive = (actBar === "flyout" ? active_flyout : activeTab) === name;
 
@@ -196,11 +208,15 @@ export function VerticalFixedTabs({
       ...color,
       margin: "0",
       borderLeft: `4px solid ${
-        isActive ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
+        isActive
+          ? `var(--cocalc-primary, ${COLORS.PROJECT.FIXED_LEFT_ACTIVE})`
+          : "transparent"
       }`,
       // highlight active flyout in flyout-only mode more -- see https://github.com/sagemathinc/cocalc/issues/6855
       ...(isActive && actBar === "flyout"
-        ? { backgroundColor: COLORS.BLUE_LLLL }
+        ? {
+            backgroundColor: `var(--cocalc-top-bar-hover, ${COLORS.BLUE_LLLL})`,
+          }
         : undefined),
     };
 
@@ -375,7 +391,11 @@ function LayoutSelector({ actBar }) {
           icon={<Icon name="layout" />}
           block
           style={{
-            ...(open ? { backgroundColor: COLORS.GRAY_LL } : {}),
+            ...(open
+              ? {
+                  backgroundColor: `var(--cocalc-top-bar-hover, ${COLORS.GRAY_LL})`,
+                }
+              : {}),
           }}
           type="text"
         />
@@ -399,7 +419,7 @@ function ChatIndicatorTab({ activeTab, project_id }): React.JSX.Element | null {
   const chatState = openFileInfo.getIn([path, "chatState"]) as any;
   const chatMode = openFileInfo.getIn([path, "chatMode"]) as any;
   return (
-    <div style={INDICATOR_STYLE}>
+    <div style={CHAT_INDICATOR_TAB_STYLE}>
       <ChatIndicator
         project_id={project_id}
         path={path}

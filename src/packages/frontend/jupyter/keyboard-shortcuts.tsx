@@ -168,7 +168,7 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
           this.delete_shortcut(shortcut);
         }}
         name="times"
-        style={{ color: "#888", paddingLeft: "1ex" }}
+        style={{ color: "var(--cocalc-text-tertiary, #888)", paddingLeft: "1ex" }}
       />
     );
   }
@@ -238,7 +238,7 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
         <Icon
           onClick={cancel_edit}
           name="times"
-          style={{ color: "#888", paddingLeft: "1ex" }}
+          style={{ color: "var(--cocalc-text-tertiary, #888)", paddingLeft: "1ex" }}
         />
       );
     }
@@ -248,14 +248,14 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
         <Icon
           onClick={confirm_edit}
           name="check"
-          style={{ color: "#888", paddingLeft: "1ex" }}
+          style={{ color: "var(--cocalc-text-tertiary, #888)", paddingLeft: "1ex" }}
         />
       );
     }
 
     function render_taken_note(): Rendered {
       return (
-        <span style={{ backgroundColor: "#fff" }}>
+        <span style={{ backgroundColor: "var(--cocalc-bg-base, #fff)" }}>
           <br />
           Shortcut already used by '{taken}'
         </span>
@@ -291,7 +291,7 @@ function capitalize_each_word(s: string): string {
 
 const COMMAND_STYLE: CSS = {
   cursor: "pointer",
-  borderTop: "1px solid #ccc",
+  borderTop: "1px solid var(--cocalc-border, #ccc)",
   padding: "5px 0 5px 10px",
 } as const;
 
@@ -369,7 +369,7 @@ const Command: React.FC<CommandProps> = React.memo((props: CommandProps) => {
 });
 
 const COMMAND_LIST_STYLE: React.CSSProperties = {
-  border: "1px solid #ccc",
+  border: "1px solid var(--cocalc-border, #ccc)",
   borderRadius: "3px",
   overflowY: "scroll",
   maxHeight: "50vh",
@@ -517,7 +517,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
           style={{
             width: "100%",
             fontWeight: "bold",
-            color: "#666",
+            color: "var(--cocalc-text-secondary, #666)",
             marginTop: "15px",
           }}
         >

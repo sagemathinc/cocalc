@@ -419,7 +419,7 @@ export function FilesBottom({
   }
 
   const style: CSS = {
-    background: COLORS.GRAY_LL,
+    background: `var(--cocalc-bg-base, ${COLORS.GRAY_LL})`,
     borderRadius: 0,
     border: "none",
   } as const;
@@ -458,6 +458,7 @@ export function FilesBottom({
         ...style,
         flex: "0 0 auto",
         borderTop: FIX_BORDER,
+        background: "var(--cocalc-bg-base, white)",
       }}
       items={items}
     />

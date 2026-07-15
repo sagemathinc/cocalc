@@ -198,16 +198,16 @@ const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
         whiteSpace: "nowrap",
         opacity: isDragging ? 0.4 : 1,
         background: isOver
-          ? COLORS.BLUE_LL
+          ? `var(--cocalc-bg-hover, ${COLORS.BLUE_LL})`
           : isInvalidDrop
-            ? COLORS.ANTD_RED_WARN
+            ? "var(--cocalc-error, #f5222d)"
             : isSelected
-              ? COLORS.BLUE_LLL
+              ? `var(--cocalc-bg-selected, ${COLORS.BLUE_LLL})`
               : "transparent",
       }}
     >
       {path === "" ? (
-        <Icon name="home" style={{ color: COLORS.FILE_ICON }} />
+        <Icon name="home" style={{ color: "var(--cocalc-primary, rgb(66, 139, 202))" }} />
       ) : (
         <Icon
           name={isStarred ? "star-filled" : "star"}
@@ -317,9 +317,11 @@ function StarredDirItem({
       style={{
         width: "100%",
         cursor: "pointer",
-        color: COLORS.GRAY_D,
+        color: "var(--cocalc-text-primary-strong, #434343)",
         overflow: "hidden",
-        backgroundColor: isSelected ? COLORS.BLUE_LLL : undefined,
+        backgroundColor: isSelected
+          ? `var(--cocalc-bg-selected, ${COLORS.BLUE_LLL})`
+          : undefined,
       }}
     >
       <div
@@ -342,7 +344,7 @@ function StarredDirItem({
           style={{
             fontSize: "120%",
             marginRight: FLYOUT_PADDING,
-            color: COLORS.STAR,
+            color: "var(--cocalc-star, #FFD700)",
             cursor: "pointer",
             flexShrink: 0,
           }}
@@ -694,10 +696,12 @@ export function DirectoryTreePanel({
         style={{
           width: "100%",
           cursor: "pointer",
-          color: COLORS.GRAY_D,
+          color: "var(--cocalc-text-primary-strong, #434343)",
           overflow: "hidden",
           flexShrink: 0,
-          backgroundColor: isHomeSelected ? COLORS.BLUE_LLL : undefined,
+          backgroundColor: isHomeSelected
+            ? `var(--cocalc-bg-selected, ${COLORS.BLUE_LLL})`
+            : undefined,
         }}
       >
         <div
@@ -801,7 +805,7 @@ export function DirectoryTreePanel({
         />
         {!!error && (
           <div
-            style={{ color: COLORS.ANTD_RED, fontSize: "11px", padding: "4px" }}
+            style={{ color: "var(--cocalc-error, #f5222d)", fontSize: "11px", padding: "4px" }}
           >
             {error}
           </div>

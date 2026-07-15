@@ -20,7 +20,7 @@ export default function User({
   return (
     <Card
       style={{ margin: "5px" }}
-      styles={{ header: { backgroundColor: "#eee" } }}
+      styles={{ header: { backgroundColor: "var(--cocalc-bg-hover, #eee)" } }}
       title={
         <>
           {banned && (

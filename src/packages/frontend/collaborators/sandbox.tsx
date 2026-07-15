@@ -104,7 +104,7 @@ export default function Sandbox({ project }: Props) {
       {heading}
       <div
         style={{
-          border: "1px solid #eee",
+          border: "1px solid var(--cocalc-border-light, #eee)",
           borderRadius: "5px",
           padding: "15px",
           marginTop: "5px",

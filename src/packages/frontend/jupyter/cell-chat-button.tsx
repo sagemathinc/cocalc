@@ -11,8 +11,12 @@ import { useFrameContext } from "@cocalc/frontend/app-framework";
 import { useAnchoredThreads } from "@cocalc/frontend/chat/threads";
 import { Icon } from "@cocalc/frontend/components";
 import track from "@cocalc/frontend/user-tracking";
-import { COLORS } from "@cocalc/util/theme";
 import { CODE_BAR_BTN_STYLE } from "./consts";
+
+const MESSAGE_COUNT_BADGE_STYLE: React.CSSProperties = {
+  backgroundColor: "var(--cocalc-bg-hover, #e8e8e8)",
+  color: "var(--cocalc-text-primary-strong, #555)",
+};
 
 /** Always-visible unread badge for a cell. Shows only when there are unread messages. */
 export function CellChatUnreadBadge({
@@ -38,7 +42,9 @@ export function CellChatUnreadBadge({
     .sort((a, b) => b.newestTime - a.newestTime)[0];
 
   return (
-    <Tooltip title={`${totalUnread} unread cell chat message${totalUnread > 1 ? "s" : ""}`}>
+    <Tooltip
+      title={`${totalUnread} unread cell chat message${totalUnread > 1 ? "s" : ""}`}
+    >
       <Badge
         size="small"
         count={totalUnread}
@@ -46,7 +52,9 @@ export function CellChatUnreadBadge({
         onClick={(e) => {
           e.stopPropagation();
           if (newestUnread) {
-            (frameContext.actions as any).openCellChatThread?.(newestUnread.key);
+            (frameContext.actions as any).openCellChatThread?.(
+              newestUnread.key,
+            );
           } else {
             (frameContext.actions as any).openCellChat?.(cellId);
           }
@@ -83,7 +91,9 @@ export function CellChatButton({
   const handleMainClick = () => {
     if (newestUnreadThread) {
       // Open the newest unread thread directly
-      (frameContext.actions as any).openCellChatThread?.(newestUnreadThread.key);
+      (frameContext.actions as any).openCellChatThread?.(
+        newestUnreadThread.key,
+      );
     } else {
       // No unread — default behavior (find or create thread)
       (frameContext.actions as any).openCellChat?.(cellId);
@@ -106,7 +116,11 @@ export function CellChatButton({
           {hasUnread ? (
             <Badge size="small" count={t.unreadCount} />
           ) : (
-            <Badge size="small" count={t.messageCount} color={COLORS.GRAY_L} />
+            <Badge
+              size="small"
+              count={t.messageCount}
+              style={MESSAGE_COUNT_BADGE_STYLE}
+            />
           )}
         </span>
       ),
@@ -140,7 +154,6 @@ export function CellChatButton({
   // Badge: red with unread count if any unread, otherwise gray with total
   const hasUnread = totalUnread > 0;
   const badgeCount = hasUnread ? totalUnread : totalMessages;
-  const badgeColor = hasUnread ? undefined : COLORS.GRAY_L;
 
   return (
     <div>
@@ -160,8 +173,11 @@ export function CellChatButton({
               <Badge
                 size="small"
                 count={badgeCount}
-                color={badgeColor}
-                style={{ marginLeft: 4 }}
+                style={
+                  hasUnread
+                    ? { marginLeft: 4 }
+                    : { ...MESSAGE_COUNT_BADGE_STYLE, marginLeft: 4 }
+                }
               />
             )}
           </span>

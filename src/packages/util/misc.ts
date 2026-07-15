@@ -2701,17 +2701,28 @@ const randomColorCache = new LRU<string, string>({ max: 100 });
  * - max: maxium value for each channel
  * - diff: mimimum difference across channels (increase, to avoid dull gray colors)
  * - seed: seed for the random number generator
+ * - isDark: if true, return a darker color (for dark themes)
  */
 export function getRandomColor(
   s: string,
-  opts?: { min?: number; max?: number; diff?: number; seed?: number },
+  opts?: {
+    min?: number;
+    max?: number;
+    diff?: number;
+    seed?: number;
+    isDark?: boolean;
+  },
 ): string {
   const diff = opts?.diff ?? 0;
-  const min = clip(opts?.min ?? 120, 0, 254);
-  const max = Math.max(min, clip(opts?.max ?? 230, 1, 255));
+  const isDark = opts?.isDark ?? false;
+  // Adjust min/max based on isDark.
+  // For light theme (default): 120-230 (vibrant/bright colors)
+  // For dark theme: 80-180 (vibrant but muted colors, clearly visible on dark bg)
+  const min = clip(opts?.min ?? (isDark ? 80 : 120), 0, 254);
+  const max = Math.max(min, clip(opts?.max ?? (isDark ? 180 : 230), 1, 255));
   const seed = opts?.seed ?? 0;
 
-  const key = `${s}-${min}-${max}-${diff}-${seed}`;
+  const key = `${s}-${min}-${max}-${diff}-${seed}-${isDark}`;
   const cached = randomColorCache.get(key);
   if (cached) {
     return cached;
@@ -2727,15 +2738,16 @@ export function getRandomColor(
     const hash = sha1(val)
       .split("")
       .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
-    const r = (((hash >> 0) & 0xff) % mod) + min;
-    const g = (((hash >> 8) & 0xff) % mod) + min;
-    const b = (((hash >> 16) & 0xff) % mod) + min;
+    let r = (((hash >> 0) & 0xff) % mod) + min;
+    let g = (((hash >> 8) & 0xff) % mod) + min;
+    let b = (((hash >> 16) & 0xff) % mod) + min;
 
     iter += 1;
     if (iter <= iterLimit && diff) {
       const diffVal = Math.abs(r - g) + Math.abs(g - b) + Math.abs(b - r);
       if (diffVal < diff) continue;
     }
+
     const col = `rgb(${r}, ${g}, ${b})`;
     randomColorCache.set(key, col);
     return col;

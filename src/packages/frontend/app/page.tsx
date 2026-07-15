@@ -42,6 +42,7 @@ import { ActiveContent } from "./active-content";
 import { ConnectionIndicator } from "./connection-indicator";
 import { ConnectionInfo } from "./connection-info";
 import { useAppContext } from "./context";
+import { useColorTheme } from "./theme-context";
 import { FullscreenButton } from "./fullscreen-button";
 import GlobalBanner from "./global-banner";
 import { I18NBanner, useShowI18NBanner } from "./i18n-banner";
@@ -76,11 +77,12 @@ const PAGE_STYLE: CSS = {
   height: PAGE_HEIGHT, // see note
   width: "100vw",
   overflow: "hidden",
-  background: "white",
+  background: "var(--cocalc-bg-base, white)",
 } as const;
 
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
+  const colorTheme = useColorTheme();
 
   const { pageStyle } = useAppContext();
   const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
@@ -226,7 +228,7 @@ export const Page: React.FC = () => {
         style={{
           backgroundColor: COLORS.TOP_BAR.SIGN_IN_BG,
           fontSize: "16pt",
-          color: "black",
+          color: "var(--cocalc-text-primary, black)",
           padding: "5px 15px",
         }}
       >
@@ -363,7 +365,7 @@ export const Page: React.FC = () => {
   // Note that the parent is a flex container
   const body = (
     <div
-      style={PAGE_STYLE}
+      style={{ ...PAGE_STYLE, background: colorTheme.bgBase }}
       onDragOver={(e) => e.preventDefault()}
       onDrop={drop}
     >

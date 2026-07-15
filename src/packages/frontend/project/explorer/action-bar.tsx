@@ -24,10 +24,9 @@ import { RefreshButton } from "@cocalc/frontend/project/explorer/refresh-button"
 import type { FileAction } from "@cocalc/frontend/project_actions";
 import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 import * as misc from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 const ROW_INFO_STYLE = {
-  color: COLORS.TAB,
+  color: "var(--cocalc-text-primary-strong, #333333)",
   height: "22px",
   margin: "5px 3px",
 } as const;
@@ -35,8 +34,8 @@ const ROW_INFO_STYLE = {
 /** Shared style for the "active filter" badge buttons.
  *  Used in both the explorer info line and the empty-placeholder. */
 export const ACTIVE_FILTER_BTN_STYLE: React.CSSProperties = {
-  background: COLORS.ANTD_ORANGE,
-  color: "black",
+  background: "var(--cocalc-warning, #ffbb96)",
+  color: "var(--cocalc-text-primary, black)",
   borderRadius: 4,
   whiteSpace: "nowrap",
   marginLeft: 6,
@@ -44,8 +43,8 @@ export const ACTIVE_FILTER_BTN_STYLE: React.CSSProperties = {
 
 /** Green-tinted badge for additive indicators (something is shown, not filtered). */
 const ACTIVE_ADDITIVE_BTN_STYLE: React.CSSProperties = {
-  background: COLORS.ANTD_GREEN,
-  color: "black",
+  background: "var(--cocalc-success, #87d068)",
+  color: "var(--cocalc-text-primary, black)",
   borderRadius: 4,
   whiteSpace: "nowrap",
   marginLeft: 6,
@@ -319,7 +318,7 @@ export const ActionBarInfo: React.FC<
       <Button
         type="text"
         size="small"
-        style={{ color: COLORS.ANTD_LINK_BLUE }}
+        style={{ color: "var(--cocalc-link, #1677ff)" }}
         onClick={props.onSwitchToCurrentPath}
       >
         <Icon name="swap" /> Switch

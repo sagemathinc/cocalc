@@ -87,7 +87,7 @@ export function UserResult({
 
   return (
     <Card
-      style={{ margin: "15px 0", background: "#fafafa" }}
+      style={{ margin: "15px 0", background: "var(--cocalc-bg-elevated, #fafafa)" }}
       styles={{
         body: { padding: "0 24px" },
         title: { padding: "0" },
@@ -102,14 +102,14 @@ export function UserResult({
             name={details ? "minus-square" : "plus-square"}
             style={{ marginRight: "15px" }}
           />
-          <div style={{ float: "right", color: "#666" }}>
+          <div style={{ float: "right", color: "var(--cocalc-text-secondary, #666)" }}>
             Active {renderLastActive()} (Created {renderCreated()})
           </div>
-          <Space style={{ color: "#666" }}>
+          <Space style={{ color: "var(--cocalc-text-secondary, #666)" }}>
             {first_name} {last_name}{" "}
             {email_address ? (
               <CopyToClipBoard
-                style={{ color: "#666" }}
+                style={{ color: "var(--cocalc-text-secondary, #666)" }}
                 value={email_address}
               />
             ) : (
@@ -124,7 +124,7 @@ export function UserResult({
           <div style={{ float: "right" }}>
             <CopyToClipBoard
               copyTip={"Copied account_id!"}
-              style={{ color: "#666" }}
+              style={{ color: "var(--cocalc-text-secondary, #666)" }}
               before
               value={account_id}
             />
