@@ -1268,7 +1268,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
                 # Add hint button if enabled
                 if chatgpt.isHintEnabled(@project_id)
-                    hintButton = $("<span title='Get a hint to help fix this...' style='font-family:sans-serif; margin-right: 5px;' class='btn btn-default'>Give me a hint...</span>")
+                    hintButton = $("<span title='Get a hint to help fix this...' style='font-family:sans-serif; margin-right: 5px; background: var(--cocalc-bg-elevated, white); color: var(--cocalc-text-secondary, black); border: 1px solid var(--cocalc-border, #ccc);' class='btn btn-default'>Give me a hint...</span>")
                     hintButton.click () =>
                         chatgpt.giveMeAHint
                             codemirror : @focused_codemirror()
@@ -1280,7 +1280,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
                 # Add solution button if enabled
                 if chatgpt.isEnabled(@project_id)
-                    solutionButton = $("<span title='Get help to fix this...' style='font-family:sans-serif;' class='btn btn-default'>Help me fix this...</span>")
+                    solutionButton = $("<span title='Get help to fix this...' style='font-family:sans-serif; background: var(--cocalc-bg-elevated, white); color: var(--cocalc-text-secondary, black); border: 1px solid var(--cocalc-border, #ccc);' class='btn btn-default'>Help me fix this...</span>")
                     solutionButton.click () =>
                         chatgpt.helpMeFix
                             codemirror : @focused_codemirror()

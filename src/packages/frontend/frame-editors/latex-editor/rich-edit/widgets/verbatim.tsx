@@ -38,7 +38,8 @@ export function VerbatimEnv(props: WidgetProps) {
         style={{
           fontFamily: "monospace",
           fontSize: "0.95em",
-          background: COLORS.GRAY_LL,
+          background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LL})`,
+          color: `var(--cocalc-text-primary, ${COLORS.GRAY_DD})`,
           padding: "4px 8px",
           borderRadius: 3,
           margin: 0,
@@ -68,7 +69,8 @@ export function Verb(props: WidgetProps) {
           style={{
             fontFamily: "monospace",
             fontSize: "0.95em",
-            background: COLORS.GRAY_LL,
+            background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LL})`,
+            color: `var(--cocalc-text-primary, ${COLORS.GRAY_DD})`,
             padding: "0 3px",
             borderRadius: 2,
           }}

@@ -70,8 +70,8 @@ export function NewFileButton({
     ...STYLE,
     ...(active
       ? {
-          borderColor: COLORS.ANTD_LINK_BLUE,
-          backgroundColor: COLORS.ANTD_BG_BLUE_L,
+          borderColor: `var(--cocalc-primary, ${COLORS.ANTD_LINK_BLUE})`,
+          backgroundColor: `var(--cocalc-primary-lightest, ${COLORS.ANTD_BG_BLUE_L})`,
         }
       : {}),
     ...(mode === "secondary" ? { padding: "5px" } : { width: "100%" }),

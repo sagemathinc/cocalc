@@ -95,10 +95,10 @@ function resolveImageUrl(
 const PLACEHOLDER_STYLE = {
   display: "inline-block",
   padding: "12px 18px",
-  background: COLORS.GRAY_LLL,
-  border: `1px dashed ${COLORS.GRAY_L}`,
+  background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLL})`,
+  border: `1px dashed var(--cocalc-border-light, ${COLORS.GRAY_L})`,
   borderRadius: 4,
-  color: COLORS.GRAY_M,
+  color: `var(--cocalc-text-tertiary, ${COLORS.GRAY_M})`,
   fontFamily: "sans-serif",
   fontSize: "0.85em",
   fontStyle: "italic",

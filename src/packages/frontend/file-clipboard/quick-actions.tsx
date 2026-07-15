@@ -67,7 +67,7 @@ const BTN_STYLE_MIDDLE: React.CSSProperties = {
 };
 
 const INDICATOR_STYLE: React.CSSProperties = {
-  background: COLORS.BLUE_LLL,
+  background: `var(--cocalc-bg-selected, ${COLORS.BLUE_LLL})`,
   color: "var(--cocalc-text-primary-strong, #434343)",
   borderRadius: 3,
 };

@@ -55,7 +55,9 @@ function DroppableSegment({
         padding: "0 2px",
         borderRadius: 3,
         verticalAlign: "baseline",
-        backgroundColor: isOver ? COLORS.BLUE_LL : "transparent",
+        backgroundColor: isOver
+          ? `var(--cocalc-bg-hover, ${COLORS.BLUE_LL})`
+          : "transparent",
       }}
     >
       {children}

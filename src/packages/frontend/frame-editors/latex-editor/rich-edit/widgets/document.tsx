@@ -29,12 +29,12 @@ const NEUTRAL_CHIP_STYLE = {
   display: "inline-block",
   padding: "2px 8px",
   borderRadius: 4,
-  background: COLORS.GRAY_LL,
-  color: COLORS.GRAY_D,
+  background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LL})`,
+  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_D})`,
   fontFamily: "sans-serif",
   fontSize: "0.85em",
   fontWeight: 500,
-  border: `1px dashed ${COLORS.GRAY_L}`,
+  border: `1px dashed var(--cocalc-border-light, ${COLORS.GRAY_L})`,
   letterSpacing: "0.02em",
 } as const;
 
@@ -49,7 +49,7 @@ export function Title(props: WidgetProps) {
           style={{
             fontSize: "1.6em",
             fontWeight: 700,
-            color: COLORS.GRAY_DD,
+            color: `var(--cocalc-text-primary, ${COLORS.GRAY_DD})`,
           }}
         >
           {text}
@@ -69,7 +69,7 @@ export function Author(props: WidgetProps) {
         <span
           style={{
             fontStyle: "italic",
-            color: COLORS.GRAY_D,
+            color: `var(--cocalc-text-secondary, ${COLORS.GRAY_D})`,
           }}
         >
           {text}
@@ -86,7 +86,14 @@ export function DateWidget(props: WidgetProps) {
       {text === "" ? (
         <EmptyPlaceholder label="empty date" />
       ) : (
-        <span style={{ color: COLORS.GRAY, fontSize: "0.95em" }}>{text}</span>
+        <span
+          style={{
+            color: `var(--cocalc-text-tertiary, ${COLORS.GRAY})`,
+            fontSize: "0.95em",
+          }}
+        >
+          {text}
+        </span>
       )}
     </Widget>
   );

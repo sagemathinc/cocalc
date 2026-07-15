@@ -401,7 +401,9 @@ export function LogFlyout({
     const highlight = !scrollIdxHide && index === scrollIdx;
     const bgStyle = {
       ...fileItemStyle(entry.time?.getTime(), false, nowMs),
-      ...(highlight ? { background: COLORS.BLUE_LL } : {}),
+      ...(highlight
+        ? { background: `var(--cocalc-bg-selected, ${COLORS.BLUE_LL})` }
+        : {}),
     };
 
     return (

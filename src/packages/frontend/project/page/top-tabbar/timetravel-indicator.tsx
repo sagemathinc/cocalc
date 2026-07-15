@@ -41,11 +41,11 @@ export function TopBarTimetravelButton({
         size="middle"
         style={{
           // Faint tint of the classic TimeTravel accent color so the
-          // button reads as "time travel" at a glance.
+          // button reads as "time travel" at a glance. No visible
+          // border, to match the borderless AI/Chat buttons alongside it.
           background:
             "color-mix(in srgb, #5bc0de 10%, var(--cocalc-bg-elevated, #fff))",
-          borderColor:
-            "color-mix(in srgb, #5bc0de 35%, var(--cocalc-border-light, #d9d9d9))",
+          borderColor: "transparent",
         }}
         onClick={() => {
           track("time-travel", { source: "top-tabbar", path });

@@ -151,7 +151,9 @@ export function NewsPanel(props: NewsPanelProps) {
         key={id}
         onClick={(e) => newsItemOnClick(e, n)}
         style={{
-          backgroundColor: isUnread ? COLORS.ANTD_BG_BLUE_L : undefined,
+          backgroundColor: isUnread
+            ? `var(--cocalc-bg-selected, ${COLORS.ANTD_BG_BLUE_L})`
+            : undefined,
         }}
         actions={[
           <Button
@@ -181,7 +183,9 @@ export function NewsPanel(props: NewsPanelProps) {
       title={<Title level={4}>{intl.formatMessage(MSGS.news)}</Title>}
       extra={renderNewsPanelExtra()}
       styles={{
-        header: { backgroundColor: COLORS.GRAY_LLL },
+        header: {
+          backgroundColor: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLL})`,
+        },
         body: { padding: "0px" },
       }}
     >

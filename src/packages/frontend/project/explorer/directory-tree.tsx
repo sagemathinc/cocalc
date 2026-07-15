@@ -198,11 +198,11 @@ const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
         whiteSpace: "nowrap",
         opacity: isDragging ? 0.4 : 1,
         background: isOver
-          ? COLORS.BLUE_LL
+          ? `var(--cocalc-bg-hover, ${COLORS.BLUE_LL})`
           : isInvalidDrop
             ? "var(--cocalc-error, #f5222d)"
             : isSelected
-              ? COLORS.BLUE_LLL
+              ? `var(--cocalc-bg-selected, ${COLORS.BLUE_LLL})`
               : "transparent",
       }}
     >
@@ -319,7 +319,9 @@ function StarredDirItem({
         cursor: "pointer",
         color: "var(--cocalc-text-primary-strong, #434343)",
         overflow: "hidden",
-        backgroundColor: isSelected ? COLORS.BLUE_LLL : undefined,
+        backgroundColor: isSelected
+          ? `var(--cocalc-bg-selected, ${COLORS.BLUE_LLL})`
+          : undefined,
       }}
     >
       <div
@@ -697,7 +699,9 @@ export function DirectoryTreePanel({
           color: "var(--cocalc-text-primary-strong, #434343)",
           overflow: "hidden",
           flexShrink: 0,
-          backgroundColor: isHomeSelected ? COLORS.BLUE_LLL : undefined,
+          backgroundColor: isHomeSelected
+            ? `var(--cocalc-bg-selected, ${COLORS.BLUE_LLL})`
+            : undefined,
         }}
       >
         <div

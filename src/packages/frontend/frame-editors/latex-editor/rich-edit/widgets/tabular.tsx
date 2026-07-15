@@ -38,17 +38,17 @@ const TABLE_STYLE = {
 const CELL_STYLE_BASE = {
   padding: "4px 10px",
   verticalAlign: "top",
-  color: COLORS.GRAY_DD,
+  color: `var(--cocalc-text-primary, ${COLORS.GRAY_DD})`,
 } as const;
 
 const BORDER_ROW_STYLE = {
-  borderBottom: `1px solid ${COLORS.GRAY_M}`,
+  borderBottom: `1px solid var(--cocalc-border, ${COLORS.GRAY_M})`,
 } as const;
 
 const EMPTY_BORDER_CELL_STYLE = { padding: 0, lineHeight: "4px" } as const;
 
 const EMPTY_TABULAR_STYLE = {
-  color: COLORS.GRAY_M,
+  color: `var(--cocalc-text-tertiary, ${COLORS.GRAY_M})`,
   fontStyle: "italic",
 } as const;
 

@@ -25,7 +25,7 @@ import { WidgetProps } from "../types";
 import { EmptyPlaceholder, Widget } from "./common";
 
 const LINK_STYLE = {
-  color: COLORS.BS_BLUE_TEXT,
+  color: `var(--cocalc-link, ${COLORS.BS_BLUE_TEXT})`,
   textDecoration: "underline",
 } as const;
 

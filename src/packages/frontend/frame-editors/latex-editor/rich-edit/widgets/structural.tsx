@@ -43,12 +43,14 @@ interface ChipDef {
   accent?: string;
 }
 
+const LINK_ACCENT = `var(--cocalc-link, ${COLORS.BS_BLUE_TEXT})`;
+
 const CHIP_DEFS: Record<string, ChipDef> = {
-  "\\newpage": { glyph: "↵", label: "new page", accent: COLORS.BS_BLUE_TEXT },
+  "\\newpage": { glyph: "↵", label: "new page", accent: LINK_ACCENT },
   "\\clearpage": {
     glyph: "↵",
     label: "clear page",
-    accent: COLORS.BS_BLUE_TEXT,
+    accent: LINK_ACCENT,
   },
   "\\pagebreak": { glyph: "↵", label: "page break" },
   "\\linebreak": { glyph: "↵", label: "line break" },
@@ -61,12 +63,12 @@ const CHIP_STYLE = {
   display: "inline-block",
   padding: "0 6px",
   borderRadius: 3,
-  background: COLORS.GRAY_LL,
-  color: COLORS.GRAY_D,
+  background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LL})`,
+  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_D})`,
   fontSize: "0.78em",
   fontFamily: "sans-serif",
   fontWeight: 500,
-  border: `1px solid ${COLORS.GRAY_L}`,
+  border: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
   letterSpacing: "0.02em",
   verticalAlign: "baseline",
 } as const;
@@ -81,7 +83,14 @@ export function StructuralCommand(props: WidgetProps) {
   if (def == null) {
     return (
       <Widget {...props}>
-        <span style={{ ...CHIP_STYLE, color: COLORS.GRAY_M }}>{cmdName}</span>
+        <span
+          style={{
+            ...CHIP_STYLE,
+            color: `var(--cocalc-text-tertiary, ${COLORS.GRAY_M})`,
+          }}
+        >
+          {cmdName}
+        </span>
       </Widget>
     );
   }

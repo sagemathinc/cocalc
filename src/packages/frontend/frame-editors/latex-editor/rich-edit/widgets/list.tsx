@@ -40,7 +40,7 @@ import { Widget } from "./common";
 const ENV_LABEL_STYLE = {
   fontFamily: "sans-serif",
   fontSize: "0.75em",
-  color: COLORS.GRAY,
+  color: `var(--cocalc-text-tertiary, ${COLORS.GRAY})`,
   fontStyle: "italic",
   letterSpacing: "0.02em",
 } as const;
@@ -48,7 +48,7 @@ const ENV_LABEL_STYLE = {
 const MARKER_STYLE = {
   fontFamily: "sans-serif",
   fontWeight: 600,
-  color: COLORS.GRAY_D,
+  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_D})`,
   marginRight: 4,
 } as const;
 
@@ -163,7 +163,7 @@ export function ListItem(props: WidgetProps) {
           style={{
             fontWeight: 700,
             marginRight: 4,
-            color: COLORS.GRAY_D,
+            color: `var(--cocalc-text-secondary, ${COLORS.GRAY_D})`,
           }}
         >
           {label}
