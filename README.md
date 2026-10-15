@@ -1,5 +1,8 @@
 # CoCalc
 
+
+# MOVED TO https://github.com/sagemathinc/cocalc-ai
+
 [![Make all packages and run their tests](https://github.com/sagemathinc/cocalc/actions/workflows/make-and-test.yml/badge.svg)](https://github.com/sagemathinc/cocalc/actions/workflows/make-and-test.yml)
 
 #### <u>_**Co**_</u>_llaborative_ <u>_**Calc**_</u>_ulation_
